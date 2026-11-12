@@ -1,0 +1,82 @@
+name: iphi
+
+# All published ports bind to 127.0.0.1 (rules.md X-12, ADR 0007).
+# api, worker and migrate are entry points of one image (ADR 0001); only migrate builds it.
+x-backend: &backend
+  image: iphi-backend:local
+  pull_policy: never
+  environment:
+    IPHI_DATABASE_URL: postgresql+psycopg://${IPHI_DB_USER:-iphi}:${IPHI_DB_PASSWORD:-iphi_local_dev}@db:5432/${IPHI_DB_NAME:-iphi}
+    IPHI_LOG_LEVEL: ${IPHI_LOG_LEVEL:-info}
+    IPHI_LOG_FORMAT: ${IPHI_LOG_FORMAT:-json}
+    IPHI_CYCLE_INTERVAL_S: ${IPHI_CYCLE_INTERVAL_S:-5}
+    IPHI_LLM_PROVIDER: ${IPHI_LLM_PROVIDER:-none}
+  read_only: true
+  tmpfs: ["/tmp"]
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: ["ALL"]
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${IPHI_DB_USER:-iphi}
+      # Local development default only; override it in .env (see .env.example).
+      POSTGRES_PASSWORD: ${IPHI_DB_PASSWORD:-iphi_local_dev}
+      POSTGRES_DB: ${IPHI_DB_NAME:-iphi}
+    ports:
+      - "127.0.0.1:${IPHI_DB_PORT:-5433}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    <<: *backend
+    build:
+      context: ./backend
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    <<: *backend
+    ports:
+      - "127.0.0.1:${IPHI_API_PORT:-8000}:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  worker:
+    <<: *backend
+    command: ["python", "-m", "app.worker"]
+    healthcheck:
+      disable: true
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    image: iphi-frontend:local
+    ports:
+      - "127.0.0.1:${IPHI_FRONTEND_PORT:-8080}:8080"
+    read_only: true
+    tmpfs: ["/tmp"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  db-data:

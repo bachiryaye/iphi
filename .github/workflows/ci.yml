@@ -1,0 +1,132 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: iphi
+          POSTGRES_PASSWORD: ci-only
+          POSTGRES_DB: iphi
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U iphi" --health-interval 2s --health-timeout 3s
+          --health-retries 20
+    env:
+      IPHI_TEST_DATABASE_URL: postgresql+psycopg://iphi:ci-only@127.0.0.1:5432/postgres
+      IPHI_DATABASE_URL: postgresql+psycopg://iphi:ci-only@127.0.0.1:5432/iphi
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - name: Lint
+        run: uv run ruff format --check . && uv run ruff check .
+      - name: Import contracts
+        run: uv run lint-imports
+      - name: Type check
+        run: uv run mypy
+      - name: Migrations apply on an ephemeral PostgreSQL
+        run: uv run alembic upgrade head
+      - name: Tests
+        run: uv run pytest --cov --cov-report=term-missing:skip-covered
+      - name: Dependency audit
+        run: |
+          uv export --locked --no-dev --no-hashes --no-emit-project --format requirements-txt > "$RUNNER_TEMP/requirements.txt"
+          uv run pip-audit --strict -r "$RUNNER_TEMP/requirements.txt"
+
+  frontend:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: pnpm lint
+      - name: Type check
+        run: pnpm typecheck
+      - name: Tests
+        run: pnpm test
+      - name: Build
+        run: pnpm build
+      - name: Dependency audit
+        run: pnpm audit --prod --audit-level high
+
+  api-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: uv sync --locked
+        working-directory: backend
+      - run: pnpm install --frozen-lockfile
+        working-directory: frontend
+      - name: Generated client matches the backend OpenAPI
+        run: make api-drift
+
+  images:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build the Compose images
+        run: docker compose build
+      - name: Stack starts and becomes ready
+        run: |
+          docker compose up -d --wait --wait-timeout 180
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8080/ready; then exit 0; fi
+            sleep 2
+          done
+          docker compose logs
+          exit 1
+      - name: Stop the stack
+        if: always()
+        run: docker compose down --volumes
+
+  secrets:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

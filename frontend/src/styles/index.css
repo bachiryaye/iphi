@@ -1,0 +1,146 @@
+@import "tailwindcss";
+
+/* Tokens: docs/04-design-system.md §3. Components consume them through the theme below only. */
+:root {
+  color-scheme: light;
+  --bg: #f3f4f6;
+  --surface: #ffffff;
+  --surface-sunken: #e9ebef;
+  --border: #d9dce1;
+  --border-strong: #7a8494;
+  --text: #1a1f26;
+  --text-muted: #556070;
+  --accent: #1f5fbf;
+  --status-healthy: #2e7350;
+  --status-warning: #8a5a00;
+  --status-warning-fill: #f2b13a;
+  --status-critical: #b42318;
+  --status-unknown: #5f6b7a;
+  --on-warning: #1a1f26;
+  --on-critical: #ffffff;
+  --meter-normal: #8a939f;
+  --band-healthy: #dcdfe4;
+  --highlight: rgba(31, 95, 191, 0.1);
+  --shadow-float: 0 4px 16px rgba(26, 31, 38, 0.12);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0e1116;
+  --surface: #161b22;
+  --surface-sunken: #0b0e12;
+  --border: #262c35;
+  --border-strong: #67717f;
+  --text: #e6e9ee;
+  --text-muted: #9ba5b2;
+  --accent: #6aaeff;
+  --status-healthy: #5cb88a;
+  --status-warning: #e8ae3a;
+  --status-warning-fill: #e8ae3a;
+  --status-critical: #ff7a6e;
+  --status-unknown: #a3acb8;
+  --on-warning: #0e1116;
+  --on-critical: #0e1116;
+  --meter-normal: #606a78;
+  --band-healthy: #2a313b;
+  --highlight: rgba(106, 174, 255, 0.18);
+  --shadow-float: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+@theme inline {
+  --color-*: initial;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-highlight: var(--highlight);
+  --color-status-healthy: var(--status-healthy);
+  --color-status-warning: var(--status-warning);
+  --color-status-warning-fill: var(--status-warning-fill);
+  --color-status-critical: var(--status-critical);
+  --color-status-unknown: var(--status-unknown);
+  --color-on-warning: var(--on-warning);
+  --color-on-critical: var(--on-critical);
+  --color-transparent: transparent;
+
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --text-display: 24px;
+  --text-display--line-height: 32px;
+  --text-heading: 18px;
+  --text-heading--line-height: 26px;
+  --text-card: 15px;
+  --text-card--line-height: 22px;
+  --text-body: 14px;
+  --text-body--line-height: 20px;
+  --text-data: 13px;
+  --text-data--line-height: 18px;
+  --text-small: 12px;
+  --text-small--line-height: 16px;
+  --text-micro: 11px;
+  --text-micro--line-height: 14px;
+
+  --radius-control: 4px;
+  --radius-card: 6px;
+  --shadow-float: var(--shadow-float);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-bg text-body text-text font-sans antialiased;
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+  h1,
+  h2 {
+    text-wrap: balance;
+  }
+}
+
+@layer components {
+  .data {
+    @apply font-mono text-data tabular-nums;
+  }
+
+  /* SIMULATED DATA banner (P5): hatched ends keep the centre readable. */
+  .sim-banner::before,
+  .sim-banner::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 160px;
+    background: repeating-linear-gradient(135deg, var(--border-strong) 0 1px, transparent 1px 8px);
+    opacity: 0.55;
+  }
+  .sim-banner::before {
+    left: 0;
+  }
+  .sim-banner::after {
+    right: 0;
+  }
+
+  /* Static skeleton (§8): shape of the content, no animation. */
+  .skeleton {
+    @apply rounded-control bg-surface-sunken;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0ms !important;
+  }
+}

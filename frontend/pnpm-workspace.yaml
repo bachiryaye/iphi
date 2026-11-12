@@ -1,0 +1,4 @@
+# @carbon/icons-react postinstall scripts only send IBM telemetry; nothing needs to build.
+allowBuilds:
+  "@carbon/icon-helpers": false
+  "@carbon/icons-react": false
