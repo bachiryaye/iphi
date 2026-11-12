@@ -36,6 +36,9 @@ class Settings(BaseSettings):
         description="Comma-separated Host header values the API answers (DNS rebinding).",
     )
     sim_seed: int = Field(default=42, ge=0, le=MAX_SEED)
+    retention_days: int = Field(
+        default=7, ge=1, le=90, description="Observation retention in platform days (ADR 0008)."
+    )
 
     @property
     def allowed_host_list(self) -> list[str]:

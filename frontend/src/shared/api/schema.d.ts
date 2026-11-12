@@ -4,6 +4,57 @@
  */
 
 export interface paths {
+  "/api/v1/logs": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Logs, newest first, filtered by component, severity and period. */
+    get: operations["list_logs_api_v1_logs_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/metrics": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** One metric series of a component; downsampled server-side, gaps kept as gaps. */
+    get: operations["metric_series_api_v1_metrics_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/metrics/catalog": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Metric catalog: units and accepted ranges. */
+    get: operations["metric_catalog_api_v1_metrics_catalog_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/simulations/clock": {
     parameters: {
       query?: never;
@@ -91,6 +142,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/system/status": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Monitor observability: clock, worker cycle, collection runs, AI provider. */
+    get: operations["system_status_api_v1_system_status_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/health": {
     parameters: {
       query?: never;
@@ -139,6 +207,30 @@ export interface components {
       /** Seconds */
       seconds: number;
     };
+    /** AiProviderStatusOut */
+    AiProviderStatusOut: {
+      /** Detail */
+      detail: string;
+      status: components["schemas"]["CheckStatus"];
+    };
+    /** BucketOut */
+    BucketOut: {
+      /** Avg */
+      avg: number;
+      /**
+       * Bucket Start
+       * Format: date-time
+       */
+      bucket_start: string;
+      /** Count */
+      count: number;
+      /** Max */
+      max: number;
+      /** Min */
+      min: number;
+      source: components["schemas"]["ObservationSource"];
+      worst_quality: components["schemas"]["Quality"];
+    };
     /**
      * CheckName
      * @enum {string}
@@ -175,6 +267,85 @@ export interface components {
       /** Speed */
       speed: number;
     };
+    /** ClockStatusOut */
+    ClockStatusOut: {
+      mode: components["schemas"]["ClockMode"];
+      /**
+       * Platform Time
+       * Format: date-time
+       */
+      platform_time: string;
+      /** Speed */
+      speed: number;
+    };
+    /** CollectionRunOut */
+    CollectionRunOut: {
+      /** Connector Key */
+      connector_key: string;
+      /** Duplicate Count */
+      duplicate_count: number;
+      /** Error Code */
+      error_code: string | null;
+      /** Error Message */
+      error_message: string | null;
+      /**
+       * Finished At
+       * Format: date-time
+       */
+      finished_at: string;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Log Count */
+      log_count: number;
+      /** Rejected Count */
+      rejected_count: number;
+      /**
+       * Rejections
+       * @description Rejected observations per rejection code.
+       */
+      rejections: {
+        [key: string]: number;
+      };
+      /** Sample Count */
+      sample_count: number;
+      source: components["schemas"]["ObservationSource"];
+      /**
+       * Started At
+       * Format: date-time
+       */
+      started_at: string;
+      status: components["schemas"]["CollectionStatus"];
+      /**
+       * Watermark
+       * @description Event time up to which the source has been fully read.
+       */
+      watermark: string | null;
+    };
+    /**
+     * CollectionState
+     * @enum {string}
+     */
+    CollectionState: "ok" | "degraded" | "failed" | "stalled" | "not_started";
+    /**
+     * CollectionStatus
+     * @enum {string}
+     */
+    CollectionStatus: "ok" | "partial" | "failed";
+    /** CollectionStatusOut */
+    CollectionStatusOut: {
+      /** Connectors */
+      connectors: components["schemas"]["ConnectorStatusOut"][];
+      /**
+       * Recent Runs
+       * @description Latest collection runs, newest first.
+       */
+      recent_runs: components["schemas"]["CollectionRunOut"][];
+      /** @description Worst state among enabled connectors. */
+      state: components["schemas"]["CollectionState"];
+    };
     /**
      * ComponentType
      * @description ISA-95 level 2/3 roles along the data path (rules.md S-01).
@@ -182,6 +353,17 @@ export interface components {
      */
     ComponentType:
       "source" | "gateway" | "collector" | "historian" | "database" | "api" | "analytics";
+    /** ConnectorStatusOut */
+    ConnectorStatusOut: {
+      /** Connector Key */
+      connector_key: string;
+      /** Detail */
+      detail: string;
+      last_run: components["schemas"]["CollectionRunOut"] | null;
+      /** Last Success At */
+      last_success_at: string | null;
+      state: components["schemas"]["CollectionState"];
+    };
     /** ExpectedOutcomeOut */
     ExpectedOutcomeOut: {
       /** Incident */
@@ -200,6 +382,32 @@ export interface components {
       /** Type */
       type: string;
     };
+    /** GapOut */
+    GapOut: {
+      /**
+       * End
+       * Format: date-time
+       */
+      end: string;
+      /**
+       * Start
+       * Format: date-time
+       */
+      start: string;
+    };
+    /** HeartbeatOut */
+    HeartbeatOut: {
+      /** Cycle Lag Ms */
+      cycle_lag_ms: number;
+      /**
+       * Last Cycle At
+       * Format: date-time
+       */
+      last_cycle_at: string;
+      /** Last Cycle Duration Ms */
+      last_cycle_duration_ms: number;
+      status: components["schemas"]["ProcessStatus"];
+    };
     /** LivenessOut */
     LivenessOut: {
       /**
@@ -209,6 +417,140 @@ export interface components {
        */
       status: "ok";
     };
+    /** LogOut */
+    LogOut: {
+      /** Attributes */
+      attributes: {
+        [key: string]: unknown;
+      };
+      /**
+       * Component Id
+       * Format: uuid
+       */
+      component_id: string;
+      /** Component Key */
+      component_key: string;
+      /**
+       * Fingerprint
+       * @description Groups occurrences of the same message template.
+       */
+      fingerprint: string;
+      /** Id */
+      id: number;
+      /** Message */
+      message: string;
+      /**
+       * Observed At
+       * Format: date-time
+       */
+      observed_at: string;
+      /**
+       * Received At
+       * Format: date-time
+       */
+      received_at: string;
+      /** Scenario Run Id */
+      scenario_run_id: string | null;
+      severity: components["schemas"]["LogSeverity"];
+      source: components["schemas"]["ObservationSource"];
+    };
+    /** LogPageOut */
+    LogPageOut: {
+      /**
+       * Environment
+       * @default simulation
+       * @constant
+       */
+      environment: "simulation";
+      /** Items */
+      items: components["schemas"]["LogOut"][];
+      /** Next Cursor */
+      next_cursor: string | null;
+    };
+    /**
+     * LogSeverity
+     * @enum {string}
+     */
+    LogSeverity: "debug" | "info" | "warning" | "error" | "critical";
+    /** MetricCatalogOut */
+    MetricCatalogOut: {
+      /** Items */
+      items: components["schemas"]["MetricDefinitionOut"][];
+    };
+    /** MetricDefinitionOut */
+    MetricDefinitionOut: {
+      /** Description */
+      description: string;
+      kind: components["schemas"]["MetricKind"];
+      /** Max Value */
+      max_value: number;
+      /** Metric Name */
+      metric_name: string;
+      /** Min Value */
+      min_value: number;
+      /** Unit */
+      unit: string;
+    };
+    /**
+     * MetricKind
+     * @enum {string}
+     */
+    MetricKind: "gauge" | "counter" | "ratio";
+    /** MetricSeriesOut */
+    MetricSeriesOut: {
+      /** Bucket S */
+      bucket_s: number | null;
+      /**
+       * Buckets
+       * @description Aggregates, ascending (mode aggregated).
+       */
+      buckets: components["schemas"]["BucketOut"][];
+      /**
+       * Component Id
+       * Format: uuid
+       */
+      component_id: string;
+      /** Component Key */
+      component_key: string;
+      /**
+       * Environment
+       * @default simulation
+       * @constant
+       */
+      environment: "simulation";
+      /**
+       * Gaps
+       * @description Intervals without data; the series is never interpolated across them.
+       */
+      gaps: components["schemas"]["GapOut"][];
+      /** Metric Name */
+      metric_name: string;
+      /** @description raw samples, or min/avg/max buckets of bucket_s. */
+      mode: components["schemas"]["SeriesMode"];
+      /**
+       * Points
+       * @description Raw samples, ascending (mode raw).
+       */
+      points: components["schemas"]["SamplePointOut"][];
+      /** Unit */
+      unit: string;
+      /**
+       * Window End
+       * Format: date-time
+       */
+      window_end: string;
+      /**
+       * Window Start
+       * Format: date-time
+       */
+      window_start: string;
+    };
+    /**
+     * ObservationSource
+     * @description Stored on every observation so synthetic data is never mistaken for real (D-17).
+     * @enum {string}
+     */
+    ObservationSource: "simulation" | "mqtt";
     /** ParameterOut */
     ParameterOut: {
       /** Default */
@@ -247,6 +589,17 @@ export interface components {
        */
       type: string;
     };
+    /**
+     * ProcessStatus
+     * @enum {string}
+     */
+    ProcessStatus: "running" | "stopped";
+    /**
+     * Quality
+     * @description OPC UA status semantics (rules.md S-05, D-16), declared from best to worst.
+     * @enum {string}
+     */
+    Quality: "good" | "uncertain" | "bad";
     /** ReadinessCheckOut */
     ReadinessCheckOut: {
       /** Detail */
@@ -296,6 +649,25 @@ export interface components {
      * @enum {string}
      */
     RunStatus: "active" | "stopped" | "completed";
+    /** SamplePointOut */
+    SamplePointOut: {
+      /**
+       * Observed At
+       * Format: date-time
+       */
+      observed_at: string;
+      quality: components["schemas"]["Quality"];
+      /**
+       * Sample Id
+       * @description Stored sample, citable as evidence.
+       */
+      sample_id: number;
+      /** Scenario Run Id */
+      scenario_run_id: string | null;
+      source: components["schemas"]["ObservationSource"];
+      /** Value */
+      value: number;
+    };
     /** ScenarioCatalogOut */
     ScenarioCatalogOut: {
       /** Items */
@@ -395,6 +767,11 @@ export interface components {
       /** Next Cursor */
       next_cursor: string | null;
     };
+    /**
+     * SeriesMode
+     * @enum {string}
+     */
+    SeriesMode: "raw" | "aggregated";
     /** SetClockModeIn */
     SetClockModeIn: {
       /**
@@ -427,6 +804,33 @@ export interface components {
        */
       target_component_key?: string | null;
     };
+    /** SystemStatusOut */
+    SystemStatusOut: {
+      ai_provider: components["schemas"]["AiProviderStatusOut"];
+      /**
+       * Checked At
+       * Format: date-time
+       */
+      checked_at: string;
+      clock: components["schemas"]["ClockStatusOut"];
+      collection: components["schemas"]["CollectionStatusOut"];
+      /** Cycle Interval S */
+      cycle_interval_s: number;
+      /**
+       * Environment
+       * @default simulation
+       * @constant
+       */
+      environment: "simulation";
+      worker: components["schemas"]["WorkerStatusOut"];
+    };
+    /** WorkerStatusOut */
+    WorkerStatusOut: {
+      /** Detail */
+      detail: string;
+      heartbeat: components["schemas"]["HeartbeatOut"] | null;
+      status: components["schemas"]["CheckStatus"];
+    };
   };
   responses: never;
   parameters: never;
@@ -436,6 +840,111 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  list_logs_api_v1_logs_get: {
+    parameters: {
+      query?: {
+        /** @description Inclusive start; defaults to one hour before `to`. */
+        from?: string | null;
+        /** @description Exclusive end; defaults to platform time. */
+        to?: string | null;
+        component_id?: string | null;
+        /** @description Keeps this severity and above. */
+        min_severity?: components["schemas"]["LogSeverity"] | null;
+        cursor?: string | null;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["LogPageOut"];
+        };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
+  metric_series_api_v1_metrics_get: {
+    parameters: {
+      query: {
+        /** @description Inclusive start; defaults to one hour before `to`. */
+        from?: string | null;
+        /** @description Exclusive end; defaults to platform time. */
+        to?: string | null;
+        component_id: string;
+        metric_name: string;
+        max_points?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MetricSeriesOut"];
+        };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
+  metric_catalog_api_v1_metrics_catalog_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MetricCatalogOut"];
+        };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
   get_clock_api_v1_simulations_clock_get: {
     parameters: {
       query?: never;
@@ -645,6 +1154,35 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ScenarioRunOut"];
+        };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
+  system_status_api_v1_system_status_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SystemStatusOut"];
         };
       };
       /** @description RFC 9457 problem details. */

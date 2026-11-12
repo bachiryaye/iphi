@@ -12,6 +12,7 @@ x-backend: &backend
     IPHI_CYCLE_INTERVAL_S: ${IPHI_CYCLE_INTERVAL_S:-5}
     IPHI_LLM_PROVIDER: ${IPHI_LLM_PROVIDER:-none}
     IPHI_SIM_SEED: ${IPHI_SIM_SEED:-42}
+    IPHI_RETENTION_DAYS: ${IPHI_RETENTION_DAYS:-7}
     # ADR 0007: unauthenticated mutations, honoured only while ports stay on loopback.
     IPHI_DEV_MUTATIONS: ${IPHI_DEV_MUTATIONS:-true}
     IPHI_BIND_HOST: ${IPHI_BIND_HOST:-127.0.0.1}

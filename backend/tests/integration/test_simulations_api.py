@@ -2,30 +2,14 @@ from collections.abc import Iterator
 
 import pytest
 from fastapi.testclient import TestClient
-from pydantic import SecretStr
 from sqlalchemy import Engine, text
 
-from app.bootstrap import bootstrap
-from app.core.settings import Settings
-from app.main import create_app
+from tests.api_client import client_for
 
 pytestmark = pytest.mark.integration
 
 BASE = "/api/v1/simulations"
 JSON = {"Content-Type": "application/json"}
-
-
-def client_for(database_url: str, *, dev_mutations: bool) -> TestClient:
-    settings = Settings(database_url=SecretStr(database_url), dev_mutations=dev_mutations)
-    return TestClient(
-        create_app(settings), base_url="http://127.0.0.1", raise_server_exceptions=False
-    )
-
-
-@pytest.fixture
-def seeded_url(empty_database_url: str) -> str:
-    bootstrap(Settings(database_url=SecretStr(empty_database_url)))
-    return empty_database_url
 
 
 @pytest.fixture
@@ -239,3 +223,10 @@ def _denied_actions(engine: Engine) -> list[str]:
             text("SELECT action FROM audit_event WHERE outcome = 'denied' ORDER BY occurred_at")
         )
         return [r.action for r in rows]
+
+
+@pytest.mark.parametrize("cursor", ["cnVuOsKy", "cnVuOjA"])  # run:² and run:0
+def test_forged_run_cursor_is_refused(client: TestClient, cursor: str) -> None:
+    response = client.get(f"{BASE}/runs", params={"cursor": cursor})
+
+    assert (response.status_code, response.json()["code"]) == (422, "INVALID_CURSOR")

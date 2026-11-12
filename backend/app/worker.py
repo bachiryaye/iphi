@@ -5,20 +5,28 @@ import sys
 import threading
 import time
 from collections.abc import Callable, Sequence
+from dataclasses import dataclass
+from datetime import datetime, timedelta
 from types import FrameType
 from typing import Protocol
 
 import structlog
 from sqlalchemy import Connection, text
 from sqlalchemy.exc import DBAPIError
+from sqlalchemy.orm import Session, sessionmaker
 
+from app.connectors.registry import build_connectors
 from app.core.clock import Clock, WallClock
 from app.core.db import create_db_engine, create_session_factory
 from app.core.logging import configure_logging
 from app.core.settings import Settings
+from app.ingestion.domain.validation import IngestionPolicy
+from app.ingestion.service import CollectionService, RetentionJob
 from app.monitor.domain import Heartbeat, ProcessStatus
 from app.monitor.service import WORKER_PROCESS, HeartbeatService
+from app.simulation.domain.platform import SIMULATED_PLATFORM
 from app.simulation.service import build_simulation
+from app.topology.service import TopologyService
 
 # Arbitrary but fixed: every IPHI worker must contend for the same PostgreSQL advisory lock.
 WORKER_LOCK_ID = 0x1F4E_0001
@@ -67,33 +75,68 @@ def next_deadline(previous: float, interval: float, now: float) -> float:
     return deadline if deadline > now else now
 
 
-class ScenarioLifecycle(Protocol):
-    def complete_expired_runs(self) -> Sequence[object]: ...
+class CycleClock(Protocol):
+    def begin_cycle(self, session: Session) -> datetime: ...
+
+
+class CollectionStep(Protocol):
+    def collect(self, session: Session, platform_now: datetime) -> Sequence[object]: ...
+
+
+class RetentionStep(Protocol):
+    def purge_if_due(
+        self, session_factory: sessionmaker[Session], platform_now: datetime
+    ) -> int: ...
+
+
+@dataclass(frozen=True, slots=True)
+class CycleSteps:
+    """Steps of `run_cycle` in order; US-04 and US-05 add evaluation and incidents (§02.2)."""
+
+    clock: CycleClock
+    collection: CollectionStep
+    retention: RetentionStep
 
 
 class Worker:
     def __init__(
         self,
+        session_factory: sessionmaker[Session],
         heartbeats: HeartbeatService,
-        clock: Clock,
+        wall: Clock,
         cycle_interval_s: float,
-        scenarios: ScenarioLifecycle,
+        steps: CycleSteps,
     ) -> None:
+        self._session_factory = session_factory
         self._heartbeats = heartbeats
-        self._clock = clock
+        self._wall = wall
         self._interval = cycle_interval_s
-        self._scenarios = scenarios
+        self._steps = steps
 
     def run_cycle(self, lag_ms: int) -> None:
-        at = self._clock.now()
+        """One unit of work and a single commit: on this host a commit costs an fsync (ADR 0014).
+
+        A failure anywhere rolls the whole cycle back, heartbeat included, so /ready reports it.
+        Retention follows in its own transaction, at most once per platform hour.
+        """
+        at = self._wall.now()
         started = time.perf_counter()
-        # TODO(US-03): collect → ingest; US-04/US-05 add evaluation and incidents (§02.2).
-        self._scenarios.complete_expired_runs()
-        duration_ms = round((time.perf_counter() - started) * 1000)
-        self._heartbeats.record(
-            Heartbeat(WORKER_PROCESS, at, duration_ms, lag_ms, ProcessStatus.RUNNING)
+        with self._session_factory.begin() as session:
+            platform_now = self._steps.clock.begin_cycle(session)
+            self._steps.collection.collect(session, platform_now)
+            duration_ms = round((time.perf_counter() - started) * 1000)
+            self._heartbeats.record(
+                session, Heartbeat(WORKER_PROCESS, at, duration_ms, lag_ms, ProcessStatus.RUNNING)
+            )
+        purged = self._steps.retention.purge_if_due(self._session_factory, platform_now)
+        # The heartbeat cannot include its own commit; this event does.
+        log.debug(
+            "worker.cycle",
+            duration_ms=round((time.perf_counter() - started) * 1000),
+            lag_ms=lag_ms,
+            platform_time=platform_now,
+            purged=purged,
         )
-        log.debug("worker.cycle", duration_ms=duration_ms, lag_ms=lag_ms)
 
     def run(self, stop: threading.Event, lock_held: Callable[[], bool]) -> bool:
         """Cycles until stopped. Returns False if the scheduler lock was lost meanwhile."""
@@ -115,6 +158,21 @@ class Worker:
         return True
 
 
+def build_cycle_steps(
+    session_factory: sessionmaker[Session], wall: Clock, retention: timedelta
+) -> CycleSteps:
+    simulation = build_simulation(session_factory, wall)
+    policy = IngestionPolicy()
+    collection = CollectionService(
+        build_connectors(simulation),
+        TopologyService(session_factory),
+        SIMULATED_PLATFORM.key,
+        policy,
+        wall,
+    )
+    return CycleSteps(simulation, collection, RetentionJob(retention))
+
+
 def main() -> int:
     settings = Settings()
     configure_logging(settings.log_level, settings.log_format)
@@ -130,8 +188,13 @@ def main() -> int:
     engine = create_db_engine(settings)
     session_factory = create_session_factory(engine)
     wall = WallClock()
-    simulation = build_simulation(session_factory, wall)
-    worker = Worker(HeartbeatService(session_factory), wall, settings.cycle_interval_s, simulation)
+    worker = Worker(
+        session_factory,
+        HeartbeatService(session_factory),
+        wall,
+        settings.cycle_interval_s,
+        build_cycle_steps(session_factory, wall, timedelta(days=settings.retention_days)),
+    )
     # The advisory lock lives as long as this connection: a second worker waits (ADR 0001).
     with engine.connect() as lock_connection:
         while not try_acquire_worker_lock(lock_connection):

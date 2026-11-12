@@ -4,12 +4,15 @@ from collections.abc import Iterator
 
 import pytest
 from alembic import command
+from pydantic import SecretStr
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
 
+from app.bootstrap import bootstrap
 from app.core.db import create_session_factory
 from app.core.migrations import alembic_config
+from app.core.settings import Settings
 
 pytestmark = pytest.mark.integration
 
@@ -42,6 +45,13 @@ def empty_database_url() -> Iterator[str]:
 @pytest.fixture
 def database_url(empty_database_url: str) -> str:
     command.upgrade(alembic_config(empty_database_url), "head")
+    return empty_database_url
+
+
+@pytest.fixture
+def seeded_url(empty_database_url: str) -> str:
+    """A migrated and seeded database, as the `migrate` service leaves it."""
+    bootstrap(Settings(database_url=SecretStr(empty_database_url)))
     return empty_database_url
 
 

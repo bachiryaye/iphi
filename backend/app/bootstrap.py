@@ -11,6 +11,7 @@ from app.core.db import create_db_engine, create_session_factory
 from app.core.logging import configure_logging
 from app.core.migrations import alembic_config
 from app.core.settings import Settings
+from app.ingestion.service import MetricCatalogService
 from app.simulation.domain.platform import SIMULATED_PLATFORM
 from app.simulation.service import SimulationService, build_simulation
 from app.topology.service import TopologyService
@@ -19,8 +20,9 @@ log = structlog.get_logger(__name__)
 
 
 def seed(session_factory: sessionmaker[Session], wall: Clock, sim_seed: int) -> SimulationService:
-    """Idempotent seed: topology, platform clock and baseline run."""
+    """Idempotent seed: topology, metric catalog, platform clock and baseline run."""
     TopologyService(session_factory).ensure(SIMULATED_PLATFORM.topology())
+    MetricCatalogService(session_factory).ensure()
     simulation = build_simulation(session_factory, wall)
     simulation.initialize(sim_seed)
     return simulation

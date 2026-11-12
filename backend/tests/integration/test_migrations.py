@@ -12,8 +12,13 @@ pytestmark = pytest.mark.integration
 
 APPLICATION_TABLES = {
     "audit_event",
+    "collection_cursor",
+    "collection_run",
     "component",
     "dependency",
+    "log_event",
+    "metric_definition",
+    "metric_sample",
     "monitor_heartbeat",
     "platform",
     "scenario_run",

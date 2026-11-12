@@ -2,8 +2,8 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
+from app.core.observation import SAMPLE_INTERVAL_S
 from app.simulation.domain.clock import (
-    SAMPLE_INTERVAL_S,
     ClockMode,
     ClockState,
     first_tick_at_or_after,

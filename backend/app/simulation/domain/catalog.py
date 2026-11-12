@@ -11,9 +11,9 @@ from dataclasses import dataclass
 from enum import StrEnum
 from types import MappingProxyType
 
+from app.core.observation import LogSeverity
 from app.simulation.domain.signals import (
     LogLine,
-    LogSeverity,
     Metric,
     Reading,
     draw,

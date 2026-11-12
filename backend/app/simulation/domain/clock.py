@@ -1,16 +1,15 @@
 """Platform clock state (ADR 0002): pure arithmetic, persisted in `sim_clock` by the service."""
 
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from enum import StrEnum
 
+# Probes sample every component every SAMPLE_INTERVAL_S of platform time, whatever the worker
+# period: accelerated mode then yields more samples per wall second, not sparser series.
+from app.core.observation import SAMPLE_INTERVAL_S, UNIX_EPOCH
 from app.simulation.domain.errors import ClockNotManualError, ClockSpeedError
 
 MAX_ACCELERATION = 60.0
-# Simulated probes sample every component on this platform-time cadence, whatever the worker
-# period: accelerated mode then yields more samples per wall second, not sparser series.
-SAMPLE_INTERVAL_S = 5
-_EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 
 
 class ClockMode(StrEnum):
@@ -71,11 +70,11 @@ class ClockState:
 
 def tick_of(at: datetime) -> int:
     """Index of the last sample slot at or before `at`."""
-    return (at - _EPOCH) // timedelta(seconds=SAMPLE_INTERVAL_S)
+    return (at - UNIX_EPOCH) // timedelta(seconds=SAMPLE_INTERVAL_S)
 
 
 def tick_time(tick: int) -> datetime:
-    return _EPOCH + timedelta(seconds=tick * SAMPLE_INTERVAL_S)
+    return UNIX_EPOCH + timedelta(seconds=tick * SAMPLE_INTERVAL_S)
 
 
 def first_tick_at_or_after(at: datetime) -> int:

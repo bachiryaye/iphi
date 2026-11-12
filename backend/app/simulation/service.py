@@ -12,6 +12,7 @@ from app.core.clock import Clock
 from app.core.exceptions import IphiError
 from app.identity.domain import AuditAction, AuditContext, AuditEntry, AuditOutcome
 from app.identity.service import AuditLog
+from app.ingestion.service import ObservationHistory
 from app.simulation.domain.catalog import CATALOG, SCENARIOS, ScenarioDefinition, ScenarioKey
 from app.simulation.domain.clock import ClockMode, ClockState, tick_time
 from app.simulation.domain.errors import (
@@ -215,8 +216,15 @@ class SimulationService:
                 runs.finish(run.id, RunStatus.STOPPED, started_at)
             ClockRepository(mutation.session).save(clock, mutation.wall_now)
             baseline = runs.add(baseline_plan(started_at, seed, context.actor_label))
-            # TODO(US-03): purge simulated observations here once they are persisted.
-        log.info("simulation.reset", seed=seed, stopped_runs=len(active), platform_time=started_at)
+            purged = ObservationHistory(mutation.session).purge_source(OBSERVATION_SOURCE)
+            mutation.audit.details["purged_observations"] = purged
+        log.info(
+            "simulation.reset",
+            seed=seed,
+            stopped_runs=len(active),
+            purged_observations=purged,
+            platform_time=started_at,
+        )
         return ResetOutcome(ClockView(clock, started_at), baseline, len(active))
 
     def set_clock_mode(self, mode: ClockMode, speed: float, context: AuditContext) -> ClockView:
@@ -237,16 +245,28 @@ class SimulationService:
         log.info("clock.advanced", seconds=seconds, platform_time=platform_now)
         return ClockView(clock, platform_now)
 
-    def complete_expired_runs(self) -> list[ScenarioRun]:
-        """Worker step: marks runs past their planned end as completed.
+    def begin_cycle(self, session: Session) -> datetime:
+        """Worker step 1, in the cycle's unit of work: platform time, with due runs completed.
 
-        No lock on sim_clock: platform time never moves backwards, so a slightly stale reading
-        can only complete fewer runs, never a wrong one. An UPDATE matching no row writes
-        nothing, so an idle cycle costs no WAL flush.
+        The shared lock on sim_clock lasts until the cycle commits, so a reset or a scenario
+        change waits for the cycle in progress and the next cycle sees it whole: a reset can
+        never purge observations that a cycle generated from the runs it stopped.
         """
-        with self._session_factory.begin() as session:
-            clock = self._require_clock(ClockRepository(session).get(for_update=False))
-            return self._complete_due(self._runs(session), clock.platform_time(self._wall.now()))
+        clock = self._require_clock(ClockRepository(session).get_shared())
+        now = clock.platform_time(self._wall.now())
+        self._complete_due(self._runs(session), now)
+        return now
+
+    def coverage_start(self) -> datetime:
+        """Start of the active baseline: no earlier sample slot belongs to the current history."""
+        with self._session_factory() as session:
+            baseline = next(
+                (r for r in self._runs(session).active() if r.scenario is ScenarioKey.BASELINE),
+                None,
+            )
+        if baseline is None:
+            raise SimulationNotInitializedError("No active baseline run; reset the simulation.")
+        return baseline.started_at
 
     def observations(self, first_tick: int, last_tick: int) -> list[TickObservations]:
         """Simulated observations for ticks `first_tick`..`last_tick`, from persisted runs only."""
