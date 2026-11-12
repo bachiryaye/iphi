@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#F3F4F6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1116" media="(prefers-color-scheme: dark)">
+<title>collector-01 | IPHI</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/incident.css">
+<link rel="stylesheet" href="assets/component.css">
+<script src="assets/theme.js"></script>
+<script src="assets/component.js" defer></script>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true"><symbol id="i-layout-dashboard" viewBox="0 0 32 32"><path d="M24 21H26V26H24z"/><path d="M20 16H22V26H20z"/><path d="M11,26a5.0059,5.0059,0,0,1-5-5H8a3,3,0,1,0,3-3V16a5,5,0,0,1,0,10Z"/><path d="M28,2H4A2.002,2.002,0,0,0,2,4V28a2.0023,2.0023,0,0,0,2,2H28a2.0027,2.0027,0,0,0,2-2V4A2.0023,2.0023,0,0,0,28,2Zm0,9H14V4H28ZM12,4v7H4V4ZM4,28V13H28.0007l.0013,15Z"/></symbol><symbol id="i-network" viewBox="0 0 32 32"><path d="M30,30H22V22h8Zm-6-2h4V24H24Z"/><path d="M20,27H8A6,6,0,0,1,8,15h2v2H8a4,4,0,0,0,0,8H20Z"/><path d="M20,20H12V12h8Zm-6-2h4V14H14Z"/><path d="M24,17H22V15h2a4,4,0,0,0,0-8H12V5H24a6,6,0,0,1,0,12Z"/><path d="M10,10H2V2h8ZM4,8H8V4H4Z"/></symbol><symbol id="i-siren" viewBox="0 0 16 16"><path d="M14.5,14h-13c-0.2,0-0.3-0.1-0.4-0.2c-0.1-0.2-0.1-0.3,0-0.5l6.5-12C7.7,1,8,0.9,8.2,1.1c0.1,0,0.2,0.1,0.2,0.2l6.5,12 c0.1,0.2,0.1,0.3,0,0.5C14.9,13.9,14.7,14,14.5,14z M2.3,13h11.3L8,2.5L2.3,13z"/><path d="M7.5 6H8.5V9.5H7.5z"/><path d="M8,10.8c-0.4,0-0.8,0.3-0.8,0.8s0.3,0.8,0.8,0.8c0.4,0,0.8-0.3,0.8-0.8S8.4,10.8,8,10.8z"/></symbol><symbol id="i-boxes" viewBox="0 0 32 32"><path d="M28.5039,8.1362l-12-7a1,1,0,0,0-1.0078,0l-12,7A1,1,0,0,0,3,9V23a1,1,0,0,0,.4961.8638l12,7a1,1,0,0,0,1.0078,0l12-7A1,1,0,0,0,29,23V9A1,1,0,0,0,28.5039,8.1362ZM16,3.1577,26.0156,9,16,14.8423,5.9844,9ZM5,10.7412l10,5.833V28.2588L5,22.4258ZM17,28.2588V16.5742l10-5.833V22.4258Z"/></symbol><symbol id="i-play" viewBox="0 0 16 16"><path d="M3.5,14C3.2,14,3,13.8,3,13.5v-11c0-0.2,0.1-0.3,0.2-0.4C3.4,2,3.6,2,3.8,2.1l9.5,5.5c0.2,0.1,0.3,0.4,0.2,0.7 c0,0.1-0.1,0.1-0.2,0.2l-9.5,5.5C3.7,14,3.6,14,3.5,14z M4,3.4v9.3L12,8L4,3.4z"/></symbol><symbol id="i-list-checks" viewBox="0 0 32 32"><path d="M10 16H22V18H10z"/><path d="M10 10H22V12H10z"/><path d="M16,30,9.8242,26.7071A10.9815,10.9815,0,0,1,4,17V4A2.0022,2.0022,0,0,1,6,2H26a2.0022,2.0022,0,0,1,2,2V17a10.9815,10.9815,0,0,1-5.8242,9.7069ZM6,4V17a8.9852,8.9852,0,0,0,4.7656,7.9423L16,27.7333l5.2344-2.791A8.9852,8.9852,0,0,0,26,17V4Z"/></symbol><symbol id="i-scroll-text" viewBox="0 0 32 32"><path d="M26,2H8A2,2,0,0,0,6,4V8H4v2H6v5H4v2H6v5H4v2H6v4a2,2,0,0,0,2,2H26a2,2,0,0,0,2-2V4A2,2,0,0,0,26,2Zm0,26H8V24h2V22H8V17h2V15H8V10h2V8H8V4H26Z"/><path d="M14 8H22V10H14z"/><path d="M14 15H22V17H14z"/><path d="M14 22H22V24H14z"/></symbol><symbol id="i-activity" viewBox="0 0 32 32"><path d="M12,29a1,1,0,0,1-.92-.62L6.33,17H2V15H7a1,1,0,0,1,.92.62L12,25.28,20.06,3.65A1,1,0,0,1,21,3a1,1,0,0,1,.93.68L25.72,15H30v2H25a1,1,0,0,1-.95-.68L21,7,12.94,28.35A1,1,0,0,1,12,29Z"/></symbol><symbol id="i-moon" viewBox="0 0 16 16"><path d="M7.2,2.3c-1,4.4,1.7,8.7,6.1,9.8c0.1,0,0.1,0,0.2,0c-1.1,1.2-2.7,1.8-4.3,1.8c-0.1,0-0.2,0-0.2,0C5.6,13.8,3,11,3.2,7.7 C3.2,5.3,4.8,3.1,7.2,2.3 M8,1L8,1C4.1,1.6,1.5,5.3,2.1,9.1c0.6,3.3,3.4,5.8,6.8,5.9c0.1,0,0.2,0,0.3,0c2.3,0,4.4-1.1,5.8-3 c0.2-0.2,0.1-0.6-0.1-0.7c-0.1-0.1-0.2-0.1-0.3-0.1c-3.9-0.3-6.7-3.8-6.4-7.6C8.3,3,8.4,2.4,8.6,1.8c0.1-0.3,0-0.6-0.3-0.7 C8.1,1,8.1,1,8,1z"/></symbol><symbol id="i-sun" viewBox="0 0 16 16"><path d="M7.5 1H8.5V3.5H7.5z"/><path d="M10.8 3.4H13.3V4.4H10.8z" transform="rotate(-45 12.041 3.923)"/><path d="M12.5 7.5H15V8.5H12.5z"/><path d="M11.6 10.8H12.6V13.3H11.6z" transform="rotate(-45 12.075 12.04)"/><path d="M7.5 12.5H8.5V15H7.5z"/><path d="M2.7 11.6H5.2V12.6H2.7z" transform="rotate(-45 3.96 12.078)"/><path d="M1 7.5H3.5V8.5H1z"/><path d="M3.4 2.7H4.4V5.2H3.4z" transform="rotate(-45 3.925 3.961)"/><path d="M8,6c1.1,0,2,0.9,2,2s-0.9,2-2,2S6,9.1,6,8S6.9,6,8,6 M8,5C6.3,5,5,6.3,5,8s1.3,3,3,3s3-1.3,3-3S9.7,5,8,5z"/></symbol><symbol id="i-copy" viewBox="0 0 32 32"><path d="M28,10V28H10V10H28m0-2H10a2,2,0,0,0-2,2V28a2,2,0,0,0,2,2H28a2,2,0,0,0,2-2V10a2,2,0,0,0-2-2Z"/><path d="M4,18H2V4A2,2,0,0,1,4,2H18V4H4Z"/></symbol><symbol id="i-download" viewBox="0 0 16 16"><path d="M13 7 12.3 6.3 8.5 10.1 8.5 1 7.5 1 7.5 10.1 3.7 6.3 3 7 8 12z"/><path d="M13,12v2H3v-2H2v2l0,0c0,0.6,0.4,1,1,1h10c0.6,0,1-0.4,1-1l0,0v-2H13z"/></symbol><symbol id="i-chevron-down" viewBox="0 0 16 16"><path d="M8 11 3 6 3.7 5.3 8 9.6 12.3 5.3 13 6z"/></symbol><symbol id="i-chevron-right" viewBox="0 0 16 16"><path d="M11 8 6 13 5.3 12.3 9.6 8 5.3 3.7 6 3z"/></symbol><symbol id="i-arrow-right" viewBox="0 0 16 16"><path d="M9.3 3.7 13.1 7.5 1 7.5 1 8.5 13.1 8.5 9.3 12.3 10 13 15 8 10 3z"/></symbol><symbol id="i-git-branch" viewBox="0 0 32 32"><path stroke-width="0" d="m20,6c0,1.8587,1.2795,3.4109,3,3.858v4.142c0,1.6543-1.3457,3-3,3h-8c-1.1299,0-2.1617.391-3,1.0256v-8.1676c1.7203-.4471,3-1.9993,3-3.858,0-2.2061-1.7944-4-4-4s-4,1.7939-4,4c0,1.8587,1.2797,3.4108,3,3.858v12.142s0,.142,0,.142c-1.7203.4473-3,1.9997-3,3.858,0,2.2056,1.7944,4,4,4s4-1.7944,4-4c0-1.8583-1.2797-3.4107-3-3.858v-.142c0-1.6543,1.3457-3,3-3h8c2.7568,0,5-2.2432,5-5v-4.142c1.7205-.4471,3-1.9993,3-3.858,0-2.2061-1.7939-4-4-4s-4,1.7939-4,4Zm-14,0c0-1.1025.897-2,2-2s2,.8975,2,2c0,1.1025-.897,2-2,2s-2-.8975-2-2Zm4,20c0,1.103-.897,2-2,2s-2-.897-2-2,.897-2,2-2,2,.897,2,2ZM26,6c0,1.1025-.8975,2-2,2s-2-.8975-2-2c0-1.1025.8975-2,2-2s2,.8975,2,2Z"/></symbol><symbol id="i-layers" viewBox="0 0 32 32"><path d="M16,24a.9967.9967,0,0,1-.4741-.12l-13-7L3.4741,15.12,16,21.8643,28.5259,15.12l.9482,1.7607-13,7A.9967.9967,0,0,1,16,24Z"/><path d="M16,30a.9967.9967,0,0,1-.4741-.12l-13-7L3.4741,21.12,16,27.8643,28.5259,21.12l.9482,1.7607-13,7A.9967.9967,0,0,1,16,30Z"/><path d="M16,18a.9967.9967,0,0,1-.4741-.12l-13-7a1,1,0,0,1,0-1.7607l13-7a.9982.9982,0,0,1,.9482,0l13,7a1,1,0,0,1,0,1.7607l-13,7A.9967.9967,0,0,1,16,18ZM5.1094,10,16,15.8643,26.8906,10,16,4.1358Z"/></symbol><symbol id="i-stethoscope" viewBox="0 0 32 32"><path d="M24,2V4h2v6a4,4,0,0,1-8,0V4h2V2H16v8a6.0051,6.0051,0,0,0,5,5.91V22A6,6,0,0,1,9,22V15.8579a4,4,0,1,0-2,0V22a8,8,0,0,0,16,0V15.91A6.0051,6.0051,0,0,0,28,10V2ZM6,12a2,2,0,1,1,2,2A2.0023,2.0023,0,0,1,6,12Z"/></symbol><symbol id="i-file-search" viewBox="0 0 32 32"><circle cx="22" cy="24" r="2"/><path fill="none" d="M22,28a4,4,0,1,1,4-4A4.0039,4.0039,0,0,1,22,28Zm0-6a2,2,0,1,0,2,2A2.0027,2.0027,0,0,0,22,22Z"/><path d="M29.7769,23.4785A8.64,8.64,0,0,0,22,18a8.64,8.64,0,0,0-7.7769,5.4785L14,24l.2231.5215A8.64,8.64,0,0,0,22,30a8.64,8.64,0,0,0,7.7769-5.4785L30,24ZM22,28a4,4,0,1,1,4-4A4.0045,4.0045,0,0,1,22,28Z"/><path d="M12,28H8V4h8v6a2.0058,2.0058,0,0,0,2,2h6v4h2V10a.9092.9092,0,0,0-.3-.7l-7-7A.9087.9087,0,0,0,18,2H8A2.0058,2.0058,0,0,0,6,4V28a2.0058,2.0058,0,0,0,2,2h4ZM18,4.4,23.6,10H18Z"/></symbol><symbol id="i-user-check" viewBox="0 0 32 32"><path d="M32 14 28 14 28 10 26 10 26 14 22 14 22 16 26 16 26 20 28 20 28 16 32 16 32 14z"/><path d="M12,4A5,5,0,1,1,7,9a5,5,0,0,1,5-5m0-2a7,7,0,1,0,7,7A7,7,0,0,0,12,2Z"/><path d="M22,30H20V25a5,5,0,0,0-5-5H9a5,5,0,0,0-5,5v5H2V25a7,7,0,0,1,7-7h6a7,7,0,0,1,7,7Z"/></symbol><symbol id="st-critical" viewBox="0 0 16 16"><rect x="1.5" y="1.5" width="13" height="13" rx="1" style="fill:var(--status-critical)"/><rect x="7.25" y="3.75" width="1.5" height="6" style="fill:var(--on-critical)"/><rect x="7.25" y="10.75" width="1.5" height="1.5" style="fill:var(--on-critical)"/></symbol><symbol id="st-warning" viewBox="0 0 16 16"><path d="M8 1.6 15.2 14.4H.8z" style="fill:var(--status-warning-fill);stroke:var(--status-warning);stroke-width:1;stroke-linejoin:round"/><rect x="7.3" y="5.6" width="1.4" height="4.8" style="fill:var(--on-warning)"/><rect x="7.3" y="11.4" width="1.4" height="1.4" style="fill:var(--on-warning)"/></symbol><symbol id="st-unknown" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5" style="fill:none;stroke:var(--status-unknown);stroke-width:1.5;stroke-dasharray:2.6 1.7"/><path d="M6.2 6.4a1.8 1.8 0 1 1 2.6 1.6c-.5.3-.8.6-.8 1.2v.4" style="fill:none;stroke:var(--status-unknown);stroke-width:1.4;stroke-linecap:round"/><rect x="7.3" y="10.6" width="1.4" height="1.4" style="fill:var(--status-unknown)"/></symbol><symbol id="st-healthy" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" style="fill:none;stroke:var(--border-strong);stroke-width:1.5"/></symbol><symbol id="i-plug" viewBox="0 0 32 32"><path d="M22,8H21V2H19V8H13V2H11V8H10a2,2,0,0,0-2,2v6a8.0073,8.0073,0,0,0,7,7.9307V30h2V23.9307A8.0073,8.0073,0,0,0,24,16V10A2,2,0,0,0,22,8Zm0,8a6,6,0,0,1-12,0V10H22Z"/></symbol><symbol id="i-connection" viewBox="0 0 32 32"><path d="M5 3.59H7V8.42H5z" transform="rotate(-45.01 5.996 6.005)"/><path d="M25 23.58H27V28.409999999999997H25z" transform="rotate(-44.99 25.995 25.999)"/><path d="M11 2H13V6H11z"/><path d="M2 11H6V13H2z"/><path d="M26 19H30V21H26z"/><path d="M19 26H21V30H19z"/><path d="M16.58,21.07l-3.71,3.72a4,4,0,1,1-5.66-5.66l3.72-3.72L9.51,14,5.8,17.72a6,6,0,0,0-.06,8.54A6,6,0,0,0,10,28a6.07,6.07,0,0,0,4.32-1.8L18,22.49Z"/><path d="M15.41,10.93l3.72-3.72a4,4,0,1,1,5.66,5.66l-3.72,3.72L22.49,18l3.71-3.72a6,6,0,0,0,.06-8.54A6,6,0,0,0,22,4a6.07,6.07,0,0,0-4.32,1.8L14,9.51Z"/></symbol><symbol id="i-locked" viewBox="0 0 32 32"><path d="M24,14H22V8A6,6,0,0,0,10,8v6H8a2,2,0,0,0-2,2V28a2,2,0,0,0,2,2H24a2,2,0,0,0,2-2V16A2,2,0,0,0,24,14ZM12,8a4,4,0,0,1,8,0v6H12ZM24,28H8V16H24Z"/></symbol><symbol id="i-time" viewBox="0 0 32 32"><path d="M16,30A14,14,0,1,1,30,16,14,14,0,0,1,16,30ZM16,4A12,12,0,1,0,28,16,12,12,0,0,0,16,4Z"/><path d="M20.59 22 15 16.41 15 7 17 7 17 15.58 22 20.59 20.59 22z"/></symbol></svg>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<aside class="sim-banner" aria-label="Data source notice">
+  <strong>SIMULATED DATA</strong>
+  <span>Synthetic telemetry from the IPHI simulator, not connected to any real plant</span>
+</aside>
+
+<div class="shell">
+  <nav class="sidebar" aria-label="Main">
+  <a class="brand" href="overview.html">
+    <svg class="brand__mark" viewBox="0 0 28 28" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+      <path d="M15.5 4.5 23.5 12.5"/><path d="M23.5 15.5 15.5 23.5"/><path d="M12.5 23.5 4.5 15.5"/><path d="M4.5 12.5 12.5 4.5"/>
+    </svg>
+    <span class="brand__text"><span class="brand__name">IPHI</span><span class="brand__sub">Platform Health Intelligence</span></span>
+  </a>
+  <div class="nav">
+    <a href="overview.html" title="Overview" ><svg aria-hidden="true" focusable="false" class="icon"><use href="#i-layout-dashboard"/></svg><span class="nav__label">Overview</span></a>
+    <a href="#" title="Topology"><svg aria-hidden="true" focusable="false" class="icon"><use href="#i-network"/></svg><span class="nav__label">Topology</span></a>
+    <a href="incident.html" title="Incidents" ><svg aria-hidden="true" focusable="false" class="icon"><use href="#i-siren"/></svg><span class="nav__label">Incidents</span><span class="nav__count" aria-label="2 active">2</span></a>
+    <a href="component.html" title="Components" aria-current="page"><svg aria-hidden="true" focusable="false" class="icon"><use href="#i-boxes"/></svg><span class="nav__label">Components</span></a>
+    <a href="#" title="Scenarios"><svg aria-hidden="true" focusable="false" class="icon"><use href="#i-play"/></svg><span class="nav__label">Scenarios</span></a>
+    <div class="nav__sep" role="separator"></div>
+    <a href="#" title="Rules"><svg aria-hidden="true" focusable="false" class="icon"><use href="#i-list-checks"/></svg><span class="nav__label">Rules</span></a>
+    <a href="#" title="Audit"><svg aria-hidden="true" focusable="false" class="icon"><use href="#i-scroll-text"/></svg><span class="nav__label">Audit</span></a>
+  </div>
+  <div class="sidebar__foot">
+    <span class="tag">SIM</span>
+    <p>Scenario <span class="mono">collector_down #12</span> running since 10:39:40 UTC</p>
+  </div>
+</nav>
+
+
+  <div class="main">
+    <header class="topbar">
+  <div class="topbar__platform">
+    <span class="topbar__platform-name">Demo Plant Data Platform</span>
+    <span class="badge badge--critical"><svg aria-hidden="true" focusable="false" class="st"><use href="#st-critical"/></svg>Critical</span>
+    <span class="topbar__summary">1 critical, 3 warning, 3 impacted</span>
+  </div>
+  <div class="topbar__right">
+    <div class="monitor" aria-label="Monitor status">
+      <span class="monitor__item"><svg aria-hidden="true" focusable="false" class="icon icon--sm monitor__ok"><use href="#i-activity"/></svg>Monitor running</span>
+      <span class="monitor__item">Cycle 5&nbsp;s, last <span class="mono">10:42:05</span></span>
+      <span class="monitor__item">AI diagnosis off</span>
+    </div>
+    <span class="divider-v" aria-hidden="true"></span>
+    <div class="clock">
+      <time class="clock__utc" datetime="2026-11-12T10:42:07Z">10:42:07 UTC</time>
+      <span class="clock__local">11:42:07 local</span>
+    </div>
+    <button class="icon-btn" type="button" data-theme-toggle aria-label="Switch to dark theme">
+      <svg aria-hidden="true" focusable="false" class="icon" data-theme-icon="light"><use href="#i-moon"/></svg>
+      <svg aria-hidden="true" focusable="false" class="icon" data-theme-icon="dark" hidden><use href="#i-sun"/></svg>
+    </button>
+  </div>
+</header>
+
+
+    <main class="content" id="main">
+      <nav class="crumbs small" aria-label="Breadcrumb"><a href="#">Components</a><svg aria-hidden="true" focusable="false" class="icon icon--sm"><use href="#i-chevron-right"/></svg><span class="mono" aria-current="page">collector-01</span></nav>
+
+      <header class="inc-head">
+        <div class="inc-head__title">
+          <span class="badge badge--critical badge--lg"><svg aria-hidden="true" focusable="false" class="st"><use href="#st-critical"/></svg>Critical</span>
+          <h1>collector-01</h1>
+          <span class="muted">since <time class="mono" datetime="2026-11-12T10:39:47Z" title="2026-11-12 10:39:47 UTC (11:39:47 local)">10:39:47 UTC</time></span>
+        </div>
+        <div class="inc-head__actions">
+          <a class="btn btn--primary" href="incident.html">Open incident INC-0007</a>
+        </div>
+        <dl class="inc-head__facts">
+          <div><dt>Type</dt><dd>collector</dd></div>
+          <div><dt>Criticality</dt><dd>high</dd></div>
+          <div><dt>Reason</dt><dd><span class="mono">R-AVAIL-001 v1</span> probe not answered</dd></div>
+          <div><dt>Last observation</dt><dd><time class="mono" datetime="2026-11-12T10:42:05Z">10:42:05 UTC</time> <span class="muted">2&nbsp;s ago</span></dd></div>
+          <div><dt>Source</dt><dd><span class="tag" title="Source: IPHI simulator">SIM</span></dd></div>
+        </dl>
+      </header>
+
+      <div class="inc-layout">
+        <div class="inc-main">
+
+          <section class="card" aria-labelledby="hc-title">
+            <header class="card__head">
+              <h2 id="hc-title">Health over time</h2>
+              <span class="card__meta">
+                <span class="seg" role="group" aria-label="Metric">
+                  <button type="button" aria-pressed="true">latency</button><button type="button" aria-pressed="false">queue</button><button type="button" aria-pressed="false">up</button>
+                </span>
+                <span class="seg" role="group" aria-label="Time window">
+                  <button type="button" aria-pressed="true">15m</button><button type="button" aria-pressed="false">1h</button><button type="button" aria-pressed="false">6h</button><button type="button" aria-pressed="false">24h</button>
+                </span>
+                <span class="mono">UTC</span>
+              </span>
+            </header>
+            <div class="hc" id="hc" tabindex="0" role="group" aria-roledescription="time chart" aria-labelledby="hc-title" aria-describedby="hc-summary">
+              <p id="hc-summary" class="visually-hidden">collector-01 between 10:27 and 10:42 UTC. Warning from 10:31:46 to 10:33:35 on R-LAT-001 (INC-0005, resolved). Critical since 10:39:47 on R-AVAIL-001 (INC-0007). R-LAT-001 Unknown since 10:40:42 and R-QUEUE-001 Unknown since 10:40:12: no samples. Use left and right arrow keys to move the cursor.</p>
+              <svg class="hc__svg" viewBox="0 0 800 318" aria-hidden="true"><defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" class="hc__hatch-bg"/><line x1="0" y1="0" x2="0" y2="6" class="hc__hatch"/></pattern></defs><rect class="hc__scenario" x="685.5" y="18" width="104.5" height="268"/><text class="hc__scenario-label" x="786" y="126" text-anchor="end">collector_down #12</text><text class="hc__row-label hc__row-label--component" x="0" y="36.0">collector-01</text><rect class="hc__seg hc__seg--healthy" x="151.0" y="22" width="196.4" height="20" rx="2"/><rect class="hc__seg hc__seg--warning" x="349.4" y="22" width="75.5" height="20" rx="2"/><text class="hc__seg-label hc__seg-label--warning" x="355.4" y="36.0">Warning</text><rect class="hc__seg hc__seg--healthy" x="426.9" y="22" width="262.5" height="20" rx="2"/><rect class="hc__seg hc__seg--critical" x="691.4" y="22" width="97.6" height="20" rx="2"/><text class="hc__seg-label hc__seg-label--critical" x="697.4" y="36.0">Critical</text><text class="hc__row-label" x="0" y="55.0">R-AVAIL-001 v1</text><rect class="hc__seg hc__seg--healthy" x="151.0" y="44" width="538.4" height="14" rx="2"/><rect class="hc__seg hc__seg--critical" x="691.4" y="44" width="97.6" height="14" rx="2"/><text class="hc__row-label" x="0" y="71.0">R-LAT-001 v1</text><rect class="hc__seg hc__seg--healthy" x="151.0" y="60" width="196.4" height="14" rx="2"/><rect class="hc__seg hc__seg--warning" x="349.4" y="60" width="75.5" height="14" rx="2"/><rect class="hc__seg hc__seg--healthy" x="426.9" y="60" width="301.6" height="14" rx="2"/><rect class="hc__seg hc__seg--unknown" x="730.6" y="60" width="58.4" height="14" rx="2" fill="url(#hatch)"/><text class="hc__row-label" x="0" y="87.0">R-QUEUE-001 v1</text><rect class="hc__seg hc__seg--healthy" x="151.0" y="76" width="556.2" height="14" rx="2"/><rect class="hc__seg hc__seg--unknown" x="709.2" y="76" width="79.8" height="14" rx="2" fill="url(#hatch)"/><text class="hc__row-label" x="0" y="103.0">R-TEL-001 v1</text><rect class="hc__seg hc__seg--healthy" x="151.0" y="92" width="638.0" height="14" rx="2"/><line class="hc__threshold" x1="150" x2="790" y1="254.8" y2="254.8"/><text class="hc__axis" x="142" y="258.8" text-anchor="end">250 warning</text><line class="hc__threshold" x1="150" x2="790" y1="161.0" y2="161.0"/><text class="hc__axis" x="142" y="165.0" text-anchor="end">1000 critical</text><line class="hc__baseline" x1="150" x2="790" y1="286" y2="286"/><text class="hc__axis" x="142" y="290" text-anchor="end">0 ms</text><text class="hc__axis hc__axis--title" x="0" y="126">probe_latency_ms</text><text class="hc__axis" x="122" y="126">raw samples every 5 s, input of R-LAT-001 (p95, 60 s)</text><polyline class="hc__series" points="150.0,278.9 153.6,277.5 157.1,278.5 160.7,277.4 164.2,278.8 167.8,278.5 171.3,279.0 174.9,279.0 178.4,277.6 182.0,278.0 185.6,277.6 189.1,278.1 192.7,278.4 196.2,278.9 199.8,277.9 203.3,277.9 206.9,278.5 210.4,277.5 214.0,279.0 217.6,278.4 221.1,277.4 224.7,279.0 228.2,277.8 231.8,277.5 235.3,278.5 238.9,278.5 242.4,278.5 246.0,279.1 249.6,278.9 253.1,278.2 256.7,279.1 260.2,277.6 263.8,277.4 267.3,278.1 270.9,278.4 274.4,277.5 278.0,278.9 281.6,277.2 285.1,277.9 288.7,277.0 292.2,277.9 295.8,277.2 299.3,277.0 302.9,275.9 306.4,275.1 310.0,273.1 313.6,272.2 317.1,271.1 320.7,269.1 324.2,266.9 327.8,264.4 331.3,261.1 334.9,259.0 338.4,256.9 342.0,253.4 345.6,250.5 349.1,249.2 352.7,247.1 356.2,244.8 359.8,244.8 363.3,243.4 366.9,243.9 370.4,243.1 374.0,245.2 377.6,245.6 381.1,247.6 384.7,250.6 388.2,253.0 391.8,255.8 395.3,258.0 398.9,262.1 402.4,263.1 406.0,265.5 409.6,269.0 413.1,269.8 416.7,272.5 420.2,274.1 423.8,275.1 427.3,275.2 430.9,276.9 434.4,276.8 438.0,276.8 441.6,278.0 445.1,277.5 448.7,277.8 452.2,277.1 455.8,278.9 459.3,278.1 462.9,278.2 466.4,279.0 470.0,278.8 473.6,278.5 477.1,277.6 480.7,278.9 484.2,279.1 487.8,277.6 491.3,278.5 494.9,278.5 498.4,278.1 502.0,278.8 505.6,278.9 509.1,277.8 512.7,278.1 516.2,278.0 519.8,277.8 523.3,279.0 526.9,278.6 530.4,278.1 534.0,277.5 537.6,278.2 541.1,277.5 544.7,278.2 548.2,279.0 551.8,278.2 555.3,278.4 558.9,278.2 562.4,277.9 566.0,277.6 569.6,278.1 573.1,277.6 576.7,277.4 580.2,279.1 583.8,277.6 587.3,278.5 590.9,277.6 594.4,278.5 598.0,277.5 601.6,278.1 605.1,277.9 608.7,277.8 612.2,278.4 615.8,279.1 619.3,278.2 622.9,278.1 626.4,279.0 630.0,279.0 633.6,278.4 637.1,278.4 640.7,277.6 644.2,279.0 647.8,278.9 651.3,278.1 654.9,277.6 658.4,278.9 662.0,279.0 665.6,278.4 669.1,277.9 672.7,278.1 676.2,279.0 679.8,278.6 683.3,277.6"/><text class="hc__gap" x="784" y="233.5" text-anchor="end">No samples since 10:39:37</text><line class="hc__gap-edge" x1="683.3" x2="683.3" y1="268.5" y2="288.5"/><line class="hc__marker" x1="348.4" x2="348.4" y1="14" y2="286"/><path class="hc__marker-head" d="M344.4 6 h8 l-4 6z"/><line class="hc__marker" x1="425.9" x2="425.9" y1="14" y2="286"/><path class="hc__marker-head" d="M421.9 6 h8 l-4 6z"/><line class="hc__marker" x1="690.4" x2="690.4" y1="14" y2="286"/><path class="hc__marker-head" d="M686.4 6 h8 l-4 6z"/><text class="hc__axis" x="187.7" y="306" text-anchor="middle">10:28</text><text class="hc__axis" x="273.0" y="306" text-anchor="middle">10:30</text><text class="hc__axis" x="358.4" y="306" text-anchor="middle">10:32</text><text class="hc__axis" x="443.7" y="306" text-anchor="middle">10:34</text><text class="hc__axis" x="529.0" y="306" text-anchor="middle">10:36</text><text class="hc__axis" x="614.4" y="306" text-anchor="middle">10:38</text><text class="hc__axis" x="699.7" y="306" text-anchor="middle">10:40</text><text class="hc__axis" x="785.0" y="306" text-anchor="middle">10:42</text><line class="hc__cursor" x1="0" x2="0" y1="18" y2="286" visibility="hidden"/></svg><script type="application/json" id="hc-data">{"t0": 37627, "t1": 38527, "gutter": 150, "right": 790, "width": 800, "rows": [{"label": "collector-01", "segs": [["healthy", 37627, 37906], ["warning", 37906, 38015], ["healthy", 38015, 38387], ["critical", 38387, 38527]]}, {"label": "R-AVAIL-001 v1", "segs": [["healthy", 37627, 38387], ["critical", 38387, 38527]]}, {"label": "R-LAT-001 v1", "segs": [["healthy", 37627, 37906], ["warning", 37906, 38015], ["healthy", 38015, 38442], ["unknown", 38442, 38527]]}, {"label": "R-QUEUE-001 v1", "segs": [["healthy", 37627, 38412], ["unknown", 38412, 38527]]}, {"label": "R-TEL-001 v1", "segs": [["healthy", 37627, 38527]]}], "latency": [[37627, 57], [37632, 68], [37637, 60], [37642, 69], [37647, 58], [37652, 60], [37657, 56], [37662, 56], [37667, 67], [37672, 64], [37677, 67], [37682, 63], [37687, 61], [37692, 57], [37697, 65], [37702, 65], [37707, 60], [37712, 68], [37717, 56], [37722, 61], [37727, 69], [37732, 56], [37737, 66], [37742, 68], [37747, 60], [37752, 60], [37757, 60], [37762, 55], [37767, 57], [37772, 62], [37777, 55], [37782, 67], [37787, 69], [37792, 63], [37797, 61], [37802, 68], [37807, 57], [37812, 70], [37817, 65], [37822, 72], [37827, 65], [37832, 70], [37837, 72], [37842, 81], [37847, 87], [37852, 103], [37857, 110], [37862, 119], [37867, 135], [37872, 153], [37877, 173], [37882, 199], [37887, 216], [37892, 233], [37897, 261], [37902, 284], [37907, 294], [37912, 311], [37917, 330], [37922, 330], [37927, 341], [37932, 337], [37937, 343], [37942, 326], [37947, 323], [37952, 307], [37957, 283], [37962, 264], [37967, 242], [37972, 224], [37977, 191], [37982, 183], [37987, 164], [37992, 136], [37997, 130], [38002, 108], [38007, 95], [38012, 87], [38017, 86], [38022, 73], [38027, 74], [38032, 74], [38037, 64], [38042, 68], [38047, 66], [38052, 71], [38057, 57], [38062, 63], [38067, 62], [38072, 56], [38077, 58], [38082, 60], [38087, 67], [38092, 57], [38097, 55], [38102, 67], [38107, 60], [38112, 60], [38117, 63], [38122, 58], [38127, 57], [38132, 66], [38137, 63], [38142, 64], [38147, 66], [38152, 56], [38157, 59], [38162, 63], [38167, 68], [38172, 62], [38177, 68], [38182, 62], [38187, 56], [38192, 62], [38197, 61], [38202, 62], [38207, 65], [38212, 67], [38217, 63], [38222, 67], [38227, 69], [38232, 55], [38237, 67], [38242, 60], [38247, 67], [38252, 60], [38257, 68], [38262, 63], [38267, 65], [38272, 66], [38277, 61], [38282, 55], [38287, 62], [38292, 63], [38297, 56], [38302, 56], [38307, 61], [38312, 61], [38317, 67], [38322, 56], [38327, 57], [38332, 63], [38337, 67], [38342, 57], [38347, 56], [38352, 61], [38357, 65], [38362, 63], [38367, 56], [38372, 59], [38377, 67]], "markers": [["INC-0005 opened", 37906], ["INC-0005 resolved", 38015], ["INC-0007 opened", 38387]]}</script>
+              <div class="hc__tip" role="status" hidden></div>
+            </div>
+            <footer class="hc__foot">
+              <span class="hc__legend"><span class="hc__key hc__key--healthy" aria-hidden="true"></span>Healthy</span>
+              <span class="hc__legend"><span class="hc__key hc__key--warning" aria-hidden="true"></span>Warning</span>
+              <span class="hc__legend"><span class="hc__key hc__key--critical" aria-hidden="true"></span>Critical</span>
+              <span class="hc__legend"><span class="hc__key hc__key--unknown" aria-hidden="true"></span>Unknown, no evidence</span>
+              <span class="hc__legend"><span class="hc__key hc__key--marker" aria-hidden="true"></span>incident opened or resolved</span>
+              <button class="btn btn--ghost" type="button" aria-expanded="false" aria-controls="hc-table">View as table</button>
+            </footer>
+            <div id="hc-table" class="hc__table-wrap" hidden><table class="table hc__table"><thead><tr><th scope="col">Time (UTC)</th><th scope="col">Subject</th><th scope="col">From</th><th scope="col">To</th></tr></thead><tbody><tr><td class="mono">10:31:46</td><td class="mono">R-LAT-001 v1</td><td>Healthy</td><td>Warning</td></tr><tr><td class="mono">10:31:46</td><td class="mono">collector-01</td><td>Healthy</td><td>Warning</td></tr><tr><td class="mono">10:33:35</td><td class="mono">R-LAT-001 v1</td><td>Warning</td><td>Healthy</td></tr><tr><td class="mono">10:33:35</td><td class="mono">collector-01</td><td>Warning</td><td>Healthy</td></tr><tr><td class="mono">10:39:47</td><td class="mono">R-AVAIL-001 v1</td><td>Healthy</td><td>Critical</td></tr><tr><td class="mono">10:39:47</td><td class="mono">collector-01</td><td>Healthy</td><td>Critical</td></tr><tr><td class="mono">10:40:12</td><td class="mono">R-QUEUE-001 v1</td><td>Healthy</td><td>Unknown</td></tr><tr><td class="mono">10:40:42</td><td class="mono">R-LAT-001 v1</td><td>Healthy</td><td>Unknown</td></tr></tbody></table></div>
+          </section>
+
+          <section class="card" aria-labelledby="rules-title">
+            <header class="card__head">
+              <h2 id="rules-title">Rules</h2>
+              <span class="mono muted">4</span>
+              <span class="card__meta">Evaluated every 5&nbsp;s, last <time class="mono" datetime="2026-11-12T10:42:05Z">10:42:05 UTC</time></span>
+            </header>
+            <table class="table rules">
+              <colgroup><col style="width:112px"><col style="width:148px"><col><col style="width:124px"><col style="width:104px"><col style="width:84px"><col style="width:84px"></colgroup>
+              <thead>
+                <tr><th scope="col">State</th><th scope="col">Rule</th><th scope="col">Condition</th><th scope="col">Observed</th><th scope="col">Debounce</th><th scope="col">Since</th><th scope="col">Evaluation</th></tr>
+              </thead>
+              <tbody>
+                <tr class="row--critical">
+                  <td><span class="badge badge--critical"><svg aria-hidden="true" focusable="false" class="st"><use href="#st-critical"/></svg>Critical</span></td>
+                  <td class="mono"><a href="#">R-AVAIL-001</a> v1</td>
+                  <td class="mono">last(up, 10 s) &lt; 1</td>
+                  <td class="mono">0</td>
+                  <td class="mono">raised 2/2</td>
+                  <td class="mono">10:39:47</td>
+                  <td class="mono"><a href="#">#8812</a></td>
+                </tr>
+                <tr>
+                  <td><span class="badge badge--unknown"><svg aria-hidden="true" focusable="false" class="st"><use href="#st-unknown"/></svg>Unknown</span></td>
+                  <td class="mono"><a href="#">R-LAT-001</a> v1</td>
+                  <td class="mono">p95(probe_latency_ms, 60 s) &gt; 250 · &gt; 1000</td>
+                  <td><span class="muted">no samples in window</span></td>
+                  <td class="mono muted">—</td>
+                  <td class="mono">10:40:42</td>
+                  <td class="mono"><a href="#">#8851</a></td>
+                </tr>
+                <tr>
+                  <td><span class="badge badge--unknown"><svg aria-hidden="true" focusable="false" class="st"><use href="#st-unknown"/></svg>Unknown</span></td>
+                  <td class="mono"><a href="#">R-QUEUE-001</a> v1</td>
+                  <td class="mono">last(queue_depth, 30 s) &gt; 1000 · &gt; 5000</td>
+                  <td><span class="muted">no samples in window</span></td>
+                  <td class="mono muted">—</td>
+                  <td class="mono">10:40:12</td>
+                  <td class="mono"><a href="#">#8839</a></td>
+                </tr>
+                <tr>
+                  <td><span class="badge badge--healthy"><svg aria-hidden="true" focusable="false" class="st"><use href="#st-healthy"/></svg>Healthy</span></td>
+                  <td class="mono"><a href="#">R-TEL-001</a> v1</td>
+                  <td class="mono">any observation within 15 s</td>
+                  <td class="mono">2 s ago</td>
+                  <td class="mono muted">—</td>
+                  <td class="mono">10:12:00</td>
+                  <td class="mono"><a href="#">#8873</a></td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="rules__note small muted">Unknown means the rule had no evidence in its window. It is never counted as Healthy.</p>
+          </section>
+
+          <section class="card" aria-labelledby="logs-title">
+            <header class="card__head">
+              <h2 id="logs-title">Recent logs</h2>
+              <span class="card__meta">Severity warning and above, grouped by fingerprint</span>
+            </header>
+            <table class="table logs">
+              <colgroup><col style="width:96px"><col style="width:72px"><col><col style="width:72px"><col style="width:96px"></colgroup>
+              <thead><tr><th scope="col">Last seen</th><th scope="col">Level</th><th scope="col">Message</th><th scope="col" class="num">Count</th><th scope="col">Fingerprint</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">10:39:46</td><td><span class="lvl lvl--error">ERROR</span></td><td>connection refused by upstream gateway</td><td class="num mono">12</td><td class="mono muted">a91c4e02</td></tr>
+                <tr><td class="mono">10:39:41</td><td><span class="lvl lvl--warn">WARN</span></td><td>upstream read timeout after 5000 ms</td><td class="num mono">3</td><td class="mono muted">5be0d771</td></tr>
+                <tr><td class="mono">10:32:58</td><td><span class="lvl lvl--warn">WARN</span></td><td>slow response from edge-gateway-01 (312 ms)</td><td class="num mono">9</td><td class="mono muted">0d3f9a16</td></tr>
+              </tbody>
+            </table>
+            <p class="rules__note small muted">No log received since 10:39:46 UTC: the service stopped answering.</p>
+          </section>
+        </div>
+
+        <aside class="inc-aside" aria-label="Component context">
+          <section class="card" aria-labelledby="dep-title">
+            <header class="card__head"><h2 id="dep-title">Dependencies</h2><span class="card__meta">data flow, left to right</span></header>
+            <div class="deps">
+              <p class="deps__group">Upstream</p>
+              <a class="deps__item" href="#"><svg aria-hidden="true" focusable="false" class="st icon--sm"><use href="#st-healthy"/></svg><span class="mono">edge-gateway-01</span><span class="muted small">gateway</span></a>
+              <p class="deps__self"><svg aria-hidden="true" focusable="false" class="st icon--sm"><use href="#st-critical"/></svg><span class="mono">collector-01</span><span class="muted small">this component</span></p>
+              <p class="deps__group">Downstream, impacted</p>
+              <a class="deps__item" href="#"><svg aria-hidden="true" focusable="false" class="st icon--sm"><use href="#st-warning"/></svg><span class="mono">historian-01</span><span class="muted small">direct</span></a>
+              <a class="deps__item deps__item--far" href="#"><svg aria-hidden="true" focusable="false" class="st icon--sm"><use href="#st-warning"/></svg><span class="mono">data-api-01</span><span class="muted small">via historian-01</span></a>
+              <a class="deps__item deps__item--far" href="#"><svg aria-hidden="true" focusable="false" class="st icon--sm"><use href="#st-warning"/></svg><span class="mono">analytics-01</span><span class="muted small">via data-api-01</span></a>
+            </div>
+          </section>
+
+          <section class="card" aria-labelledby="ci-title">
+            <header class="card__head"><h2 id="ci-title">Incidents</h2><span class="card__meta">last 24 h</span></header>
+            <ul class="ci">
+              <li>
+                <a class="ci__row" href="incident.html">
+                  <svg aria-hidden="true" focusable="false" class="st icon--sm"><use href="#st-critical"/></svg>
+                  <span class="ci__main"><span><span class="mono muted">INC-0007</span> unreachable</span><span class="small muted">availability, opened 10:39:47 UTC</span></span>
+                  <span class="istatus istatus--open">Open</span>
+                </a>
+              </li>
+              <li>
+                <a class="ci__row" href="#">
+                  <svg aria-hidden="true" focusable="false" class="st icon--sm"><use href="#st-warning"/></svg>
+                  <span class="ci__main"><span><span class="mono muted">INC-0005</span> latency above 250 ms</span><span class="small muted">latency, 10:31:46 → 10:33:35 UTC</span></span>
+                  <span class="istatus istatus--resolved">Resolved</span>
+                </a>
+              </li>
+            </ul>
+          </section>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

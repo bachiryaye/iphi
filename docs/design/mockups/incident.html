@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#F3F4F6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1116" media="(prefers-color-scheme: dark)">
+<title>INC-0007 collector-01 unreachable | IPHI</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/incident.css">
+<script src="assets/theme.js"></script>
+<script src="assets/incident.js" defer></script>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true"><symbol id="i-layout-dashboard" viewBox="0 0 32 32"><path d="M24 21H26V26H24z"/><path d="M20 16H22V26H20z"/><path d="M11,26a5.0059,5.0059,0,0,1-5-5H8a3,3,0,1,0,3-3V16a5,5,0,0,1,0,10Z"/><path d="M28,2H4A2.002,2.002,0,0,0,2,4V28a2.0023,2.0023,0,0,0,2,2H28a2.0027,2.0027,0,0,0,2-2V4A2.0023,2.0023,0,0,0,28,2Zm0,9H14V4H28ZM12,4v7H4V4ZM4,28V13H28.0007l.0013,15Z"/></symbol><symbol id="i-network" viewBox="0 0 32 32"><path d="M30,30H22V22h8Zm-6-2h4V24H24Z"/><path d="M20,27H8A6,6,0,0,1,8,15h2v2H8a4,4,0,0,0,0,8H20Z"/><path d="M20,20H12V12h8Zm-6-2h4V14H14Z"/><path d="M24,17H22V15h2a4,4,0,0,0,0-8H12V5H24a6,6,0,0,1,0,12Z"/><path d="M10,10H2V2h8ZM4,8H8V4H4Z"/></symbol><symbol id="i-siren" viewBox="0 0 16 16"><path d="M14.5,14h-13c-0.2,0-0.3-0.1-0.4-0.2c-0.1-0.2-0.1-0.3,0-0.5l6.5-12C7.7,1,8,0.9,8.2,1.1c0.1,0,0.2,0.1,0.2,0.2l6.5,12 c0.1,0.2,0.1,0.3,0,0.5C14.9,13.9,14.7,14,14.5,14z M2.3,13h11.3L8,2.5L2.3,13z"/><path d="M7.5 6H8.5V9.5H7.5z"/><path d="M8,10.8c-0.4,0-0.8,0.3-0.8,0.8s0.3,0.8,0.8,0.8c0.4,0,0.8-0.3,0.8-0.8S8.4,10.8,8,10.8z"/></symbol><symbol id="i-boxes" viewBox="0 0 32 32"><path d="M28.5039,8.1362l-12-7a1,1,0,0,0-1.0078,0l-12,7A1,1,0,0,0,3,9V23a1,1,0,0,0,.4961.8638l12,7a1,1,0,0,0,1.0078,0l12-7A1,1,0,0,0,29,23V9A1,1,0,0,0,28.5039,8.1362ZM16,3.1577,26.0156,9,16,14.8423,5.9844,9ZM5,10.7412l10,5.833V28.2588L5,22.4258ZM17,28.2588V16.5742l10-5.833V22.4258Z"/></symbol><symbol id="i-play" viewBox="0 0 16 16"><path d="M3.5,14C3.2,14,3,13.8,3,13.5v-11c0-0.2,0.1-0.3,0.2-0.4C3.4,2,3.6,2,3.8,2.1l9.5,5.5c0.2,0.1,0.3,0.4,0.2,0.7 c0,0.1-0.1,0.1-0.2,0.2l-9.5,5.5C3.7,14,3.6,14,3.5,14z M4,3.4v9.3L12,8L4,3.4z"/></symbol><symbol id="i-list-checks" viewBox="0 0 32 32"><path d="M10 16H22V18H10z"/><path d="M10 10H22V12H10z"/><path d="M16,30,9.8242,26.7071A10.9815,10.9815,0,0,1,4,17V4A2.0022,2.0022,0,0,1,6,2H26a2.0022,2.0022,0,0,1,2,2V17a10.9815,10.9815,0,0,1-5.8242,9.7069ZM6,4V17a8.9852,8.9852,0,0,0,4.7656,7.9423L16,27.7333l5.2344-2.791A8.9852,8.9852,0,0,0,26,17V4Z"/></symbol><symbol id="i-scroll-text" viewBox="0 0 32 32"><path d="M26,2H8A2,2,0,0,0,6,4V8H4v2H6v5H4v2H6v5H4v2H6v4a2,2,0,0,0,2,2H26a2,2,0,0,0,2-2V4A2,2,0,0,0,26,2Zm0,26H8V24h2V22H8V17h2V15H8V10h2V8H8V4H26Z"/><path d="M14 8H22V10H14z"/><path d="M14 15H22V17H14z"/><path d="M14 22H22V24H14z"/></symbol><symbol id="i-activity" viewBox="0 0 32 32"><path d="M12,29a1,1,0,0,1-.92-.62L6.33,17H2V15H7a1,1,0,0,1,.92.62L12,25.28,20.06,3.65A1,1,0,0,1,21,3a1,1,0,0,1,.93.68L25.72,15H30v2H25a1,1,0,0,1-.95-.68L21,7,12.94,28.35A1,1,0,0,1,12,29Z"/></symbol><symbol id="i-moon" viewBox="0 0 16 16"><path d="M7.2,2.3c-1,4.4,1.7,8.7,6.1,9.8c0.1,0,0.1,0,0.2,0c-1.1,1.2-2.7,1.8-4.3,1.8c-0.1,0-0.2,0-0.2,0C5.6,13.8,3,11,3.2,7.7 C3.2,5.3,4.8,3.1,7.2,2.3 M8,1L8,1C4.1,1.6,1.5,5.3,2.1,9.1c0.6,3.3,3.4,5.8,6.8,5.9c0.1,0,0.2,0,0.3,0c2.3,0,4.4-1.1,5.8-3 c0.2-0.2,0.1-0.6-0.1-0.7c-0.1-0.1-0.2-0.1-0.3-0.1c-3.9-0.3-6.7-3.8-6.4-7.6C8.3,3,8.4,2.4,8.6,1.8c0.1-0.3,0-0.6-0.3-0.7 C8.1,1,8.1,1,8,1z"/></symbol><symbol id="i-sun" viewBox="0 0 16 16"><path d="M7.5 1H8.5V3.5H7.5z"/><path d="M10.8 3.4H13.3V4.4H10.8z" transform="rotate(-45 12.041 3.923)"/><path d="M12.5 7.5H15V8.5H12.5z"/><path d="M11.6 10.8H12.6V13.3H11.6z" transform="rotate(-45 12.075 12.04)"/><path d="M7.5 12.5H8.5V15H7.5z"/><path d="M2.7 11.6H5.2V12.6H2.7z" transform="rotate(-45 3.96 12.078)"/><path d="M1 7.5H3.5V8.5H1z"/><path d="M3.4 2.7H4.4V5.2H3.4z" transform="rotate(-45 3.925 3.961)"/><path d="M8,6c1.1,0,2,0.9,2,2s-0.9,2-2,2S6,9.1,6,8S6.9,6,8,6 M8,5C6.3,5,5,6.3,5,8s1.3,3,3,3s3-1.3,3-3S9.7,5,8,5z"/></symbol><symbol id="i-copy" viewBox="0 0 32 32"><path d="M28,10V28H10V10H28m0-2H10a2,2,0,0,0-2,2V28a2,2,0,0,0,2,2H28a2,2,0,0,0,2-2V10a2,2,0,0,0-2-2Z"/><path d="M4,18H2V4A2,2,0,0,1,4,2H18V4H4Z"/></symbol><symbol id="i-download" viewBox="0 0 16 16"><path d="M13 7 12.3 6.3 8.5 10.1 8.5 1 7.5 1 7.5 10.1 3.7 6.3 3 7 8 12z"/><path d="M13,12v2H3v-2H2v2l0,0c0,0.6,0.4,1,1,1h10c0.6,0,1-0.4,1-1l0,0v-2H13z"/></symbol><symbol id="i-chevron-down" viewBox="0 0 16 16"><path d="M8 11 3 6 3.7 5.3 8 9.6 12.3 5.3 13 6z"/></symbol><symbol id="i-chevron-right" viewBox="0 0 16 16"><path d="M11 8 6 13 5.3 12.3 9.6 8 5.3 3.7 6 3z"/></symbol><symbol id="i-arrow-right" viewBox="0 0 16 16"><path d="M9.3 3.7 13.1 7.5 1 7.5 1 8.5 13.1 8.5 9.3 12.3 10 13 15 8 10 3z"/></symbol><symbol id="i-git-branch" viewBox="0 0 32 32"><path stroke-width="0" d="m20,6c0,1.8587,1.2795,3.4109,3,3.858v4.142c0,1.6543-1.3457,3-3,3h-8c-1.1299,0-2.1617.391-3,1.0256v-8.1676c1.7203-.4471,3-1.9993,3-3.858,0-2.2061-1.7944-4-4-4s-4,1.7939-4,4c0,1.8587,1.2797,3.4108,3,3.858v12.142s0,.142,0,.142c-1.7203.4473-3,1.9997-3,3.858,0,2.2056,1.7944,4,4,4s4-1.7944,4-4c0-1.8583-1.2797-3.4107-3-3.858v-.142c0-1.6543,1.3457-3,3-3h8c2.7568,0,5-2.2432,5-5v-4.142c1.7205-.4471,3-1.9993,3-3.858,0-2.2061-1.7939-4-4-4s-4,1.7939-4,4Zm-14,0c0-1.1025.897-2,2-2s2,.8975,2,2c0,1.1025-.897,2-2,2s-2-.8975-2-2Zm4,20c0,1.103-.897,2-2,2s-2-.897-2-2,.897-2,2-2,2,.897,2,2ZM26,6c0,1.1025-.8975,2-2,2s-2-.8975-2-2c0-1.1025.8975-2,2-2s2,.8975,2,2Z"/></symbol><symbol id="i-layers" viewBox="0 0 32 32"><path d="M16,24a.9967.9967,0,0,1-.4741-.12l-13-7L3.4741,15.12,16,21.8643,28.5259,15.12l.9482,1.7607-13,7A.9967.9967,0,0,1,16,24Z"/><path d="M16,30a.9967.9967,0,0,1-.4741-.12l-13-7L3.4741,21.12,16,27.8643,28.5259,21.12l.9482,1.7607-13,7A.9967.9967,0,0,1,16,30Z"/><path d="M16,18a.9967.9967,0,0,1-.4741-.12l-13-7a1,1,0,0,1,0-1.7607l13-7a.9982.9982,0,0,1,.9482,0l13,7a1,1,0,0,1,0,1.7607l-13,7A.9967.9967,0,0,1,16,18ZM5.1094,10,16,15.8643,26.8906,10,16,4.1358Z"/></symbol><symbol id="i-stethoscope" viewBox="0 0 32 32"><path d="M24,2V4h2v6a4,4,0,0,1-8,0V4h2V2H16v8a6.0051,6.0051,0,0,0,5,5.91V22A6,6,0,0,1,9,22V15.8579a4,4,0,1,0-2,0V22a8,8,0,0,0,16,0V15.91A6.0051,6.0051,0,0,0,28,10V2ZM6,12a2,2,0,1,1,2,2A2.0023,2.0023,0,0,1,6,12Z"/></symbol><symbol id="i-file-search" viewBox="0 0 32 32"><circle cx="22" cy="24" r="2"/><path fill="none" d="M22,28a4,4,0,1,1,4-4A4.0039,4.0039,0,0,1,22,28Zm0-6a2,2,0,1,0,2,2A2.0027,2.0027,0,0,0,22,22Z"/><path d="M29.7769,23.4785A8.64,8.64,0,0,0,22,18a8.64,8.64,0,0,0-7.7769,5.4785L14,24l.2231.5215A8.64,8.64,0,0,0,22,30a8.64,8.64,0,0,0,7.7769-5.4785L30,24ZM22,28a4,4,0,1,1,4-4A4.0045,4.0045,0,0,1,22,28Z"/><path d="M12,28H8V4h8v6a2.0058,2.0058,0,0,0,2,2h6v4h2V10a.9092.9092,0,0,0-.3-.7l-7-7A.9087.9087,0,0,0,18,2H8A2.0058,2.0058,0,0,0,6,4V28a2.0058,2.0058,0,0,0,2,2h4ZM18,4.4,23.6,10H18Z"/></symbol><symbol id="i-user-check" viewBox="0 0 32 32"><path d="M32 14 28 14 28 10 26 10 26 14 22 14 22 16 26 16 26 20 28 20 28 16 32 16 32 14z"/><path d="M12,4A5,5,0,1,1,7,9a5,5,0,0,1,5-5m0-2a7,7,0,1,0,7,7A7,7,0,0,0,12,2Z"/><path d="M22,30H20V25a5,5,0,0,0-5-5H9a5,5,0,0,0-5,5v5H2V25a7,7,0,0,1,7-7h6a7,7,0,0,1,7,7Z"/></symbol><symbol id="st-critical" viewBox="0 0 16 16"><rect x="1.5" y="1.5" width="13" height="13" rx="1" style="fill:var(--status-critical)"/><rect x="7.25" y="3.75" width="1.5" height="6" style="fill:var(--on-critical)"/><rect x="7.25" y="10.75" width="1.5" height="1.5" style="fill:var(--on-critical)"/></symbol><symbol id="st-warning" viewBox="0 0 16 16"><path d="M8 1.6 15.2 14.4H.8z" style="fill:var(--status-warning-fill);stroke:var(--status-warning);stroke-width:1;stroke-linejoin:round"/><rect x="7.3" y="5.6" width="1.4" height="4.8" style="fill:var(--on-warning)"/><rect x="7.3" y="11.4" width="1.4" height="1.4" style="fill:var(--on-warning)"/></symbol><symbol id="st-unknown" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5" style="fill:none;stroke:var(--status-unknown);stroke-width:1.5;stroke-dasharray:2.6 1.7"/><path d="M6.2 6.4a1.8 1.8 0 1 1 2.6 1.6c-.5.3-.8.6-.8 1.2v.4" style="fill:none;stroke:var(--status-unknown);stroke-width:1.4;stroke-linecap:round"/><rect x="7.3" y="10.6" width="1.4" height="1.4" style="fill:var(--status-unknown)"/></symbol><symbol id="st-healthy" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" style="fill:none;stroke:var(--border-strong);stroke-width:1.5"/></symbol><symbol id="i-plug" viewBox="0 0 32 32"><path d="M22,8H21V2H19V8H13V2H11V8H10a2,2,0,0,0-2,2v6a8.0073,8.0073,0,0,0,7,7.9307V30h2V23.9307A8.0073,8.0073,0,0,0,24,16V10A2,2,0,0,0,22,8Zm0,8a6,6,0,0,1-12,0V10H22Z"/></symbol><symbol id="i-connection" viewBox="0 0 32 32"><path d="M5 3.59H7V8.42H5z" transform="rotate(-45.01 5.996 6.005)"/><path d="M25 23.58H27V28.409999999999997H25z" transform="rotate(-44.99 25.995 25.999)"/><path d="M11 2H13V6H11z"/><path d="M2 11H6V13H2z"/><path d="M26 19H30V21H26z"/><path d="M19 26H21V30H19z"/><path d="M16.58,21.07l-3.71,3.72a4,4,0,1,1-5.66-5.66l3.72-3.72L9.51,14,5.8,17.72a6,6,0,0,0-.06,8.54A6,6,0,0,0,10,28a6.07,6.07,0,0,0,4.32-1.8L18,22.49Z"/><path d="M15.41,10.93l3.72-3.72a4,4,0,1,1,5.66,5.66l-3.72,3.72L22.49,18l3.71-3.72a6,6,0,0,0,.06-8.54A6,6,0,0,0,22,4a6.07,6.07,0,0,0-4.32,1.8L14,9.51Z"/></symbol><symbol id="i-locked" viewBox="0 0 32 32"><path d="M24,14H22V8A6,6,0,0,0,10,8v6H8a2,2,0,0,0-2,2V28a2,2,0,0,0,2,2H24a2,2,0,0,0,2-2V16A2,2,0,0,0,24,14ZM12,8a4,4,0,0,1,8,0v6H12ZM24,28H8V16H24Z"/></symbol><symbol id="i-time" viewBox="0 0 32 32"><path d="M16,30A14,14,0,1,1,30,16,14,14,0,0,1,16,30ZM16,4A12,12,0,1,0,28,16,12,12,0,0,0,16,4Z"/><path d="M20.59 22 15 16.41 15 7 17 7 17 15.58 22 20.59 20.59 22z"/></symbol></svg>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<aside class="sim-banner" aria-label="Data source notice">
+  <strong>SIMULATED DATA</strong>
+  <span>Synthetic telemetry from the IPHI simulator, not connected to any real plant</span>
+</aside>
+
+<div class="shell">
+  <nav class="sidebar" aria-label="Main">
+  <a class="brand" href="overview.html">
+    <svg class="brand__mark" viewBox="0 0 28 28" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+      <path d="M15.5 4.5 23.5 12.5"/><path d="M23.5 15.5 15.5 23.5"/><path d="M12.5 23.5 4.5 15.5"/><path d="M4.5 12.5 12.5 4.5"/>
+    </svg>
+    <span class="brand__text"><span class="brand__name">IPHI</span><span class="brand__sub">Platform Health Intelligence</span></span>
+  </a>
+  <div class="nav">
+    <a href="overview.html" title="Overview" ><svg aria-hidden="true" focusable="false" class="icon"><use href="#i-layout-dashboard"/></svg><span class="nav__label">Overview</span></a>
+    <a href="#" title="Topology"><svg aria-hidden="true" focusable="false" class="icon"><use href="#i-network"/></svg><span class="nav__label">Topology</span></a>
+    <a href="incident.html" title="Incidents" aria-current="page"><svg aria-hidden="true" focusable="false" class="icon"><use href="#i-siren"/></svg><span class="nav__label">Incidents</span><span class="nav__count" aria-label="2 active">2</span></a>
+    <a href="component.html" title="Components" ><svg aria-hidden="true" focusable="false" class="icon"><use href="#i-boxes"/></svg><span class="nav__label">Components</span></a>
+    <a href="#" title="Scenarios"><svg aria-hidden="true" focusable="false" class="icon"><use href="#i-play"/></svg><span class="nav__label">Scenarios</span></a>
+    <div class="nav__sep" role="separator"></div>
+    <a href="#" title="Rules"><svg aria-hidden="true" focusable="false" class="icon"><use href="#i-list-checks"/></svg><span class="nav__label">Rules</span></a>
+    <a href="#" title="Audit"><svg aria-hidden="true" focusable="false" class="icon"><use href="#i-scroll-text"/></svg><span class="nav__label">Audit</span></a>
+  </div>
+  <div class="sidebar__foot">
+    <span class="tag">SIM</span>
+    <p>Scenario <span class="mono">collector_down #12</span> running since 10:39:40 UTC</p>
+  </div>
+</nav>
+
+
+  <div class="main">
+    <header class="topbar">
+  <div class="topbar__platform">
+    <span class="topbar__platform-name">Demo Plant Data Platform</span>
+    <span class="badge badge--critical"><svg aria-hidden="true" focusable="false" class="st"><use href="#st-critical"/></svg>Critical</span>
+    <span class="topbar__summary">1 critical, 3 warning, 3 impacted</span>
+  </div>
+  <div class="topbar__right">
+    <div class="monitor" aria-label="Monitor status">
+      <span class="monitor__item"><svg aria-hidden="true" focusable="false" class="icon icon--sm monitor__ok"><use href="#i-activity"/></svg>Monitor running</span>
+      <span class="monitor__item">Cycle 5&nbsp;s, last <span class="mono">10:42:05</span></span>
+      <span class="monitor__item">AI diagnosis off</span>
+    </div>
+    <span class="divider-v" aria-hidden="true"></span>
+    <div class="clock">
+      <time class="clock__utc" datetime="2026-11-12T10:42:07Z">10:42:07 UTC</time>
+      <span class="clock__local">11:42:07 local</span>
+    </div>
+    <button class="icon-btn" type="button" data-theme-toggle aria-label="Switch to dark theme">
+      <svg aria-hidden="true" focusable="false" class="icon" data-theme-icon="light"><use href="#i-moon"/></svg>
+      <svg aria-hidden="true" focusable="false" class="icon" data-theme-icon="dark" hidden><use href="#i-sun"/></svg>
+    </button>
+  </div>
+</header>
+
+
+    <main class="content" id="main">
+      <nav class="crumbs small" aria-label="Breadcrumb"><a href="#">Incidents</a><svg class="icon icon--sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span class="mono" aria-current="page">INC-0007</span></nav>
+
+      <header class="inc-head">
+        <div class="inc-head__title">
+          <span class="badge badge--critical badge--lg"><svg aria-hidden="true" focusable="false" class="st"><use href="#st-critical"/></svg>Critical</span>
+          <h1><span class="mono inc-head__id">INC-0007</span> collector-01 unreachable</h1>
+        </div>
+        <div class="inc-head__actions">
+          <button class="btn btn--primary" type="button">Acknowledge</button>
+          <button class="btn" type="button">Resolve…</button>
+          <button class="btn" type="button">Diagnose</button>
+          <button class="btn" type="button">Export<svg aria-hidden="true" focusable="false" class="icon icon--sm"><use href="#i-chevron-down"/></svg></button>
+        </div>
+        <dl class="inc-head__facts">
+          <div><dt>Status</dt><dd><span class="istatus istatus--open">Open</span></dd></div>
+          <div><dt>Failure class</dt><dd>availability</dd></div>
+          <div><dt>Opened</dt><dd><time class="mono" datetime="2026-11-12T10:39:47Z" title="2026-11-12 10:39:47 UTC (11:39:47 local)">10:39:47 UTC</time> <span class="muted">2&nbsp;min 20&nbsp;s ago</span></dd></div>
+          <div><dt>Occurrences</dt><dd class="mono">24</dd></div>
+          <div><dt>Source</dt><dd><span class="tag" title="Source: IPHI simulator">SIM</span></dd></div>
+        </dl>
+      </header>
+
+      <div class="inc-layout">
+        <div class="inc-main">
+
+          <section class="card" aria-labelledby="sig-title">
+            <header class="card__head">
+              <h2 id="sig-title">Probe result</h2>
+              <span class="mono muted">collector-01 up</span>
+              <span class="card__meta">
+                <span class="seg" role="group" aria-label="Time window">
+                  <button type="button" aria-pressed="true">15m</button><button type="button" aria-pressed="false">1h</button><button type="button" aria-pressed="false">6h</button><button type="button" aria-pressed="false">24h</button>
+                </span>
+                <span class="mono">UTC</span>
+              </span>
+            </header>
+            <figure class="chart">
+              <svg viewBox="0 0 800 168" role="img" aria-labelledby="chart-desc">
+                <desc id="chart-desc">collector-01 probe result between 10:30 and 10:42 UTC: up until 10:39:37, down from 10:39:42 to the last sample at 10:42:05. Scenario collector_down #12 started at 10:39:40. Incident INC-0007 opened at 10:39:47. Evidence E1 at 10:39:42, E2 at 10:39:47, E6 at 10:42:02.</desc>
+                <g class="chart__scenario">
+                  <rect x="642" y="2" width="150" height="128"/>
+                  <line x1="642" x2="642" y1="2" y2="130"/>
+                  <text x="786" y="15" text-anchor="end">collector_down #12</text>
+                </g>
+                <g class="chart__grid">
+                  <line x1="52" x2="792" y1="46" y2="46"/>
+                  <line x1="52" x2="792" y1="120" y2="120"/>
+                </g>
+                <g class="chart__ylabels">
+                  <text x="44" y="50" text-anchor="end">up 1</text>
+                  <text x="44" y="124" text-anchor="end">down 0</text>
+                </g>
+                <g class="chart__xlabels">
+                  <text x="52" y="156">10:30</text>
+                  <text x="174" y="156" text-anchor="middle">10:32</text>
+                  <text x="296" y="156" text-anchor="middle">10:34</text>
+                  <text x="418" y="156" text-anchor="middle">10:36</text>
+                  <text x="541" y="156" text-anchor="middle">10:38</text>
+                  <text x="663" y="156" text-anchor="middle">10:40</text>
+                  <text x="785" y="156" text-anchor="middle">10:42</text>
+                </g>
+                <g class="chart__marker">
+                  <line x1="649.5" x2="649.5" y1="24" y2="130"/>
+                  <text x="636" y="33" text-anchor="end">INC-0007 opened 10:39:47</text>
+                </g>
+                <path class="chart__series" d="M52 46 H639.3 L644.4 120 H790"/>
+                <g class="chart__ev" data-ev="E1"><circle cx="644.4" cy="120" r="4"/><text x="634" y="112" text-anchor="end">E1</text></g>
+                <g class="chart__ev" data-ev="E2"><circle cx="649.5" cy="120" r="4"/><text x="660" y="112">E2</text></g>
+                <g class="chart__ev" data-ev="E6"><circle cx="787" cy="120" r="4"/><text x="784" y="112" text-anchor="end">E6</text></g>
+              </svg>
+            </figure>
+          </section>
+
+          <section class="card" aria-labelledby="ev-title">
+            <header class="card__head">
+              <h2 id="ev-title">Evidence chain</h2>
+              <span class="card__meta">6 items, stored and immutable</span>
+            </header>
+            <ol class="chain" aria-label="Detection path">
+              <li><span class="chain__kind">Rule</span><a class="mono" href="#">R-AVAIL-001 v1</a><span class="muted small">up (last, 10 s) &lt; 1</span></li>
+              <li aria-hidden="true" class="chain__arrow"><svg aria-hidden="true" focusable="false" class="icon"><use href="#i-arrow-right"/></svg></li>
+              <li><span class="chain__kind">Evaluation</span><span class="mono">#8812</span><span class="muted small">Critical after 2 of 2 consecutive</span></li>
+              <li aria-hidden="true" class="chain__arrow"><svg aria-hidden="true" focusable="false" class="icon"><use href="#i-arrow-right"/></svg></li>
+              <li><span class="chain__kind">Samples</span><span class="chips"><button class="chip" type="button" data-ev="E1" aria-pressed="false">E1</button><button class="chip" type="button" data-ev="E2" aria-pressed="false">E2</button></span></li>
+            </ol>
+            <table class="table evidence">
+              <colgroup><col style="width:56px"><col style="width:84px"><col><col style="width:128px"><col style="width:112px"><col style="width:64px"></colgroup>
+              <thead>
+                <tr><th scope="col">ID</th><th scope="col">Type</th><th scope="col">Observation</th><th scope="col">Component</th><th scope="col">Observed</th><th scope="col">Source</th></tr>
+              </thead>
+              <tbody>
+                <tr id="ev-E1"><td><button class="chip" type="button" data-ev="E1" aria-pressed="false">E1</button></td><td class="muted">metric</td><td class="mono">up = 0</td><td>collector-01</td><td class="mono">10:39:42</td><td><span class="tag">SIM</span></td></tr>
+                <tr id="ev-E2"><td><button class="chip" type="button" data-ev="E2" aria-pressed="false">E2</button></td><td class="muted">metric</td><td class="mono">up = 0</td><td>collector-01</td><td class="mono">10:39:47</td><td><span class="tag">SIM</span></td></tr>
+                <tr id="ev-E3"><td><button class="chip" type="button" data-ev="E3" aria-pressed="false">E3</button></td><td class="muted">log</td><td><span class="sev">ERROR</span> connection refused by upstream gateway <span class="muted mono">×12 fp a91c…</span></td><td>collector-01</td><td class="mono">10:39:46</td><td><span class="tag">SIM</span></td></tr>
+                <tr id="ev-E4"><td><button class="chip" type="button" data-ev="E4" aria-pressed="false">E4</button></td><td class="muted">impact</td><td class="mono">data_age_s = 148</td><td>historian-01</td><td class="mono">10:42:04</td><td><span class="tag">SIM</span></td></tr>
+                <tr id="ev-E5"><td><button class="chip" type="button" data-ev="E5" aria-pressed="false">E5</button></td><td class="muted">impact</td><td class="mono">data_age_s = 95</td><td>analytics-01</td><td class="mono">10:42:04</td><td><span class="tag">SIM</span></td></tr>
+                <tr id="ev-E6"><td><button class="chip" type="button" data-ev="E6" aria-pressed="false">E6</button></td><td class="muted">metric</td><td class="mono">up = 0 <span class="muted">latest occurrence</span></td><td>collector-01</td><td class="mono">10:42:02</td><td><span class="tag">SIM</span></td></tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section class="card diag" aria-labelledby="diag-title">
+            <header class="card__head">
+              <h2 id="diag-title">Diagnosis</h2>
+              <span class="tag">Deterministic</span>
+              <span class="card__meta">Generated <time class="mono" datetime="2026-11-12T10:41:10Z">10:41:10 UTC</time> from 6 evidence items</span>
+            </header>
+
+            <div class="diag__section diag__section--facts">
+              <h3>Facts</h3>
+              <ul>
+                <li>
+                  <div class="claim"><span class="claim__text">collector-01 did not answer 24 consecutive probes since 10:39:42 UTC.</span><span class="chips"><button class="chip" type="button" data-ev="E1" aria-pressed="false">E1</button><button class="chip" type="button" data-ev="E2" aria-pressed="false">E2</button><button class="chip" type="button" data-ev="E6" aria-pressed="false">E6</button></span><button class="claim__toggle" type="button" aria-expanded="true" aria-controls="cited-1" aria-label="Show cited evidence"><svg aria-hidden="true" focusable="false" class="icon icon--sm"><use href="#i-chevron-down"/></svg></button></div>
+                    <ul class="cited" id="cited-1">
+                      <li><span class="mono">E1</span><span>metric up = 0</span><span class="muted">collector-01</span><span class="mono muted">10:39:42 UTC</span></li>
+                      <li><span class="mono">E2</span><span>metric up = 0</span><span class="muted">collector-01</span><span class="mono muted">10:39:47 UTC</span></li>
+                      <li><span class="mono">E6</span><span>metric up = 0</span><span class="muted">collector-01</span><span class="mono muted">10:42:02 UTC</span></li>
+                    </ul>
+                </li>
+                <li>
+                  <div class="claim"><span class="claim__text">collector-01 logged 12 “connection refused by upstream gateway” errors just before the first failed probe.</span><span class="chips"><button class="chip" type="button" data-ev="E3" aria-pressed="false">E3</button></span><button class="claim__toggle" type="button" aria-expanded="false" aria-controls="cited-2" aria-label="Show cited evidence"><svg aria-hidden="true" focusable="false" class="icon icon--sm"><use href="#i-chevron-down"/></svg></button></div>
+                    <ul class="cited" id="cited-2" hidden><li><span class="mono">E3</span><span>log ERROR ×12</span><span class="muted">collector-01</span><span class="mono muted">10:39:46 UTC</span></li></ul>
+                </li>
+              </ul>
+            </div>
+
+            <div class="diag__section diag__section--hypotheses">
+              <h3>Hypotheses</h3>
+              <ul>
+                <li>
+                  <div class="claim"><span class="claim__text"><em>collector-01 is the most upstream failing component; the freshness degradation on historian-01 and analytics-01 is correlated with it, causation not proven.</em> <span class="uncertainty">Uncertainty: low</span></span><span class="chips"><button class="chip" type="button" data-ev="E2" aria-pressed="false">E2</button><button class="chip" type="button" data-ev="E4" aria-pressed="false">E4</button><button class="chip" type="button" data-ev="E5" aria-pressed="false">E5</button></span><button class="claim__toggle" type="button" aria-expanded="false" aria-controls="cited-3" aria-label="Show cited evidence"><svg aria-hidden="true" focusable="false" class="icon icon--sm"><use href="#i-chevron-down"/></svg></button></div>
+                    <ul class="cited" id="cited-3" hidden>
+                      <li><span class="mono">E2</span><span>metric up = 0</span><span class="muted">collector-01</span><span class="mono muted">10:39:47 UTC</span></li>
+                      <li><span class="mono">E4</span><span>data_age_s = 148</span><span class="muted">historian-01</span><span class="mono muted">10:42:04 UTC</span></li>
+                      <li><span class="mono">E5</span><span>data_age_s = 95</span><span class="muted">analytics-01</span><span class="mono muted">10:42:04 UTC</span></li>
+                    </ul>
+                </li>
+              </ul>
+            </div>
+
+            <div class="diag__section diag__section--checks">
+              <h3>Checks</h3>
+              <ol>
+                <li><span>Verify that the collector-01 process is running on its host.</span><span class="chips"><button class="chip" type="button" data-ev="E1" aria-pressed="false">E1</button></span></li>
+                <li><span>Check the link between collector-01 and edge-gateway-01; the refused connections point to it.</span><span class="chips"><button class="chip" type="button" data-ev="E3" aria-pressed="false">E3</button></span></li>
+              </ol>
+            </div>
+
+            <div class="diag__section diag__section--limits">
+              <h3>Limitations</h3>
+              <p>Simulated environment. No host-level metrics are collected for collector-01, so process state cannot be confirmed from evidence.</p>
+            </div>
+          </section>
+        </div>
+
+        <aside class="inc-aside" aria-label="Incident context">
+          <section class="card" aria-labelledby="det-title">
+            <header class="card__head"><h2 id="det-title">Details</h2></header>
+            <dl class="kv">
+              <div><dt>Status</dt><dd><span class="istatus istatus--open">Open</span></dd></div>
+              <div><dt>Severity</dt><dd><span class="badge badge--critical"><svg aria-hidden="true" focusable="false" class="st"><use href="#st-critical"/></svg>Critical</span></dd></div>
+              <div><dt>Component</dt><dd><a href="component.html">collector-01</a> <span class="muted">high</span></dd></div>
+              <div><dt>Failure class</dt><dd>availability</dd></div>
+              <div><dt>First seen</dt><dd class="mono">10:39:47 UTC</dd></div>
+              <div><dt>Last seen</dt><dd class="mono">10:42:02 UTC</dd></div>
+              <div><dt>Occurrences</dt><dd class="mono">24</dd></div>
+              <div><dt>Fingerprint</dt><dd><span class="mono">3f2a9c71</span> <button class="icon-btn icon-btn--xs" type="button" aria-label="Copy fingerprint 3f2a9c71"><svg aria-hidden="true" focusable="false" class="icon icon--sm"><use href="#i-copy"/></svg></button></dd></div>
+              <div><dt>Scenario run</dt><dd><span class="mono">collector_down #12</span> <span class="tag">SIM</span></dd></div>
+              <div><dt>Impacted</dt><dd class="kv__links"><a href="#">historian-01</a> <a href="#">data-api-01</a> <a href="#">analytics-01</a></dd></div>
+            </dl>
+          </section>
+
+          <section class="card" aria-labelledby="tl-title">
+            <header class="card__head">
+              <h2 id="tl-title">Timeline</h2>
+              <span class="card__meta">Times shown in UTC</span>
+            </header>
+            <ol class="timeline" aria-live="polite">
+              <li class="tl tl--critical">
+                <time class="tl__time" datetime="2026-11-12T10:39:47Z" title="2026-11-12 10:39:47 UTC (11:39:47 local)">10:39:47</time>
+                <svg aria-hidden="true" focusable="false" class="st tl__icon"><use href="#st-critical"/></svg>
+                <div class="tl__body"><p>Opened as Critical</p><p class="tl__actor">system, R-AVAIL-001 v1</p></div>
+              </li>
+              <li class="tl">
+                <time class="tl__time" datetime="2026-11-12T10:39:52Z">10:39:52</time>
+                <svg aria-hidden="true" focusable="false" class="icon tl__icon"><use href="#i-layers"/></svg>
+                <div class="tl__body">
+                  <details>
+                    <summary><span>23 occurrences grouped</span><svg class="icon icon--sm diag__toggle" aria-hidden="true"><use href="#i-chevron-down"/></svg></summary>
+                    <p class="tl__detail mono">10:39:52 → 10:42:02, every 5&nbsp;s, same fingerprint 3f2a9c71</p>
+                  </details>
+                  <p class="tl__actor">system, deduplicated</p>
+                </div>
+              </li>
+              <li class="tl">
+                <time class="tl__time" datetime="2026-11-12T10:40:12Z">10:40:12</time>
+                <svg aria-hidden="true" focusable="false" class="icon tl__icon"><use href="#i-git-branch"/></svg>
+                <div class="tl__body"><p>historian-01 freshness rule suppressed</p><p class="tl__actor">system, R-FRESH-001 v1, impact E4</p></div>
+              </li>
+              <li class="tl">
+                <time class="tl__time" datetime="2026-11-12T10:40:31Z">10:40:31</time>
+                <svg aria-hidden="true" focusable="false" class="icon tl__icon"><use href="#i-git-branch"/></svg>
+                <div class="tl__body"><p>analytics-01 freshness rule suppressed</p><p class="tl__actor">system, R-FRESH-001 v1, impact E5</p></div>
+              </li>
+              <li class="tl">
+                <time class="tl__time" datetime="2026-11-12T10:41:10Z">10:41:10</time>
+                <svg aria-hidden="true" focusable="false" class="icon tl__icon"><use href="#i-file-search"/></svg>
+                <div class="tl__body"><p>Deterministic diagnosis added</p><p class="tl__actor">J. Doe</p></div>
+              </li>
+            </ol>
+          </section>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

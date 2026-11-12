@@ -1,0 +1,18 @@
+# Third-party screenshots used as design references only; not redistributed.
+docs/design/moodboard/
+
+__pycache__/
+
+.env
+.venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo

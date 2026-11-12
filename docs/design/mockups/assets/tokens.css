@@ -1,0 +1,59 @@
+/* Tokens from docs/04-design-system.md §3. Components never use raw colors. */
+
+@font-face { font-family: "IBM Plex Sans"; font-weight: 400; font-style: normal; src: url("fonts/IBMPlexSans-Regular.ttf") format("truetype"); font-display: swap; }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 400; font-style: italic; src: url("fonts/IBMPlexSans-Italic.ttf") format("truetype"); font-display: swap; }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 500; font-style: normal; src: url("fonts/IBMPlexSans-Medium.ttf") format("truetype"); font-display: swap; }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 600; font-style: normal; src: url("fonts/IBMPlexSans-SemiBold.ttf") format("truetype"); font-display: swap; }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 400; font-style: normal; src: url("fonts/IBMPlexMono-Regular.ttf") format("truetype"); font-display: swap; }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 500; font-style: normal; src: url("fonts/IBMPlexMono-Medium.ttf") format("truetype"); font-display: swap; }
+
+:root {
+  color-scheme: light;
+  --bg: #F3F4F6;
+  --surface: #FFFFFF;
+  --surface-sunken: #E9EBEF;
+  --border: #D9DCE1;
+  --border-strong: #7A8494;
+  --text: #1A1F26;
+  --text-muted: #556070;
+  --accent: #1F5FBF;
+  --status-healthy: #2E7350;
+  --status-warning: #8A5A00;
+  --status-warning-fill: #F2B13A;
+  --status-critical: #B42318;
+  --status-unknown: #5F6B7A;
+  --on-warning: #1A1F26;
+  --on-critical: #FFFFFF;
+  --meter-normal: #8A939F;
+  --band-healthy: #DCDFE4;
+  --highlight: rgba(31, 95, 191, 0.10);
+  --shadow-float: 0 4px 16px rgba(26, 31, 38, 0.12);
+
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --radius-control: 4px;
+  --radius-card: 6px;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0E1116;
+  --surface: #161B22;
+  --surface-sunken: #0B0E12;
+  --border: #262C35;
+  --border-strong: #67717F;
+  --text: #E6E9EE;
+  --text-muted: #9BA5B2;
+  --accent: #6AAEFF;
+  --status-healthy: #5CB88A;
+  --status-warning: #E8AE3A;
+  --status-warning-fill: #E8AE3A;
+  --status-critical: #FF7A6E;
+  --status-unknown: #A3ACB8;
+  --on-warning: #0E1116;
+  --on-critical: #0E1116;
+  --meter-normal: #606A78;
+  --band-healthy: #2A313B;
+  --highlight: rgba(106, 174, 255, 0.18);
+  --shadow-float: 0 4px 16px rgba(0, 0, 0, 0.5);
+}

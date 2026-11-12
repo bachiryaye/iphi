@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#F3F4F6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1116" media="(prefers-color-scheme: dark)">
+<title>Interface states | IPHI</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/overview.css">
+<link rel="stylesheet" href="assets/incident.css">
+<link rel="stylesheet" href="assets/states.css">
+<script src="assets/theme.js"></script>
+</head>
+<body>
+<!-- @icons -->
+<a class="skip-link" href="#main">Skip to content</a>
+
+<aside class="sim-banner" aria-label="Data source notice">
+  <strong>SIMULATED DATA</strong>
+  <span>Synthetic telemetry from the IPHI simulator, not connected to any real plant</span>
+</aside>
+
+<div class="shell">
+  <!-- @sidebar -->
+
+  <div class="main">
+    <!-- @topbar -->
+
+    <main class="content" id="main">
+      <div class="page-head">
+        <h1>Interface states</h1>
+        <span class="muted">Reference for design system §8. Each example is a real screen element in that state.</span>
+      </div>
+
+      <!-- Loading -->
+      <section class="state" aria-labelledby="s-loading">
+        <div class="state__meta">
+          <h2 id="s-loading">Loading</h2>
+          <p>Placeholders keep the shape of the content, so the layout does not jump when data arrives. No full-page spinner, no animation.</p>
+        </div>
+        <div class="card" aria-busy="true" aria-describedby="loading-label">
+          <header class="card__head"><h3>Components</h3><span class="tag">SIM</span></header>
+          <p id="loading-label" class="visually-hidden">Loading components…</p>
+          <table class="table skel-table" aria-hidden="true">
+            <tbody>
+              <tr><td><span class="skel" style="width:120px"></span><span class="skel skel--sm" style="width:56px"></span></td><td><span class="skel" style="width:72px"></span></td><td><span class="skel" style="width:40px"></span></td><td><span class="skel" style="width:96px"></span> <span class="skel skel--bar"></span></td><td class="num"><span class="skel" style="width:48px"></span></td></tr>
+              <tr><td><span class="skel" style="width:136px"></span><span class="skel skel--sm" style="width:60px"></span></td><td><span class="skel" style="width:72px"></span></td><td><span class="skel" style="width:40px"></span></td><td><span class="skel" style="width:96px"></span> <span class="skel skel--bar"></span></td><td class="num"><span class="skel" style="width:48px"></span></td></tr>
+              <tr><td><span class="skel" style="width:104px"></span><span class="skel skel--sm" style="width:64px"></span></td><td><span class="skel" style="width:72px"></span></td><td><span class="skel" style="width:40px"></span></td><td><span class="skel" style="width:96px"></span> <span class="skel skel--bar"></span></td><td class="num"><span class="skel" style="width:48px"></span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Empty -->
+      <section class="state" aria-labelledby="s-empty">
+        <div class="state__meta">
+          <h2 id="s-empty">Empty</h2>
+          <p>Say what is empty, why, and what to do next. An empty incident list is not a success banner: no green, no checkmark.</p>
+        </div>
+        <div class="card">
+          <header class="card__head"><h3>Active incidents</h3><span class="mono muted">0</span><span class="tag">SIM</span></header>
+          <div class="empty">
+            <p class="empty__title">No active incidents</p>
+            <p class="empty__text">7 components are evaluated every 5&nbsp;s and none has an open incident. Start a scenario to see detection, deduplication and diagnosis on simulated failures.</p>
+            <a class="btn" href="#">Open scenarios</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Error -->
+      <section class="state" aria-labelledby="s-error">
+        <div class="state__meta">
+          <h2 id="s-error">Error</h2>
+          <p>What failed, what still works, how to retry, and a copyable correlation ID. Alarm red is reserved for the plant: interface errors stay neutral.</p>
+        </div>
+        <div class="card">
+          <header class="card__head"><h3>Incidents</h3><span class="tag">SIM</span></header>
+          <div class="problem" role="alert">
+            <svg aria-hidden="true" focusable="false" class="icon icon--lg problem__icon"><use href="#i-plug"/></svg>
+            <div class="problem__body">
+              <p class="problem__title">Could not load incidents</p>
+              <p>The API answered <span class="mono">500 INTERNAL_ERROR</span>. Detection and incident handling continue on the server; only this list is not updating.</p>
+              <p class="problem__meta">Correlation ID <span class="mono">7f3c2a91-4e0b</span> <button class="icon-btn icon-btn--xs" type="button" aria-label="Copy correlation ID 7f3c2a91-4e0b"><svg aria-hidden="true" focusable="false" class="icon icon--sm"><use href="#i-copy"/></svg></button> <span class="muted">at 10:42:03 UTC</span></p>
+            </div>
+            <button class="btn" type="button">Retry</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Degraded -->
+      <section class="state" aria-labelledby="s-degraded">
+        <div class="state__meta">
+          <h2 id="s-degraded">Degraded</h2>
+          <p>A persistent notice above the content when a dependency of the interface is down. The rest of the page keeps working and says how it is updated meanwhile.</p>
+        </div>
+        <div class="stack">
+          <div class="notice" role="status">
+            <svg aria-hidden="true" focusable="false" class="icon notice__icon"><use href="#i-connection"/></svg>
+            <p><strong>Live updates paused.</strong> Reconnecting to the event stream; this page refreshes every 30&nbsp;s meanwhile. Last update <span class="mono">10:41:37 UTC</span>.</p>
+          </div>
+          <div class="notice" role="status">
+            <svg aria-hidden="true" focusable="false" class="icon notice__icon"><use href="#i-file-search"/></svg>
+            <p><strong>AI diagnosis unavailable.</strong> The provider did not answer within 20&nbsp;s at <span class="mono">10:41:58 UTC</span>. Deterministic diagnosis remains available and complete.</p>
+            <button class="btn btn--small" type="button">Diagnose deterministically</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Stale -->
+      <section class="state" aria-labelledby="s-stale">
+        <div class="state__meta">
+          <h2 id="s-stale">Stale</h2>
+          <p>Content whose last refresh failed stays visible, muted, with its age. The view never looks live when it is not.</p>
+        </div>
+        <div class="card card--stale">
+          <header class="card__head">
+            <h3>Components</h3><span class="tag">SIM</span>
+            <span class="card__meta stale-note"><svg aria-hidden="true" focusable="false" class="icon icon--sm"><use href="#i-time"/></svg>Data from <span class="mono">10:40:07 UTC</span>, 2&nbsp;min old. Refresh failed twice; retrying in 10&nbsp;s.</span>
+          </header>
+          <table class="table comp-table">
+            <tbody>
+              <tr><td><span class="comp-name"><a href="#">plc-sim-01</a><span>source</span></span></td><td><span class="badge badge--healthy"><svg aria-hidden="true" focusable="false" class="st"><use href="#st-healthy"/></svg>Healthy</span></td><td class="mono">42 <span class="unit">ms</span></td><td class="num muted">observed 10:40:05 UTC</td></tr>
+              <tr class="row--critical"><td><span class="comp-name"><a href="#">collector-01</a><span>collector</span></span></td><td><span class="badge badge--critical"><svg aria-hidden="true" focusable="false" class="st"><use href="#st-critical"/></svg>Critical</span></td><td class="mono">down</td><td class="num muted">observed 10:40:05 UTC</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Permission -->
+      <section class="state" aria-labelledby="s-permission">
+        <div class="state__meta">
+          <h2 id="s-permission">Permission</h2>
+          <p>Actions a role cannot perform stay visible, disabled, with the reason in plain text. The server refuses them anyway and records the attempt.</p>
+        </div>
+        <div class="stack">
+          <div class="card perm">
+            <div class="perm__actions">
+              <button class="btn" type="button" disabled aria-describedby="perm-reason">Acknowledge</button>
+              <button class="btn" type="button" disabled aria-describedby="perm-reason">Resolve…</button>
+              <button class="btn" type="button" disabled aria-describedby="perm-reason">Diagnose</button>
+              <button class="btn" type="button">Export<svg aria-hidden="true" focusable="false" class="icon icon--sm"><use href="#i-chevron-down"/></svg></button>
+            </div>
+            <p id="perm-reason" class="perm__reason"><svg aria-hidden="true" focusable="false" class="icon icon--sm"><use href="#i-locked"/></svg>Signed in as <span class="mono">j.smith</span>, role viewer. Acknowledge, Resolve and Diagnose require the engineer role.</p>
+          </div>
+          <div class="toast" role="status">
+            <p><strong>Request denied.</strong> Starting a scenario requires the engineer role <span class="mono muted">(403 FORBIDDEN, corr. 1b9e07c4)</span>. The attempt is recorded in the audit log.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Monitor failure / Unknown -->
+      <section class="state" aria-labelledby="s-unknown">
+        <div class="state__meta">
+          <h2 id="s-unknown">Unknown and monitor failure</h2>
+          <p>When IPHI itself stops evaluating, the top bar says so and the platform turns Unknown. Missing evidence is never displayed as Healthy.</p>
+        </div>
+        <div class="stack">
+          <div class="card topbar-demo">
+            <div class="topbar">
+              <div class="topbar__platform">
+                <span class="topbar__platform-name">Demo Plant Data Platform</span>
+                <span class="badge badge--unknown"><svg aria-hidden="true" focusable="false" class="st"><use href="#st-unknown"/></svg>Unknown</span>
+                <span class="topbar__summary">no evaluation for 47&nbsp;s</span>
+              </div>
+              <div class="topbar__right">
+                <div class="monitor monitor--down">
+                  <span class="monitor__item"><svg aria-hidden="true" focusable="false" class="st icon--sm"><use href="#st-critical"/></svg>Monitor stalled</span>
+                  <span class="monitor__item">last cycle <span class="mono">10:41:20</span>, expected every 5&nbsp;s</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <section class="card health" aria-label="Platform health, unknown">
+            <header class="card__head"><h3>Platform health</h3><span class="tag">SIM</span></header>
+            <div class="card__body health__body">
+              <div class="health__state">
+                <span class="badge badge--unknown badge--lg"><svg aria-hidden="true" focusable="false" class="st"><use href="#st-unknown"/></svg>Unknown</span>
+                <span class="health__since">since <span class="mono">10:41:35 UTC</span></span>
+              </div>
+              <p class="health__reason">No observation received from 7 components for 30&nbsp;s <span class="mono muted">(R-TEL-001)</span>. Check the collector connection and the simulator.</p>
+              <ul class="counts" aria-label="Components by state">
+                <li class="counts__item counts__item--zero"><span class="counts__label"><svg aria-hidden="true" focusable="false" class="st icon--sm"><use href="#st-healthy"/></svg>Healthy</span><span class="counts__value">0</span></li>
+                <li class="counts__item counts__item--zero"><span class="counts__label"><svg aria-hidden="true" focusable="false" class="st icon--sm"><use href="#st-warning"/></svg>Warning</span><span class="counts__value">0</span></li>
+                <li class="counts__item counts__item--zero"><span class="counts__label"><svg aria-hidden="true" focusable="false" class="st icon--sm"><use href="#st-critical"/></svg>Critical</span><span class="counts__value">0</span></li>
+                <li class="counts__item counts__item--unknown"><span class="counts__label"><svg aria-hidden="true" focusable="false" class="st icon--sm"><use href="#st-unknown"/></svg>Unknown</span><span class="counts__value">7</span></li>
+              </ul>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+</body>
+</html>

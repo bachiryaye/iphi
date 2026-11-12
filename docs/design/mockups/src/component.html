@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#F3F4F6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1116" media="(prefers-color-scheme: dark)">
+<title>collector-01 | IPHI</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/incident.css">
+<link rel="stylesheet" href="assets/component.css">
+<script src="assets/theme.js"></script>
+<script src="assets/component.js" defer></script>
+</head>
+<body>
+<!-- @icons -->
+<a class="skip-link" href="#main">Skip to content</a>
+
+<aside class="sim-banner" aria-label="Data source notice">
+  <strong>SIMULATED DATA</strong>
+  <span>Synthetic telemetry from the IPHI simulator, not connected to any real plant</span>
+</aside>
+
+<div class="shell">
+  <!-- @sidebar -->
+
+  <div class="main">
+    <!-- @topbar -->
+
+    <main class="content" id="main">
+      <nav class="crumbs small" aria-label="Breadcrumb"><a href="#">Components</a><svg aria-hidden="true" focusable="false" class="icon icon--sm"><use href="#i-chevron-right"/></svg><span class="mono" aria-current="page">collector-01</span></nav>
+
+      <header class="inc-head">
+        <div class="inc-head__title">
+          <span class="badge badge--critical badge--lg"><svg aria-hidden="true" focusable="false" class="st"><use href="#st-critical"/></svg>Critical</span>
+          <h1>collector-01</h1>
+          <span class="muted">since <time class="mono" datetime="2026-11-12T10:39:47Z" title="2026-11-12 10:39:47 UTC (11:39:47 local)">10:39:47 UTC</time></span>
+        </div>
+        <div class="inc-head__actions">
+          <a class="btn btn--primary" href="incident.html">Open incident INC-0007</a>
+        </div>
+        <dl class="inc-head__facts">
+          <div><dt>Type</dt><dd>collector</dd></div>
+          <div><dt>Criticality</dt><dd>high</dd></div>
+          <div><dt>Reason</dt><dd><span class="mono">R-AVAIL-001 v1</span> probe not answered</dd></div>
+          <div><dt>Last observation</dt><dd><time class="mono" datetime="2026-11-12T10:42:05Z">10:42:05 UTC</time> <span class="muted">2&nbsp;s ago</span></dd></div>
+          <div><dt>Source</dt><dd><span class="tag" title="Source: IPHI simulator">SIM</span></dd></div>
+        </dl>
+      </header>
+
+      <div class="inc-layout">
+        <div class="inc-main">
+
+          <section class="card" aria-labelledby="hc-title">
+            <header class="card__head">
+              <h2 id="hc-title">Health over time</h2>
+              <span class="card__meta">
+                <span class="seg" role="group" aria-label="Metric">
+                  <button type="button" aria-pressed="true">latency</button><button type="button" aria-pressed="false">queue</button><button type="button" aria-pressed="false">up</button>
+                </span>
+                <span class="seg" role="group" aria-label="Time window">
+                  <button type="button" aria-pressed="true">15m</button><button type="button" aria-pressed="false">1h</button><button type="button" aria-pressed="false">6h</button><button type="button" aria-pressed="false">24h</button>
+                </span>
+                <span class="mono">UTC</span>
+              </span>
+            </header>
+            <div class="hc" id="hc" tabindex="0" role="group" aria-roledescription="time chart" aria-labelledby="hc-title" aria-describedby="hc-summary">
+              <p id="hc-summary" class="visually-hidden">collector-01 between 10:27 and 10:42 UTC. Warning from 10:31:46 to 10:33:35 on R-LAT-001 (INC-0005, resolved). Critical since 10:39:47 on R-AVAIL-001 (INC-0007). R-LAT-001 Unknown since 10:40:42 and R-QUEUE-001 Unknown since 10:40:12: no samples. Use left and right arrow keys to move the cursor.</p>
+              <!-- @component-chart -->
+              <div class="hc__tip" role="status" hidden></div>
+            </div>
+            <footer class="hc__foot">
+              <span class="hc__legend"><span class="hc__key hc__key--healthy" aria-hidden="true"></span>Healthy</span>
+              <span class="hc__legend"><span class="hc__key hc__key--warning" aria-hidden="true"></span>Warning</span>
+              <span class="hc__legend"><span class="hc__key hc__key--critical" aria-hidden="true"></span>Critical</span>
+              <span class="hc__legend"><span class="hc__key hc__key--unknown" aria-hidden="true"></span>Unknown, no evidence</span>
+              <span class="hc__legend"><span class="hc__key hc__key--marker" aria-hidden="true"></span>incident opened or resolved</span>
+              <button class="btn btn--ghost" type="button" aria-expanded="false" aria-controls="hc-table">View as table</button>
+            </footer>
+            <div id="hc-table" class="hc__table-wrap" hidden><!-- @component-transitions --></div>
+          </section>
+
+          <section class="card" aria-labelledby="rules-title">
+            <header class="card__head">
+              <h2 id="rules-title">Rules</h2>
+              <span class="mono muted">4</span>
+              <span class="card__meta">Evaluated every 5&nbsp;s, last <time class="mono" datetime="2026-11-12T10:42:05Z">10:42:05 UTC</time></span>
+            </header>
+            <table class="table rules">
+              <colgroup><col style="width:112px"><col style="width:148px"><col><col style="width:124px"><col style="width:104px"><col style="width:84px"><col style="width:84px"></colgroup>
+              <thead>
+                <tr><th scope="col">State</th><th scope="col">Rule</th><th scope="col">Condition</th><th scope="col">Observed</th><th scope="col">Debounce</th><th scope="col">Since</th><th scope="col">Evaluation</th></tr>
+              </thead>
+              <tbody>
+                <tr class="row--critical">
+                  <td><span class="badge badge--critical"><svg aria-hidden="true" focusable="false" class="st"><use href="#st-critical"/></svg>Critical</span></td>
+                  <td class="mono"><a href="#">R-AVAIL-001</a> v1</td>
+                  <td class="mono">last(up, 10 s) &lt; 1</td>
+                  <td class="mono">0</td>
+                  <td class="mono">raised 2/2</td>
+                  <td class="mono">10:39:47</td>
+                  <td class="mono"><a href="#">#8812</a></td>
+                </tr>
+                <tr>
+                  <td><span class="badge badge--unknown"><svg aria-hidden="true" focusable="false" class="st"><use href="#st-unknown"/></svg>Unknown</span></td>
+                  <td class="mono"><a href="#">R-LAT-001</a> v1</td>
+                  <td class="mono">p95(probe_latency_ms, 60 s) &gt; 250 · &gt; 1000</td>
+                  <td><span class="muted">no samples in window</span></td>
+                  <td class="mono muted">—</td>
+                  <td class="mono">10:40:42</td>
+                  <td class="mono"><a href="#">#8851</a></td>
+                </tr>
+                <tr>
+                  <td><span class="badge badge--unknown"><svg aria-hidden="true" focusable="false" class="st"><use href="#st-unknown"/></svg>Unknown</span></td>
+                  <td class="mono"><a href="#">R-QUEUE-001</a> v1</td>
+                  <td class="mono">last(queue_depth, 30 s) &gt; 1000 · &gt; 5000</td>
+                  <td><span class="muted">no samples in window</span></td>
+                  <td class="mono muted">—</td>
+                  <td class="mono">10:40:12</td>
+                  <td class="mono"><a href="#">#8839</a></td>
+                </tr>
+                <tr>
+                  <td><span class="badge badge--healthy"><svg aria-hidden="true" focusable="false" class="st"><use href="#st-healthy"/></svg>Healthy</span></td>
+                  <td class="mono"><a href="#">R-TEL-001</a> v1</td>
+                  <td class="mono">any observation within 15 s</td>
+                  <td class="mono">2 s ago</td>
+                  <td class="mono muted">—</td>
+                  <td class="mono">10:12:00</td>
+                  <td class="mono"><a href="#">#8873</a></td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="rules__note small muted">Unknown means the rule had no evidence in its window. It is never counted as Healthy.</p>
+          </section>
+
+          <section class="card" aria-labelledby="logs-title">
+            <header class="card__head">
+              <h2 id="logs-title">Recent logs</h2>
+              <span class="card__meta">Severity warning and above, grouped by fingerprint</span>
+            </header>
+            <table class="table logs">
+              <colgroup><col style="width:96px"><col style="width:72px"><col><col style="width:72px"><col style="width:96px"></colgroup>
+              <thead><tr><th scope="col">Last seen</th><th scope="col">Level</th><th scope="col">Message</th><th scope="col" class="num">Count</th><th scope="col">Fingerprint</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">10:39:46</td><td><span class="lvl lvl--error">ERROR</span></td><td>connection refused by upstream gateway</td><td class="num mono">12</td><td class="mono muted">a91c4e02</td></tr>
+                <tr><td class="mono">10:39:41</td><td><span class="lvl lvl--warn">WARN</span></td><td>upstream read timeout after 5000 ms</td><td class="num mono">3</td><td class="mono muted">5be0d771</td></tr>
+                <tr><td class="mono">10:32:58</td><td><span class="lvl lvl--warn">WARN</span></td><td>slow response from edge-gateway-01 (312 ms)</td><td class="num mono">9</td><td class="mono muted">0d3f9a16</td></tr>
+              </tbody>
+            </table>
+            <p class="rules__note small muted">No log received since 10:39:46 UTC: the service stopped answering.</p>
+          </section>
+        </div>
+
+        <aside class="inc-aside" aria-label="Component context">
+          <section class="card" aria-labelledby="dep-title">
+            <header class="card__head"><h2 id="dep-title">Dependencies</h2><span class="card__meta">data flow, left to right</span></header>
+            <div class="deps">
+              <p class="deps__group">Upstream</p>
+              <a class="deps__item" href="#"><svg aria-hidden="true" focusable="false" class="st icon--sm"><use href="#st-healthy"/></svg><span class="mono">edge-gateway-01</span><span class="muted small">gateway</span></a>
+              <p class="deps__self"><svg aria-hidden="true" focusable="false" class="st icon--sm"><use href="#st-critical"/></svg><span class="mono">collector-01</span><span class="muted small">this component</span></p>
+              <p class="deps__group">Downstream, impacted</p>
+              <a class="deps__item" href="#"><svg aria-hidden="true" focusable="false" class="st icon--sm"><use href="#st-warning"/></svg><span class="mono">historian-01</span><span class="muted small">direct</span></a>
+              <a class="deps__item deps__item--far" href="#"><svg aria-hidden="true" focusable="false" class="st icon--sm"><use href="#st-warning"/></svg><span class="mono">data-api-01</span><span class="muted small">via historian-01</span></a>
+              <a class="deps__item deps__item--far" href="#"><svg aria-hidden="true" focusable="false" class="st icon--sm"><use href="#st-warning"/></svg><span class="mono">analytics-01</span><span class="muted small">via data-api-01</span></a>
+            </div>
+          </section>
+
+          <section class="card" aria-labelledby="ci-title">
+            <header class="card__head"><h2 id="ci-title">Incidents</h2><span class="card__meta">last 24 h</span></header>
+            <ul class="ci">
+              <li>
+                <a class="ci__row" href="incident.html">
+                  <svg aria-hidden="true" focusable="false" class="st icon--sm"><use href="#st-critical"/></svg>
+                  <span class="ci__main"><span><span class="mono muted">INC-0007</span> unreachable</span><span class="small muted">availability, opened 10:39:47 UTC</span></span>
+                  <span class="istatus istatus--open">Open</span>
+                </a>
+              </li>
+              <li>
+                <a class="ci__row" href="#">
+                  <svg aria-hidden="true" focusable="false" class="st icon--sm"><use href="#st-warning"/></svg>
+                  <span class="ci__main"><span><span class="mono muted">INC-0005</span> latency above 250 ms</span><span class="small muted">latency, 10:31:46 → 10:33:35 UTC</span></span>
+                  <span class="istatus istatus--resolved">Resolved</span>
+                </a>
+              </li>
+            </ul>
+          </section>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>
