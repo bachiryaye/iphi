@@ -15,6 +15,7 @@ x-backend: &backend
     # ADR 0007: unauthenticated mutations, honoured only while ports stay on loopback.
     IPHI_DEV_MUTATIONS: ${IPHI_DEV_MUTATIONS:-true}
     IPHI_BIND_HOST: ${IPHI_BIND_HOST:-127.0.0.1}
+    IPHI_ALLOWED_HOSTS: ${IPHI_ALLOWED_HOSTS:-127.0.0.1,localhost}
   read_only: true
   tmpfs: ["/tmp"]
   security_opt: ["no-new-privileges:true"]

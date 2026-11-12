@@ -12,11 +12,14 @@ from app.main import create_app
 pytestmark = pytest.mark.integration
 
 BASE = "/api/v1/simulations"
+JSON = {"Content-Type": "application/json"}
 
 
 def client_for(database_url: str, *, dev_mutations: bool) -> TestClient:
     settings = Settings(database_url=SecretStr(database_url), dev_mutations=dev_mutations)
-    return TestClient(create_app(settings), raise_server_exceptions=False)
+    return TestClient(
+        create_app(settings), base_url="http://127.0.0.1", raise_server_exceptions=False
+    )
 
 
 @pytest.fixture
@@ -60,7 +63,7 @@ def test_started_run_is_listed_and_stoppable(client: TestClient) -> None:
     active = client.get(f"{BASE}/runs", params={"status": "active"}).json()["items"]
     assert [r["scenario_key"] for r in active] == ["latency_rise", "baseline"]
 
-    stopped = client.post(f"{BASE}/runs/{run['id']}/stop")
+    stopped = client.post(f"{BASE}/runs/{run['id']}/stop", headers=JSON)
 
     assert stopped.status_code == 200
     assert stopped.json()["status"] == "stopped"
@@ -162,7 +165,7 @@ def test_reset_restarts_baseline_with_requested_seed(client: TestClient) -> None
 
 
 def test_reset_without_body_uses_the_configured_seed(client: TestClient) -> None:
-    response = client.post(f"{BASE}/reset")
+    response = client.post(f"{BASE}/reset", headers=JSON)
 
     assert response.status_code == 200
     assert response.json()["clock"]["seed"] == 42
@@ -197,3 +200,42 @@ def test_allowed_mutations_are_audited_with_platform_time(
             text("SELECT action, outcome, target_type, platform_time IS NOT NULL FROM audit_event")
         ).one()
     assert tuple(row) == ("scenario.start", "allowed", "scenario_run", True)
+
+
+def test_bodyless_mutation_without_json_content_type_is_refused(
+    client: TestClient, engine: Engine
+) -> None:
+    # A plain form or text POST is a CORS "simple" request any web page could send.
+    response = client.post(f"{BASE}/reset", headers={"Content-Type": "text/plain"})
+
+    assert response.status_code == 415
+    assert response.json()["code"] == "JSON_REQUIRED"
+    assert _denied_actions(engine) == ["simulation.reset"]
+
+
+def test_cross_site_browser_request_is_refused_and_audited(
+    client: TestClient, engine: Engine
+) -> None:
+    response = client.post(
+        f"{BASE}/scenarios",
+        json={"scenario_key": "collector_down"},
+        headers={"Sec-Fetch-Site": "cross-site"},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["code"] == "CROSS_SITE_REQUEST"
+    assert _denied_actions(engine) == ["scenario.start"]
+
+
+def test_unknown_host_header_is_rejected(client: TestClient) -> None:
+    response = client.get(f"{BASE}/clock", headers={"Host": "attacker.example"})
+
+    assert response.status_code == 400
+
+
+def _denied_actions(engine: Engine) -> list[str]:
+    with engine.connect() as connection:
+        rows = connection.execute(
+            text("SELECT action FROM audit_event WHERE outcome = 'denied' ORDER BY occurred_at")
+        )
+        return [r.action for r in rows]
