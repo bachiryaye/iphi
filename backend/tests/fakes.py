@@ -8,3 +8,10 @@ class FixedClock:
 
     def now(self) -> datetime:
         return self.current
+
+
+class NoScenarios:
+    """Scenario lifecycle for worker tests that do not exercise the simulation."""
+
+    def complete_expired_runs(self) -> list[object]:
+        return []

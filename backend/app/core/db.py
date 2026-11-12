@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import StrEnum
 from typing import ClassVar
 
 from sqlalchemy import MetaData, create_engine
@@ -33,3 +34,8 @@ def create_db_engine(settings: Settings) -> Engine:
 
 def create_session_factory(engine: Engine) -> sessionmaker[Session]:
     return sessionmaker(bind=engine, expire_on_commit=False)
+
+
+def check_in(column: str, values: type[StrEnum]) -> str:
+    """SQL condition restricting `column` to the enum's values."""
+    return f"{column} IN ({', '.join(repr(v.value) for v in values)})"

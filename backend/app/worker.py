@@ -4,8 +4,9 @@ import signal
 import sys
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from types import FrameType
+from typing import Protocol
 
 import structlog
 from sqlalchemy import Connection, text
@@ -17,6 +18,7 @@ from app.core.logging import configure_logging
 from app.core.settings import Settings
 from app.monitor.domain import Heartbeat, ProcessStatus
 from app.monitor.service import WORKER_PROCESS, HeartbeatService
+from app.simulation.service import build_simulation
 
 # Arbitrary but fixed: every IPHI worker must contend for the same PostgreSQL advisory lock.
 WORKER_LOCK_ID = 0x1F4E_0001
@@ -65,16 +67,28 @@ def next_deadline(previous: float, interval: float, now: float) -> float:
     return deadline if deadline > now else now
 
 
+class ScenarioLifecycle(Protocol):
+    def complete_expired_runs(self) -> Sequence[object]: ...
+
+
 class Worker:
-    def __init__(self, heartbeats: HeartbeatService, clock: Clock, cycle_interval_s: float) -> None:
+    def __init__(
+        self,
+        heartbeats: HeartbeatService,
+        clock: Clock,
+        cycle_interval_s: float,
+        scenarios: ScenarioLifecycle,
+    ) -> None:
         self._heartbeats = heartbeats
         self._clock = clock
         self._interval = cycle_interval_s
+        self._scenarios = scenarios
 
     def run_cycle(self, lag_ms: int) -> None:
         at = self._clock.now()
         started = time.perf_counter()
-        # TODO(US-02): collect → ingest → evaluate → incidents (architecture §02.2).
+        # TODO(US-03): collect → ingest; US-04/US-05 add evaluation and incidents (§02.2).
+        self._scenarios.complete_expired_runs()
         duration_ms = round((time.perf_counter() - started) * 1000)
         self._heartbeats.record(
             Heartbeat(WORKER_PROCESS, at, duration_ms, lag_ms, ProcessStatus.RUNNING)
@@ -114,9 +128,10 @@ def main() -> int:
     signal.signal(signal.SIGINT, request_stop)
 
     engine = create_db_engine(settings)
-    worker = Worker(
-        HeartbeatService(create_session_factory(engine)), WallClock(), settings.cycle_interval_s
-    )
+    session_factory = create_session_factory(engine)
+    wall = WallClock()
+    simulation = build_simulation(session_factory, wall)
+    worker = Worker(HeartbeatService(session_factory), wall, settings.cycle_interval_s, simulation)
     # The advisory lock lives as long as this connection: a second worker waits (ADR 0001).
     with engine.connect() as lock_connection:
         while not try_acquire_worker_lock(lock_connection):

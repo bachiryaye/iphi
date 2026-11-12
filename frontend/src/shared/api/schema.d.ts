@@ -4,6 +4,93 @@
  */
 
 export interface paths {
+  "/api/v1/simulations/clock": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Platform clock state. */
+    get: operations["get_clock_api_v1_simulations_clock_get"];
+    put?: never;
+    /** Change the clock mode, or advance it in manual mode. */
+    post: operations["command_clock_api_v1_simulations_clock_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/simulations/reset": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Stop every run, restart the clock in realtime and start a fresh baseline. */
+    post: operations["reset_simulation_api_v1_simulations_reset_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/simulations/runs": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Scenario runs, newest first. */
+    get: operations["list_runs_api_v1_simulations_runs_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/simulations/runs/{run_id}/stop": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Stop an active scenario run. */
+    post: operations["stop_run_api_v1_simulations_runs__run_id__stop_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/simulations/scenarios": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Scenario catalog with parameters and expected outcomes. */
+    get: operations["list_scenarios_api_v1_simulations_scenarios_get"];
+    put?: never;
+    /** Start a scenario run on a component. */
+    post: operations["start_scenario_api_v1_simulations_scenarios_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/health": {
     parameters: {
       query?: never;
@@ -42,6 +129,16 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /** AdvanceClockIn */
+    AdvanceClockIn: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      action: "advance";
+      /** Seconds */
+      seconds: number;
+    };
     /**
      * CheckName
      * @enum {string}
@@ -52,6 +149,48 @@ export interface components {
      * @enum {string}
      */
     CheckStatus: "ok" | "failed" | "disabled";
+    /**
+     * ClockMode
+     * @enum {string}
+     */
+    ClockMode: "realtime" | "accelerated" | "manual";
+    /** ClockOut */
+    ClockOut: {
+      /**
+       * Environment
+       * @default simulation
+       * @constant
+       */
+      environment: "simulation";
+      mode: components["schemas"]["ClockMode"];
+      /**
+       * Platform Time
+       * Format: date-time
+       */
+      platform_time: string;
+      /** Sample Interval S */
+      sample_interval_s: number;
+      /** Seed */
+      seed: number;
+      /** Speed */
+      speed: number;
+    };
+    /**
+     * ComponentType
+     * @description ISA-95 level 2/3 roles along the data path (rules.md S-01).
+     * @enum {string}
+     */
+    ComponentType:
+      "source" | "gateway" | "collector" | "historian" | "database" | "api" | "analytics";
+    /** ExpectedOutcomeOut */
+    ExpectedOutcomeOut: {
+      /** Incident */
+      incident: string;
+      /** Signal */
+      signal: string;
+      /** State */
+      state: string;
+    };
     /** FieldError */
     FieldError: {
       /** Loc */
@@ -69,6 +208,21 @@ export interface components {
        * @constant
        */
       status: "ok";
+    };
+    /** ParameterOut */
+    ParameterOut: {
+      /** Default */
+      default: number;
+      /** Description */
+      description: string;
+      /** Maximum */
+      maximum: number;
+      /** Minimum */
+      minimum: number;
+      /** Name */
+      name: string;
+      /** Unit */
+      unit: string;
     };
     /** Problem */
     Problem: {
@@ -122,6 +276,157 @@ export interface components {
        */
       status: "ready" | "not_ready";
     };
+    /** ResetIn */
+    ResetIn: {
+      /**
+       * Seed
+       * @description Defaults to IPHI_SIM_SEED.
+       */
+      seed?: number | null;
+    };
+    /** ResetOut */
+    ResetOut: {
+      baseline_run: components["schemas"]["ScenarioRunOut"];
+      clock: components["schemas"]["ClockOut"];
+      /** Stopped Runs */
+      stopped_runs: number;
+    };
+    /**
+     * RunStatus
+     * @enum {string}
+     */
+    RunStatus: "active" | "stopped" | "completed";
+    /** ScenarioCatalogOut */
+    ScenarioCatalogOut: {
+      /** Items */
+      items: components["schemas"]["ScenarioOut"][];
+      /**
+       * Sample Interval S
+       * @description Platform-time period of simulated samples.
+       */
+      sample_interval_s: number;
+      /**
+       * Source
+       * @default simulation
+       * @constant
+       */
+      source: "simulation";
+    };
+    /**
+     * ScenarioKey
+     * @enum {string}
+     */
+    ScenarioKey:
+      | "baseline"
+      | "collector_down"
+      | "latency_rise"
+      | "stale_data"
+      | "intermittent_loss"
+      | "error_burst"
+      | "resource_pressure"
+      | "backlog_growth"
+      | "telemetry_blackout";
+    /**
+     * ScenarioKind
+     * @enum {string}
+     */
+    ScenarioKind: "baseline" | "fault";
+    /** ScenarioOut */
+    ScenarioOut: {
+      /** Default Target Component Key */
+      default_target_component_key: string | null;
+      /** Description */
+      description: string;
+      /** Eligible Component Types */
+      eligible_component_types: components["schemas"]["ComponentType"][];
+      /** @description Outcome the default health rules should reach. */
+      expected: components["schemas"]["ExpectedOutcomeOut"];
+      key: components["schemas"]["ScenarioKey"];
+      kind: components["schemas"]["ScenarioKind"];
+      /** Parameters */
+      parameters: components["schemas"]["ParameterOut"][];
+      /** Title */
+      title: string;
+    };
+    /** ScenarioRunOut */
+    ScenarioRunOut: {
+      /** Ends At */
+      ends_at: string | null;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Number
+       * @description Human-readable sequence number, shown as #N.
+       */
+      number: number;
+      /** Parameters */
+      parameters: {
+        [key: string]: number;
+      };
+      scenario_key: components["schemas"]["ScenarioKey"];
+      /** Seed */
+      seed: number;
+      /**
+       * Source
+       * @default simulation
+       * @constant
+       */
+      source: "simulation";
+      /**
+       * Started At
+       * Format: date-time
+       */
+      started_at: string;
+      /** Started By */
+      started_by: string;
+      status: components["schemas"]["RunStatus"];
+      /** Stopped At */
+      stopped_at: string | null;
+      /** Target Component Key */
+      target_component_key: string | null;
+    };
+    /** ScenarioRunPageOut */
+    ScenarioRunPageOut: {
+      /** Items */
+      items: components["schemas"]["ScenarioRunOut"][];
+      /** Next Cursor */
+      next_cursor: string | null;
+    };
+    /** SetClockModeIn */
+    SetClockModeIn: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      action: "set_mode";
+      mode: components["schemas"]["ClockMode"];
+      /**
+       * Speed
+       * @description Required in accelerated mode only.
+       */
+      speed?: number | null;
+    };
+    /** StartScenarioIn */
+    StartScenarioIn: {
+      /**
+       * Duration S
+       * @description Planned duration in platform seconds; runs until stopped when omitted.
+       */
+      duration_s?: number | null;
+      /** Parameters */
+      parameters?: {
+        [key: string]: number;
+      };
+      scenario_key: components["schemas"]["ScenarioKey"];
+      /**
+       * Target Component Key
+       * @description Defaults to the scenario's default target.
+       */
+      target_component_key?: string | null;
+    };
   };
   responses: never;
   parameters: never;
@@ -131,6 +436,228 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  get_clock_api_v1_simulations_clock_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ClockOut"];
+        };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
+  command_clock_api_v1_simulations_clock_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json":
+          components["schemas"]["SetClockModeIn"] | components["schemas"]["AdvanceClockIn"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ClockOut"];
+        };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
+  reset_simulation_api_v1_simulations_reset_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        "application/json": components["schemas"]["ResetIn"] | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ResetOut"];
+        };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
+  list_runs_api_v1_simulations_runs_get: {
+    parameters: {
+      query?: {
+        status?: components["schemas"]["RunStatus"] | null;
+        cursor?: string | null;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ScenarioRunPageOut"];
+        };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
+  stop_run_api_v1_simulations_runs__run_id__stop_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        run_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ScenarioRunOut"];
+        };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
+  list_scenarios_api_v1_simulations_scenarios_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ScenarioCatalogOut"];
+        };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
+  start_scenario_api_v1_simulations_scenarios_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["StartScenarioIn"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ScenarioRunOut"];
+        };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
   health_health_get: {
     parameters: {
       query?: never;

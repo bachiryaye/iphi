@@ -11,6 +11,8 @@ from pydantic import BaseModel, Field
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.types import Scope
 
+from app.core.exceptions import IphiError
+
 PROBLEM_MEDIA_TYPE = "application/problem+json"
 
 log = structlog.get_logger(__name__)
@@ -30,17 +32,6 @@ class Problem(BaseModel):
     code: str = Field(description="Stable machine-readable error code.")
     correlation_id: str | None
     errors: list[FieldError] = Field(default_factory=list)
-
-
-class IphiError(Exception):
-    """Base for domain errors; subclasses fix `status` and `code`, mapped once here."""
-
-    status: HTTPStatus = HTTPStatus.INTERNAL_SERVER_ERROR
-    code: str = "INTERNAL_ERROR"
-
-    def __init__(self, detail: str) -> None:
-        super().__init__(detail)
-        self.detail = detail
 
 
 def problem_type(code: str) -> str:
