@@ -108,7 +108,19 @@ class ClockRepository:
         statement = select(SimClockRecord).where(SimClockRecord.id == CLOCK_ROW_ID)
         if for_update:
             statement = statement.with_for_update()
-        record = self._session.scalars(statement).one_or_none()
+        return self._state(self._session.scalars(statement).one_or_none())
+
+    def get_shared(self) -> ClockState | None:
+        """Read under FOR SHARE: blocks, and is blocked by, every mutation holding FOR UPDATE."""
+        statement = (
+            select(SimClockRecord)
+            .where(SimClockRecord.id == CLOCK_ROW_ID)
+            .with_for_update(read=True)
+        )
+        return self._state(self._session.scalars(statement).one_or_none())
+
+    @staticmethod
+    def _state(record: SimClockRecord | None) -> ClockState | None:
         if record is None:
             return None
         return ClockState(

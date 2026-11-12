@@ -17,7 +17,7 @@ from app.worker import (
     release_worker_lock,
     try_acquire_worker_lock,
 )
-from tests.fakes import FixedClock, NoScenarios
+from tests.fakes import FixedClock, idle_steps
 
 pytestmark = pytest.mark.integration
 
@@ -47,9 +47,15 @@ def test_fresh_database_is_not_ready_until_the_worker_has_cycled(
     }
 
 
+def idle_worker(session_factory: sessionmaker[Session], clock: FixedClock) -> Worker:
+    return Worker(
+        session_factory, HeartbeatService(session_factory), clock, INTERVAL_S, idle_steps(clock)
+    )
+
+
 def test_worker_cycle_makes_platform_ready(session_factory: sessionmaker[Session]) -> None:
     clock = FixedClock(NOW)
-    Worker(HeartbeatService(session_factory), clock, INTERVAL_S, NoScenarios()).run_cycle(lag_ms=0)
+    idle_worker(session_factory, clock).run_cycle(lag_ms=0)
 
     report = readiness(session_factory, clock).check()
 
@@ -61,9 +67,7 @@ def test_worker_cycle_makes_platform_ready(session_factory: sessionmaker[Session
 def test_heartbeat_older_than_three_cycles_is_reported_stalled(
     session_factory: sessionmaker[Session],
 ) -> None:
-    Worker(HeartbeatService(session_factory), FixedClock(NOW), INTERVAL_S, NoScenarios()).run_cycle(
-        lag_ms=0
-    )
+    idle_worker(session_factory, FixedClock(NOW)).run_cycle(lag_ms=0)
 
     later = FixedClock(NOW + timedelta(seconds=16))
     report = readiness(session_factory, later).check()
@@ -73,12 +77,11 @@ def test_heartbeat_older_than_three_cycles_is_reported_stalled(
 
 def test_stopped_worker_is_not_ready(session_factory: sessionmaker[Session]) -> None:
     clock = FixedClock(NOW)
-    heartbeats = HeartbeatService(session_factory)
-    Worker(heartbeats, clock, INTERVAL_S, NoScenarios()).run_cycle(lag_ms=0)
+    idle_worker(session_factory, clock).run_cycle(lag_ms=0)
     stop = threading.Event()
     stop.set()
 
-    Worker(heartbeats, clock, INTERVAL_S, NoScenarios()).run(stop, lambda: True)
+    idle_worker(session_factory, clock).run(stop, lambda: True)
 
     assert statuses(readiness(session_factory, clock).check())[CheckName.WORKER] is (
         CheckStatus.FAILED
@@ -141,9 +144,7 @@ def test_worker_stops_cycling_when_the_lock_is_lost(
 ) -> None:
     clock = FixedClock(NOW)
 
-    completed = Worker(HeartbeatService(session_factory), clock, INTERVAL_S, NoScenarios()).run(
-        threading.Event(), lambda: False
-    )
+    completed = idle_worker(session_factory, clock).run(threading.Event(), lambda: False)
 
     assert not completed
     assert statuses(readiness(session_factory, clock).check())[CheckName.WORKER] is (

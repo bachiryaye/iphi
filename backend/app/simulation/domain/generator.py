@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from types import MappingProxyType
 
+from app.core.observation import LogSeverity, ObservationSource, Quality
 from app.simulation.domain.catalog import SCENARIOS, EffectContext, ScenarioKey
 from app.simulation.domain.clock import tick_of, tick_time
 from app.simulation.domain.errors import SimulationNotInitializedError
@@ -24,9 +25,7 @@ from app.simulation.domain.signals import (
     OBSERVATION_SOURCE,
     UNITS,
     LogLine,
-    LogSeverity,
     Metric,
-    Quality,
     Reading,
     draw,
     jitter,
@@ -56,7 +55,7 @@ class GeneratedSample:
     quality: Quality
     scenario_run_id: uuid.UUID
     scenario_key: ScenarioKey
-    source: str = OBSERVATION_SOURCE
+    source: ObservationSource = OBSERVATION_SOURCE
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,7 +67,7 @@ class GeneratedLog:
     observed_at: datetime
     scenario_run_id: uuid.UUID
     scenario_key: ScenarioKey
-    source: str = OBSERVATION_SOURCE
+    source: ObservationSource = OBSERVATION_SOURCE
 
 
 @dataclass(frozen=True, slots=True)

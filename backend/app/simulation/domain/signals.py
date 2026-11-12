@@ -6,7 +6,9 @@ from dataclasses import dataclass, replace
 from enum import StrEnum
 from types import MappingProxyType
 
-OBSERVATION_SOURCE = "simulation"
+from app.core.observation import LogSeverity, ObservationSource
+
+OBSERVATION_SOURCE = ObservationSource.SIMULATION
 
 
 class Metric(StrEnum):
@@ -31,22 +33,6 @@ UNITS: Mapping[Metric, str] = MappingProxyType(
         Metric.QUEUE_DEPTH: "count",
     }
 )
-
-
-class Quality(StrEnum):
-    """OPC UA status semantics (rules.md S-05, D-16)."""
-
-    GOOD = "good"
-    UNCERTAIN = "uncertain"
-    BAD = "bad"
-
-
-class LogSeverity(StrEnum):
-    DEBUG = "debug"
-    INFO = "info"
-    WARNING = "warning"
-    ERROR = "error"
-    CRITICAL = "critical"
 
 
 @dataclass(frozen=True, slots=True)

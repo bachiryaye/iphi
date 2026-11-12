@@ -7,6 +7,7 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
+from app.core.observation import LogSeverity
 from app.core.settings import MAX_SEED
 from app.simulation.domain.catalog import ScenarioKey
 from app.simulation.domain.clock import first_tick_at_or_after
@@ -21,7 +22,7 @@ from app.simulation.domain.generator import (
 )
 from app.simulation.domain.platform import SIMULATED_PLATFORM
 from app.simulation.domain.runs import ScenarioRun
-from app.simulation.domain.signals import OBSERVATION_SOURCE, LogSeverity, Metric
+from app.simulation.domain.signals import OBSERVATION_SOURCE, Metric
 from tests.simulation_runs import (
     FIRST_TICK,
     GOLDEN_COLLECTOR_DOWN,

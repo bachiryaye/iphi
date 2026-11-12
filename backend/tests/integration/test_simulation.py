@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.bootstrap import seed
 from app.core.db import create_session_factory
 from app.identity.domain import AuditContext
-from app.monitor.service import HeartbeatService
 from app.simulation.domain.catalog import ScenarioKey
 from app.simulation.domain.clock import ClockMode, tick_of
 from app.simulation.domain.errors import (
@@ -22,8 +21,7 @@ from app.simulation.domain.generator import fingerprint
 from app.simulation.domain.runs import RunStatus
 from app.simulation.repository import ACTIVE_TARGET_INDEX, MAX_OVERLAPPING_RUNS
 from app.simulation.service import SimulationService, StartCommand, build_simulation
-from app.worker import Worker
-from tests.fakes import FixedClock
+from tests.fakes import FixedClock, cycling_worker
 from tests.simulation_runs import (
     FIRST_TICK,
     GOLDEN_COLLECTOR_DOWN,
@@ -160,7 +158,7 @@ def test_worker_cycle_completes_expired_runs(
     run = service.start(command(ScenarioKey.ERROR_BURST, duration_s=20), CONTEXT)
     wall.current += timedelta(seconds=25)
 
-    Worker(HeartbeatService(session_factory), wall, 5.0, service).run_cycle(lag_ms=0)
+    cycling_worker(session_factory, wall).run_cycle(0)
 
     [completed] = service.list_runs(RunStatus.COMPLETED, None, 10).items
     assert completed.id == run.id

@@ -2,7 +2,8 @@ import structlog
 from fastapi import FastAPI
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from app.api import simulations, system
+from app.api import observations, simulations, system
+from app.connectors.registry import ENABLED_CONNECTOR_KEYS
 from app.core.clock import WallClock
 from app.core.db import create_db_engine, create_session_factory
 from app.core.errors import Problem, register_error_handlers
@@ -16,10 +17,13 @@ from app.core.migrations import expected_head
 from app.core.settings import Settings
 from app.identity.domain import MutationPolicy
 from app.identity.service import AuditService
-from app.monitor.service import ReadinessService
+from app.ingestion.service import MetricCatalogService, ObservationQueryService
+from app.monitor.service import MonitoredParts, ReadinessService, SystemStatusService
+from app.simulation.domain.platform import SIMULATED_PLATFORM
 from app.simulation.service import build_simulation
+from app.topology.service import TopologyService
 
-API_VERSION = "0.2.0"
+API_VERSION = "0.3.0"
 
 log = structlog.get_logger(__name__)
 
@@ -41,7 +45,19 @@ def create_app(settings: Settings) -> FastAPI:
         cycle_interval_s=settings.cycle_interval_s,
         llm_provider=settings.llm_provider,
     )
-    app.state.simulation = build_simulation(session_factory, wall)
+    simulation = build_simulation(session_factory, wall)
+    topology = TopologyService(session_factory)
+    observation_queries = ObservationQueryService(session_factory, topology, SIMULATED_PLATFORM.key)
+    app.state.simulation = simulation
+    app.state.observations = observation_queries
+    app.state.metric_catalog = MetricCatalogService(session_factory)
+    app.state.system_status = SystemStatusService(
+        session_factory,
+        wall,
+        settings.cycle_interval_s,
+        settings.llm_provider,
+        MonitoredParts(simulation, observation_queries, ENABLED_CONNECTOR_KEYS),
+    )
     app.state.audit = AuditService(session_factory, wall)
     app.state.sim_seed = settings.sim_seed
     policy = MutationPolicy.evaluate(settings.dev_mutations, settings.bind_host)
@@ -51,6 +67,7 @@ def create_app(settings: Settings) -> FastAPI:
     register_error_handlers(app)
     app.include_router(system.router)
     app.include_router(simulations.router)
+    app.include_router(observations.router)
     # Starlette runs the last added middleware first. Security headers wrap every response,
     # including the 413 and crash responses produced by the two inner middlewares.
     # Unauthenticated loopback mutations (ADR 0007) must not be reachable through a rebound

@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
 
+from app.ingestion.domain.collection import CollectionRun, CollectionStatus
+
 # Same tolerance as R-TEL-001: three missed cycles before the worker is considered stalled.
 STALE_AFTER_CYCLES = 3
 
@@ -93,3 +95,59 @@ def assess_migrations(current: str | None, expected: str) -> ReadinessCheck:
         CheckStatus.FAILED,
         f"Database at revision {found}, code expects {expected}.",
     )
+
+
+class CollectionState(StrEnum):
+    OK = "ok"
+    DEGRADED = "degraded"
+    FAILED = "failed"
+    STALLED = "stalled"
+    NOT_STARTED = "not_started"
+
+
+# Worst first: the overall collection state is the worst state of any enabled connector.
+_COLLECTION_SEVERITY = (
+    CollectionState.FAILED,
+    CollectionState.STALLED,
+    CollectionState.NOT_STARTED,
+    CollectionState.DEGRADED,
+    CollectionState.OK,
+)
+
+
+@dataclass(frozen=True, slots=True)
+class CollectionAssessment:
+    state: CollectionState
+    detail: str
+
+
+def assess_collection(
+    last: CollectionRun | None, now: datetime, cycle_interval_s: float
+) -> CollectionAssessment:
+    """Silence is reported as such: a connector that stopped running never looks healthy."""
+    if last is None:
+        return CollectionAssessment(CollectionState.NOT_STARTED, "No collection recorded yet.")
+    age = now - last.started_at
+    if age > timedelta(seconds=STALE_AFTER_CYCLES * cycle_interval_s):
+        return CollectionAssessment(
+            CollectionState.STALLED,
+            f"Last collection {age.total_seconds():.0f} s ago, "
+            f"expected every {cycle_interval_s:g} s.",
+        )
+    if last.status is CollectionStatus.FAILED:
+        return CollectionAssessment(
+            CollectionState.FAILED, f"Last collection failed ({last.error_code})."
+        )
+    if last.status is CollectionStatus.PARTIAL:
+        return CollectionAssessment(
+            CollectionState.DEGRADED,
+            f"Last collection partial: {last.rejected_count} observation(s) rejected"
+            + (f", {last.error_code}." if last.error_code else "."),
+        )
+    return CollectionAssessment(CollectionState.OK, "Last collection complete.")
+
+
+def worst_collection_state(states: list[CollectionState]) -> CollectionState:
+    if not states:
+        return CollectionState.NOT_STARTED
+    return min(states, key=_COLLECTION_SEVERITY.index)

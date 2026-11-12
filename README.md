@@ -10,9 +10,10 @@ IPHI monitors the health of an **industrial data platform** — sources, gateway
 |---|---|---|
 | US-01 | One-command stack, migrations, readiness, CI, app shell | Delivered |
 | US-02 | Seven-component simulated platform, deterministic generator, nine scenarios, platform clock | Delivered (API only) |
-| US-03 → US-12 | Ingestion, health rules, incidents, dashboard, diagnosis, reports, security | Planned ([backlog](docs/03-backlog.md)) |
+| US-03 | Validated ingestion, PostgreSQL history, metric and log APIs, collection monitoring | Delivered (API only) |
+| US-04 → US-12 | Health rules, incidents, dashboard, diagnosis, reports, security | Planned ([backlog](docs/03-backlog.md)) |
 
-What runs today: PostgreSQL, a migration and seed job, the FastAPI API (`/health`, `/ready`, simulation endpoints, OpenAPI), a worker that holds the scheduler lock, completes scenario runs at their planned end and writes a heartbeat every cycle, and the frontend shell showing monitor readiness. Simulated observations are generated on demand but not stored yet (US-03), so no health state is displayed.
+What runs today: PostgreSQL, a migration and seed job, the FastAPI API (`/health`, `/ready`, simulation, metrics, logs and system status endpoints, OpenAPI), a worker that holds the scheduler lock and, every cycle, collects the simulated observations, validates and stores them, purges data past retention and writes a heartbeat, and the frontend shell showing monitor readiness. No health state is computed yet (US-04).
 
 ![Overview, light theme](docs/design/screenshots/us-01-overview-light-1440.png)
 
@@ -82,6 +83,21 @@ cd backend && uv run python -m scripts.simulate collector_down --ticks 120
 # fingerprint df67ef15df8ffe50249e2e5d18982eeefc027c3fff9ae90584c7faf134152cbc
 ```
 
+## Observations
+
+Every cycle the worker collects each elapsed 5 s sample slot once (also in accelerated time), validates it and stores it in PostgreSQL, with `observed_at` (event time) and `received_at` (ingestion time), `source=simulation` and the scenario run that shaped it. Invalid observations are rejected and counted per code (unknown component or metric, wrong unit, out of range, more than 30 s in the future, more than 10 min late, oversized log); re-delivered ones are ignored and counted. A failing connector is recorded as a failed collection run without stopping the cycle. Observations older than `IPHI_RETENTION_DAYS` (7) are purged; `reset` purges the simulated history.
+
+```sh
+A=http://127.0.0.1:8080/api/v1
+curl -s $A/system/status            # clock, worker cycle, collection state and recent runs
+curl -s $A/metrics/catalog          # metric names, units, accepted ranges
+C=$(docker compose exec -T db psql -U iphi -Atc "SELECT id FROM component WHERE key='collector-01'")
+curl -s "$A/metrics?component_id=$C&metric_name=probe_latency_ms&max_points=200"
+curl -s "$A/logs?component_id=$C&min_severity=warning&limit=20"
+```
+
+`GET /metrics` returns raw samples while the window holds at most `max_points` (≤ 2000), otherwise min/avg/max buckets; windows are limited to 7 days, and stretches without data come back as explicit `gaps`, never interpolated. Component IDs are listed by `GET /components` from US-04.
+
 ## Develop and test
 
 ```sh
@@ -109,11 +125,12 @@ The design dossier is in French: [requirements](docs/01-cahier-des-charges.md), 
 
 ## Limitations
 
-- Simulated observations are not stored, evaluated or turned into incidents yet (US-03 to US-05); there is no Scenarios screen before US-06.
+- Stored observations are not evaluated or turned into incidents yet (US-04, US-05); there is no Scenarios or metrics screen before US-06.
+- After the worker has been stopped for more than 10 minutes of platform time, the missed sample slots are not backfilled: they remain a visible gap.
 - Simulation simplifications: `stale_data` does not age downstream data; one fault scenario per component at a time.
 - No authentication until US-11; the stack is meant for a local machine only (ADR 0007). The mutation guard trusts `IPHI_BIND_HOST`: publishing the API port any other way (e.g. a Compose override) bypasses it.
 - The default database password is a local development value; set your own in `.env`.
 
 ## Résumé en français
 
-IPHI surveille la santé d'une plateforme de données industrielle **simulée** : collecte, règles de santé explicables, incidents dédupliqués et prouvés, diagnostic optionnel. `docker compose up --build` démarre PostgreSQL, les migrations et le seed, l'API, le worker et l'interface (http://127.0.0.1:8080). La plateforme simulée compte sept composants et neuf scénarios de panne reproductibles (seed, horloge de plateforme accélérable). Le dossier de conception (cahier des charges, architecture, backlog, design system, ADR) est dans `docs/`. Aucune connexion à une installation réelle n'existe ni n'est revendiquée.
+IPHI surveille la santé d'une plateforme de données industrielle **simulée** : collecte, règles de santé explicables, incidents dédupliqués et prouvés, diagnostic optionnel. `docker compose up --build` démarre PostgreSQL, les migrations et le seed, l'API, le worker et l'interface (http://127.0.0.1:8080). La plateforme simulée compte sept composants et neuf scénarios de panne reproductibles (seed, horloge de plateforme accélérable) ; ses mesures et logs sont validés, historisés dans PostgreSQL et consultables par l'API. Le dossier de conception (cahier des charges, architecture, backlog, design system, ADR) est dans `docs/`. Aucune connexion à une installation réelle n'existe ni n'est revendiquée.

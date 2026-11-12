@@ -1,5 +1,3 @@
-import base64
-import binascii
 import uuid
 from collections.abc import Callable
 from datetime import datetime
@@ -9,8 +7,17 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, Query, Request, status
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
+from app.api.pagination import (
+    DEFAULT_PAGE_SIZE,
+    MAX_CURSOR_CHARS,
+    MAX_PAGE_SIZE,
+    cursor_integer,
+    decode_cursor,
+    encode_cursor,
+)
 from app.core.errors import correlation_id_of
 from app.core.exceptions import IphiError
+from app.core.observation import SAMPLE_INTERVAL_S
 from app.core.settings import MAX_SEED
 from app.identity.domain import (
     DEV_ACTOR,
@@ -21,15 +28,13 @@ from app.identity.domain import (
 )
 from app.identity.service import AuditService
 from app.simulation.domain.catalog import ScenarioDefinition, ScenarioKey, ScenarioKind
-from app.simulation.domain.clock import MAX_ACCELERATION, SAMPLE_INTERVAL_S, ClockMode
+from app.simulation.domain.clock import MAX_ACCELERATION, ClockMode
 from app.simulation.domain.runs import MAX_DURATION_S, MIN_DURATION_S, RunStatus, ScenarioRun
 from app.simulation.service import ClockView, SimulationService, StartCommand
 from app.topology.domain import COMPONENT_KEY, ComponentType
 
 router = APIRouter(prefix="/api/v1/simulations", tags=["simulations"])
 
-MAX_PAGE_SIZE = 200
-DEFAULT_PAGE_SIZE = 50
 MAX_ADVANCE_S = 24 * 3600
 
 ComponentKey = Annotated[
@@ -37,11 +42,6 @@ ComponentKey = Annotated[
 ]
 ParameterName = Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_]{0,31}$")]
 Simulation = Literal["simulation"]
-
-
-class InvalidCursorError(IphiError):
-    status = HTTPStatus.UNPROCESSABLE_CONTENT
-    code = "INVALID_CURSOR"
 
 
 class ParameterOut(BaseModel):
@@ -214,19 +214,13 @@ class ResetOut(BaseModel):
     stopped_runs: int
 
 
-def encode_cursor(number: int) -> str:
-    return base64.urlsafe_b64encode(f"run:{number}".encode()).decode().rstrip("=")
+def encode_run_cursor(number: int) -> str:
+    return encode_cursor("run", str(number))
 
 
-def decode_cursor(cursor: str) -> int:
-    try:
-        decoded = base64.urlsafe_b64decode(cursor + "=" * (-len(cursor) % 4)).decode()
-        prefix, _, value = decoded.partition(":")
-        if prefix != "run" or not value.isdigit():
-            raise ValueError(decoded)
-        return int(value)
-    except (binascii.Error, UnicodeDecodeError, ValueError) as exc:
-        raise InvalidCursorError("The cursor is malformed; restart from the first page.") from exc
+def decode_run_cursor(cursor: str) -> int:
+    (value,) = decode_cursor("run", cursor, 1)
+    return cursor_integer(value, minimum=1)
 
 
 def simulation_service(request: Request) -> SimulationService:
@@ -310,14 +304,14 @@ def start_scenario(
 def list_runs(
     service: Service,
     status_filter: Annotated[RunStatus | None, Query(alias="status")] = None,
-    cursor: Annotated[str | None, Query(max_length=64)] = None,
+    cursor: Annotated[str | None, Query(max_length=MAX_CURSOR_CHARS)] = None,
     limit: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
 ) -> ScenarioRunPageOut:
-    before = None if cursor is None else decode_cursor(cursor)
+    before = None if cursor is None else decode_run_cursor(cursor)
     page = service.list_runs(status_filter, before, limit)
     return ScenarioRunPageOut(
         items=[ScenarioRunOut.of(r) for r in page.items],
-        next_cursor=None if page.next_before is None else encode_cursor(page.next_before),
+        next_cursor=None if page.next_before is None else encode_run_cursor(page.next_before),
     )
 
 
