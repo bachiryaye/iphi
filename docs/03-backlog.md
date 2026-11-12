@@ -272,7 +272,8 @@ Aucune réalisation n'invente d'API AVEVA PI ni n'annonce une compatibilité non
 |---|---|---|
 | US-01 | Fait (2026-11-12) | `docker compose up --build` → `/health` 200, `/ready` 200 ; CI GitHub Actions verte (backend + PostgreSQL, frontend, contrat API, images, secrets) |
 | US-02 | Fait (2026-11-12), CI à confirmer au prochain push | Test golden seed 42 + `collector_down` + 120 ticks : empreinte identique sur deux exécutions, ordre quelconque, après persistance et redémarrage (PostgreSQL) et via le CLI hors base ; chaque observation porte `source=simulation` et `scenario_run_id` ; 9 scénarios testés ; stack Compose propre (`down -v`) → seed 7 composants / 6 dépendances / baseline, API de simulation via Nginx ; 164 tests backend, couverture 95 % |
-| US-03 … US-12 | À faire | — |
+| US-03 | Fait (2026-11-12), CI à confirmer au prochain push | Tests d'intégration sur PostgreSQL réel pour chaque code de rejet, doublon (échantillons et logs), observation tardive dans et hors tolérance, connecteur en échec, sortie invalide et échec d'insertion isolés par connecteur, reset sans rejeu des runs arrêtés, rétention par lots, requête bornée (`max_points`, fenêtre ≤ 7 j, trous explicites) ; Compose : migration 0002 → 0003 sur volume existant et démarrage propre, `system/status` `ok` puis `stalled` worker arrêté ; cycle temps réel 35–77 ms, `GET /metrics` 2 000 points p95 163 ms ; 290 tests backend, couverture 96 % |
+| US-04 … US-12 | À faire | — |
 
 Le statut n'est mis à jour que sur preuve (commandes et résultats).
 
