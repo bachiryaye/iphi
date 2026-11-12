@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-Format : contexte, décision, alternatives, conséquences. Statut de toutes les ADR ci-dessous : **Acceptée — 2026-11-12** (0001–0012 : revue v1.1 du dossier ; 0013 : socle US-01).
+Format : contexte, décision, alternatives, conséquences. Statut de toutes les ADR ci-dessous : **Acceptée — 2026-11-12** (0001–0012 : revue v1.1 du dossier ; 0013 : socle US-01 ; 0014 : simulateur US-02).
 
 | N° | Décision |
 |---|---|
@@ -17,5 +17,6 @@ Format : contexte, décision, alternatives, conséquences. Statut de toutes les 
 | [0011](0011-connecteur-mqtt.md) | US-12 : MQTT plutôt qu'OPC UA |
 | [0012](0012-generation-pdf.md) | Génération des rapports PDF |
 | [0013](0013-socle-us01-versions-modules.md) | Socle US-01 : versions d'outillage, modules `monitor` et `topology`, valeurs locales par défaut |
+| [0014](0014-simulateur-us02.md) | Simulateur US-02 : échantillonnage, empreinte, runs, horloge monotone, garde de mutation |
 
 Nouvelle ADR : copier le format, numéro suivant, statut *Proposée* jusqu'à validation.
