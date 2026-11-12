@@ -154,15 +154,16 @@ Le tableau ci-dessus (v1.0) reste le socle logique ; le modèle ci-dessous le pr
 |---|---|---|
 | `sim_clock` | id (=1), mode, speed, anchor_platform_time, anchor_wall_time, seed, updated_at | Ligne unique. `current_time` renommé `anchor_platform_time` (ADR 0014). |
 | `scenario_run` | id, number (identité, `#N`), platform_id, scenario_key, target_component_id, seed, parameters (jsonb), started_at, ends_at (fin planifiée), stopped_at, status (`active` \| `stopped` \| `completed`), started_by, created_at | index (status) ; index uniques partiels : une panne active par composant, un `baseline` actif par plateforme (ADR 0014). Chaque observation produite pendant un scénario y est rattachée. |
-| `collection_run` | id, connector_key, started_at, finished_at, status (`ok` \| `partial` \| `failed`), sample_count, log_count, rejected_count, error_code, error_message | index (connector_key, started_at desc). Alimente l'observabilité du moniteur. |
+| `collection_run` | id, connector_key, source, started_at, finished_at, status (`ok` \| `partial` \| `failed`), sample_count, log_count, rejected_count, duplicate_count, rejections (jsonb, par code), watermark, error_code, error_message | index (connector_key, started_at), (started_at). Alimente l'observabilité du moniteur ; horodatages en heure murale (ADR 0015). |
+| `collection_cursor` | connector_key (PK), source, watermark, updated_at | Point de reprise de chaque connecteur (temps d'événement) ; vidé par le reset avec les observations (ADR 0015). |
 | `metric_definition` | metric_name (PK), unit, description, min_value, max_value, kind (`gauge` \| `counter` \| `ratio`) | Catalogue chargé depuis la configuration ; toute métrique inconnue ou unité incohérente est rejetée. |
 
 **Observations**
 
 | Table | Champs | Contraintes / index |
 |---|---|---|
-| `metric_sample` | id, component_id, metric_name, value, unit, quality (`good` \| `uncertain` \| `bad`), observed_at, received_at, source (`simulation` \| `mqtt`), scenario_run_id, collection_run_id | unique (component_id, metric_name, observed_at, source) ⇒ doublons ignorés (`ON CONFLICT DO NOTHING`, compté). index (component_id, metric_name, observed_at desc) ; BRIN (observed_at). |
-| `log_event` | id, component_id, severity (`debug` \| `info` \| `warning` \| `error` \| `critical`), message (≤ 2 000 car.), fingerprint, attributes (jsonb, ≤ 8 Ko), observed_at, received_at, source, scenario_run_id, collection_run_id | index (component_id, observed_at desc), (fingerprint, observed_at). |
+| `metric_sample` | id, component_id, metric_name, value, unit, quality (`good` \| `uncertain` \| `bad`), observed_at, received_at, source (`simulation` \| `mqtt`), scenario_run_id, collection_run_id | unique (component_id, metric_name, observed_at, source) ⇒ doublons ignorés (`ON CONFLICT DO NOTHING`, compté) ; cette contrainte sert aussi les lectures de séries (pas d'index composite séparé, ADR 0015). BRIN (observed_at). |
+| `log_event` | id, component_id, severity (`debug` \| `info` \| `warning` \| `error` \| `critical`), message (≤ 2 000 car.), fingerprint, dedup_key, attributes (jsonb, ≤ 8 Ko), observed_at, received_at, source, scenario_run_id, collection_run_id | unique (component_id, observed_at, source, dedup_key) ⇒ re-livraisons ignorées, et lectures par composant ; index (fingerprint, observed_at) ; BRIN (observed_at). |
 
 Observations tardives : acceptées si `observed_at` ≥ `now − late_tolerance` (défaut 10 min), sinon rejetées et comptées. Observations dans le futur au-delà de 30 s : rejetées. Valeurs hors plage `metric_definition` : rejetées avec code `METRIC_OUT_OF_RANGE`. Tout rejet est compté dans `collection_run.rejected_count` et journalisé.
 
@@ -302,8 +303,11 @@ Le client invalide ses caches à la réception (les événements ne transportent
 class Connector(Protocol):
     key: str                       # "simulation", "mqtt"
     source: ObservationSource      # valeur stockée dans metric_sample.source
-    def collect(self, now: datetime) -> CollectionResult: ...
-# CollectionResult = samples[], logs[], errors[] (jamais d'exception non gérée vers run_cycle)
+    def collect(self, request: CollectionRequest) -> CollectionResult: ...
+# CollectionRequest = now (heure de plateforme), resume_after (watermark persisté ou None),
+#                     not_before (plus ancienne observation acceptée)
+# CollectionResult = samples[], logs[], issues[], watermark
+# Une exception du connecteur est enregistrée en collection_run « failed » (ADR 0015).
 ```
 
 Le moteur métier (health, incidents) ne connaît que les observations normalisées : brancher un nouveau connecteur ne modifie ni les règles ni le dashboard (critère US-12).
