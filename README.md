@@ -70,10 +70,10 @@ curl -s -X POST $B/scenarios -H 'content-type: application/json' \
 curl -s "$B/runs?status=active"                        # runs, newest first (cursor pagination)
 curl -s -X POST $B/clock -H 'content-type: application/json' \
      -d '{"action": "set_mode", "mode": "accelerated", "speed": 10}'   # realtime | accelerated | manual
-curl -s -X POST $B/reset                               # stop runs, realtime clock, fresh baseline
+curl -s -X POST $B/reset -H 'content-type: application/json'   # stop runs, realtime clock, fresh baseline
 ```
 
-Mutations (start, stop, clock, reset) are unauthenticated until US-11: they work only with `IPHI_DEV_MUTATIONS=true` (the Compose default) **and** ports published on loopback; otherwise they answer `403 MUTATIONS_DISABLED`. Every attempt is written to the append-only audit log.
+Mutations (start, stop, clock, reset) are unauthenticated until US-11: they work only with `IPHI_DEV_MUTATIONS=true` (the Compose default) **and** ports published on loopback; otherwise they answer `403 MUTATIONS_DISABLED`. They also require `Content-Type: application/json` (even without a body) and refuse cross-site browser requests, so another web page cannot trigger them; the API only answers the `Host` names in `IPHI_ALLOWED_HOSTS`. Every attempt is written to the append-only audit log.
 
 Preview the generator without a database; the printed fingerprint is the one checked by the golden test:
 

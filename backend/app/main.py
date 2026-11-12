@@ -1,5 +1,6 @@
 import structlog
 from fastapi import FastAPI
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api import simulations, system
 from app.core.clock import WallClock
@@ -52,6 +53,9 @@ def create_app(settings: Settings) -> FastAPI:
     app.include_router(simulations.router)
     # Starlette runs the last added middleware first. Security headers wrap every response,
     # including the 413 and crash responses produced by the two inner middlewares.
+    # Unauthenticated loopback mutations (ADR 0007) must not be reachable through a rebound
+    # DNS name pointing a hostile page at 127.0.0.1.
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_host_list)
     app.add_middleware(BodySizeLimitMiddleware)
     app.add_middleware(CorrelationIdMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)

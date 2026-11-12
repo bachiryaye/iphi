@@ -30,4 +30,13 @@ class Settings(BaseSettings):
         max_length=255,
         description="Host address the API and frontend ports are published on (ADR 0007).",
     )
+    allowed_hosts: str = Field(
+        default="127.0.0.1,localhost",
+        max_length=1024,
+        description="Comma-separated Host header values the API answers (DNS rebinding).",
+    )
     sim_seed: int = Field(default=42, ge=0, le=MAX_SEED)
+
+    @property
+    def allowed_host_list(self) -> list[str]:
+        return [h.strip() for h in self.allowed_hosts.split(",") if h.strip()]
