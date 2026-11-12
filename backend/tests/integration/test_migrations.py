@@ -10,7 +10,15 @@ from app.schema import metadata
 
 pytestmark = pytest.mark.integration
 
-APPLICATION_TABLES = {"platform", "monitor_heartbeat", "audit_event"}
+APPLICATION_TABLES = {
+    "audit_event",
+    "component",
+    "dependency",
+    "monitor_heartbeat",
+    "platform",
+    "scenario_run",
+    "sim_clock",
+}
 
 
 def application_tables(url: str) -> set[str]:
@@ -21,7 +29,7 @@ def application_tables(url: str) -> set[str]:
         engine.dispose()
 
 
-def test_upgrade_creates_initial_schema(database_url: str) -> None:
+def test_upgrade_creates_application_schema(database_url: str) -> None:
     assert application_tables(database_url) == APPLICATION_TABLES
 
 

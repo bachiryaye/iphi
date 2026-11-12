@@ -4,9 +4,10 @@ from typing import Any
 
 from sqlalchemy import CheckConstraint, Index, String, text
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, Session, mapped_column
 
-from app.core.db import Base
+from app.core.db import Base, check_in
+from app.identity.domain import AuditEntry, AuditOutcome
 
 
 class AuditEventRecord(Base):
@@ -14,7 +15,7 @@ class AuditEventRecord(Base):
 
     __tablename__ = "audit_event"
     __table_args__ = (
-        CheckConstraint("outcome IN ('allowed', 'denied', 'failed')", name="outcome"),
+        CheckConstraint(check_in("outcome", AuditOutcome), name="outcome"),
         Index("ix_audit_event_occurred_at", text("occurred_at DESC")),
         Index("ix_audit_event_action", "action"),
     )
@@ -30,3 +31,24 @@ class AuditEventRecord(Base):
     outcome: Mapped[str] = mapped_column(String(8))
     correlation_id: Mapped[str | None] = mapped_column(String(64))
     details: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
+
+
+class AuditEventRepository:
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def add(self, entry: AuditEntry) -> None:
+        self._session.add(
+            AuditEventRecord(
+                occurred_at=entry.occurred_at,
+                platform_time=entry.platform_time,
+                actor_id=entry.context.actor_id,
+                actor_label=entry.context.actor_label,
+                action=entry.action,
+                target_type=entry.target_type,
+                target_id=entry.target_id,
+                outcome=entry.outcome.value,
+                correlation_id=entry.context.correlation_id,
+                details=dict(entry.details),
+            )
+        )

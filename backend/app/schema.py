@@ -3,7 +3,16 @@
 from app.core.db import Base
 from app.identity.repository import AuditEventRecord
 from app.monitor.repository import MonitorHeartbeatRecord
-from app.topology.repository import PlatformRecord
+from app.simulation.repository import ScenarioRunRecord, SimClockRecord
+from app.topology.repository import ComponentRecord, DependencyRecord, PlatformRecord
 
-RECORDS = (AuditEventRecord, MonitorHeartbeatRecord, PlatformRecord)
+RECORDS = (
+    AuditEventRecord,
+    ComponentRecord,
+    DependencyRecord,
+    MonitorHeartbeatRecord,
+    PlatformRecord,
+    ScenarioRunRecord,
+    SimClockRecord,
+)
 metadata = Base.metadata

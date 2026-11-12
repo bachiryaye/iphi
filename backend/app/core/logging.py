@@ -1,9 +1,23 @@
 import logging
 import sys
+import uuid
+from datetime import date
 from typing import Literal
 
 import structlog
 from structlog.typing import Processor
+
+
+def wire_values(
+    _logger: object, _method: str, event: structlog.typing.EventDict
+) -> structlog.typing.EventDict:
+    """Dates as ISO 8601 (S-06) and UUIDs as text, for the JSON and console renderers alike."""
+    for name, value in event.items():
+        if isinstance(value, date):
+            event[name] = value.isoformat()
+        elif isinstance(value, uuid.UUID):
+            event[name] = str(value)
+    return event
 
 
 def configure_logging(level: str, fmt: Literal["json", "console"]) -> None:
@@ -14,9 +28,10 @@ def configure_logging(level: str, fmt: Literal["json", "console"]) -> None:
         structlog.stdlib.add_logger_name,
         structlog.processors.TimeStamper(fmt="iso", utc=True),
         structlog.processors.StackInfoRenderer(),
+        wire_values,
     ]
     renderer: Processor = (
-        structlog.processors.JSONRenderer()
+        structlog.processors.JSONRenderer(default=str)
         if fmt == "json"
         else structlog.dev.ConsoleRenderer(colors=False)
     )

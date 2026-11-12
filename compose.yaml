@@ -1,6 +1,6 @@
 name: iphi
 
-# All published ports bind to 127.0.0.1 (rules.md X-12, ADR 0007).
+# API and frontend ports bind to IPHI_BIND_HOST, 127.0.0.1 by default (rules.md X-12, ADR 0007).
 # api, worker and migrate are entry points of one image (ADR 0001); only migrate builds it.
 x-backend: &backend
   image: iphi-backend:local
@@ -11,6 +11,10 @@ x-backend: &backend
     IPHI_LOG_FORMAT: ${IPHI_LOG_FORMAT:-json}
     IPHI_CYCLE_INTERVAL_S: ${IPHI_CYCLE_INTERVAL_S:-5}
     IPHI_LLM_PROVIDER: ${IPHI_LLM_PROVIDER:-none}
+    IPHI_SIM_SEED: ${IPHI_SIM_SEED:-42}
+    # ADR 0007: unauthenticated mutations, honoured only while ports stay on loopback.
+    IPHI_DEV_MUTATIONS: ${IPHI_DEV_MUTATIONS:-true}
+    IPHI_BIND_HOST: ${IPHI_BIND_HOST:-127.0.0.1}
   read_only: true
   tmpfs: ["/tmp"]
   security_opt: ["no-new-privileges:true"]
@@ -25,6 +29,7 @@ services:
       POSTGRES_PASSWORD: ${IPHI_DB_PASSWORD:-iphi_local_dev}
       POSTGRES_DB: ${IPHI_DB_NAME:-iphi}
     ports:
+      # The database stays on loopback whatever IPHI_BIND_HOST says.
       - "127.0.0.1:${IPHI_DB_PORT:-5433}:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
@@ -38,7 +43,8 @@ services:
     <<: *backend
     build:
       context: ./backend
-    command: ["alembic", "upgrade", "head"]
+    # Schema to head, then the idempotent seed (topology, clock, baseline run).
+    command: ["python", "-m", "app.bootstrap"]
     depends_on:
       db:
         condition: service_healthy
@@ -47,7 +53,7 @@ services:
   api:
     <<: *backend
     ports:
-      - "127.0.0.1:${IPHI_API_PORT:-8000}:8000"
+      - "${IPHI_BIND_HOST:-127.0.0.1}:${IPHI_API_PORT:-8000}:8000"
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -68,7 +74,7 @@ services:
       context: ./frontend
     image: iphi-frontend:local
     ports:
-      - "127.0.0.1:${IPHI_FRONTEND_PORT:-8080}:8080"
+      - "${IPHI_BIND_HOST:-127.0.0.1}:${IPHI_FRONTEND_PORT:-8080}:8080"
     read_only: true
     tmpfs: ["/tmp"]
     security_opt: ["no-new-privileges:true"]

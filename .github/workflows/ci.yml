@@ -44,8 +44,8 @@ jobs:
         run: uv run lint-imports
       - name: Type check
         run: uv run mypy
-      - name: Migrations apply on an ephemeral PostgreSQL
-        run: uv run alembic upgrade head
+      - name: Migrations and seed apply on an ephemeral PostgreSQL
+        run: uv run python -m app.bootstrap && uv run python -m app.bootstrap
       - name: Tests
         run: uv run pytest --cov --cov-report=term-missing:skip-covered
       - name: Dependency audit
@@ -118,6 +118,19 @@ jobs:
           done
           docker compose ps --all
           docker compose logs
+          exit 1
+      - name: Simulation is seeded and reachable through the frontend proxy
+        run: |
+          curl -fsS http://127.0.0.1:8080/api/v1/simulations/scenarios | grep -q '"collector_down"'
+          curl -fsS 'http://127.0.0.1:8080/api/v1/simulations/runs?status=active' | grep -q '"baseline"'
+      - name: Proxy follows a recreated API container
+        run: |
+          docker compose up -d --force-recreate --no-deps api
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8080/ready; then exit 0; fi
+            sleep 2
+          done
+          docker compose logs frontend api
           exit 1
       - name: Stop the stack
         if: always()

@@ -1,6 +1,28 @@
 {
   "components": {
     "schemas": {
+      "AdvanceClockIn": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "const": "advance",
+            "title": "Action",
+            "type": "string"
+          },
+          "seconds": {
+            "maximum": 86400.0,
+            "minimum": 1.0,
+            "title": "Seconds",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "action",
+          "seconds"
+        ],
+        "title": "AdvanceClockIn",
+        "type": "object"
+      },
       "CheckName": {
         "enum": [
           "database",
@@ -19,6 +41,91 @@
         ],
         "title": "CheckStatus",
         "type": "string"
+      },
+      "ClockMode": {
+        "enum": [
+          "realtime",
+          "accelerated",
+          "manual"
+        ],
+        "title": "ClockMode",
+        "type": "string"
+      },
+      "ClockOut": {
+        "properties": {
+          "environment": {
+            "const": "simulation",
+            "default": "simulation",
+            "title": "Environment",
+            "type": "string"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/ClockMode"
+          },
+          "platform_time": {
+            "format": "date-time",
+            "title": "Platform Time",
+            "type": "string"
+          },
+          "sample_interval_s": {
+            "title": "Sample Interval S",
+            "type": "integer"
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer"
+          },
+          "speed": {
+            "title": "Speed",
+            "type": "number"
+          }
+        },
+        "required": [
+          "mode",
+          "speed",
+          "platform_time",
+          "seed",
+          "sample_interval_s"
+        ],
+        "title": "ClockOut",
+        "type": "object"
+      },
+      "ComponentType": {
+        "description": "ISA-95 level 2/3 roles along the data path (rules.md S-01).",
+        "enum": [
+          "source",
+          "gateway",
+          "collector",
+          "historian",
+          "database",
+          "api",
+          "analytics"
+        ],
+        "title": "ComponentType",
+        "type": "string"
+      },
+      "ExpectedOutcomeOut": {
+        "properties": {
+          "incident": {
+            "title": "Incident",
+            "type": "string"
+          },
+          "signal": {
+            "title": "Signal",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signal",
+          "state",
+          "incident"
+        ],
+        "title": "ExpectedOutcomeOut",
+        "type": "object"
       },
       "FieldError": {
         "properties": {
@@ -63,6 +170,44 @@
           }
         },
         "title": "LivenessOut",
+        "type": "object"
+      },
+      "ParameterOut": {
+        "properties": {
+          "default": {
+            "title": "Default",
+            "type": "number"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "maximum": {
+            "title": "Maximum",
+            "type": "number"
+          },
+          "minimum": {
+            "title": "Minimum",
+            "type": "number"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "unit",
+          "default",
+          "minimum",
+          "maximum",
+          "description"
+        ],
+        "title": "ParameterOut",
         "type": "object"
       },
       "Problem": {
@@ -189,16 +334,709 @@
         ],
         "title": "ReadinessOut",
         "type": "object"
+      },
+      "ResetIn": {
+        "additionalProperties": false,
+        "properties": {
+          "seed": {
+            "anyOf": [
+              {
+                "maximum": 2147483647.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Defaults to IPHI_SIM_SEED.",
+            "title": "Seed"
+          }
+        },
+        "title": "ResetIn",
+        "type": "object"
+      },
+      "ResetOut": {
+        "properties": {
+          "baseline_run": {
+            "$ref": "#/components/schemas/ScenarioRunOut"
+          },
+          "clock": {
+            "$ref": "#/components/schemas/ClockOut"
+          },
+          "stopped_runs": {
+            "title": "Stopped Runs",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "clock",
+          "baseline_run",
+          "stopped_runs"
+        ],
+        "title": "ResetOut",
+        "type": "object"
+      },
+      "RunStatus": {
+        "enum": [
+          "active",
+          "stopped",
+          "completed"
+        ],
+        "title": "RunStatus",
+        "type": "string"
+      },
+      "ScenarioCatalogOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ScenarioOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "sample_interval_s": {
+            "description": "Platform-time period of simulated samples.",
+            "title": "Sample Interval S",
+            "type": "integer"
+          },
+          "source": {
+            "const": "simulation",
+            "default": "simulation",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sample_interval_s",
+          "items"
+        ],
+        "title": "ScenarioCatalogOut",
+        "type": "object"
+      },
+      "ScenarioKey": {
+        "enum": [
+          "baseline",
+          "collector_down",
+          "latency_rise",
+          "stale_data",
+          "intermittent_loss",
+          "error_burst",
+          "resource_pressure",
+          "backlog_growth",
+          "telemetry_blackout"
+        ],
+        "title": "ScenarioKey",
+        "type": "string"
+      },
+      "ScenarioKind": {
+        "enum": [
+          "baseline",
+          "fault"
+        ],
+        "title": "ScenarioKind",
+        "type": "string"
+      },
+      "ScenarioOut": {
+        "properties": {
+          "default_target_component_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Target Component Key"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "eligible_component_types": {
+            "items": {
+              "$ref": "#/components/schemas/ComponentType"
+            },
+            "title": "Eligible Component Types",
+            "type": "array"
+          },
+          "expected": {
+            "$ref": "#/components/schemas/ExpectedOutcomeOut",
+            "description": "Outcome the default health rules should reach."
+          },
+          "key": {
+            "$ref": "#/components/schemas/ScenarioKey"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ScenarioKind"
+          },
+          "parameters": {
+            "items": {
+              "$ref": "#/components/schemas/ParameterOut"
+            },
+            "title": "Parameters",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "title",
+          "description",
+          "kind",
+          "default_target_component_key",
+          "eligible_component_types",
+          "parameters",
+          "expected"
+        ],
+        "title": "ScenarioOut",
+        "type": "object"
+      },
+      "ScenarioRunOut": {
+        "properties": {
+          "ends_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ends At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "number": {
+            "description": "Human-readable sequence number, shown as #N.",
+            "title": "Number",
+            "type": "integer"
+          },
+          "parameters": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Parameters",
+            "type": "object"
+          },
+          "scenario_key": {
+            "$ref": "#/components/schemas/ScenarioKey"
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer"
+          },
+          "source": {
+            "const": "simulation",
+            "default": "simulation",
+            "title": "Source",
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "started_by": {
+            "title": "Started By",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RunStatus"
+          },
+          "stopped_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stopped At"
+          },
+          "target_component_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Component Key"
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "scenario_key",
+          "target_component_key",
+          "seed",
+          "parameters",
+          "started_at",
+          "ends_at",
+          "stopped_at",
+          "status",
+          "started_by"
+        ],
+        "title": "ScenarioRunOut",
+        "type": "object"
+      },
+      "ScenarioRunPageOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ScenarioRunOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "ScenarioRunPageOut",
+        "type": "object"
+      },
+      "SetClockModeIn": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "const": "set_mode",
+            "title": "Action",
+            "type": "string"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/ClockMode"
+          },
+          "speed": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 1.0,
+                "maximum": 60.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Required in accelerated mode only.",
+            "title": "Speed"
+          }
+        },
+        "required": [
+          "action",
+          "mode"
+        ],
+        "title": "SetClockModeIn",
+        "type": "object"
+      },
+      "StartScenarioIn": {
+        "additionalProperties": false,
+        "properties": {
+          "duration_s": {
+            "anyOf": [
+              {
+                "maximum": 604800.0,
+                "minimum": 10.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Planned duration in platform seconds; runs until stopped when omitted.",
+            "title": "Duration S"
+          },
+          "parameters": {
+            "maxProperties": 8,
+            "patternProperties": {
+              "^[a-z][a-z0-9_]{0,31}$": {
+                "type": "number"
+              }
+            },
+            "title": "Parameters",
+            "type": "object"
+          },
+          "scenario_key": {
+            "$ref": "#/components/schemas/ScenarioKey"
+          },
+          "target_component_key": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Defaults to the scenario's default target.",
+            "title": "Target Component Key"
+          }
+        },
+        "required": [
+          "scenario_key"
+        ],
+        "title": "StartScenarioIn",
+        "type": "object"
       }
     }
   },
   "info": {
     "summary": "Health intelligence for a simulated industrial data platform.",
     "title": "IPHI API",
-    "version": "0.1.0"
+    "version": "0.2.0"
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/simulations/clock": {
+      "get": {
+        "operationId": "get_clock_api_v1_simulations_clock_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClockOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "RFC 9457 problem details."
+          }
+        },
+        "summary": "Platform clock state.",
+        "tags": [
+          "simulations"
+        ]
+      },
+      "post": {
+        "operationId": "command_clock_api_v1_simulations_clock_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "discriminator": {
+                  "mapping": {
+                    "advance": "#/components/schemas/AdvanceClockIn",
+                    "set_mode": "#/components/schemas/SetClockModeIn"
+                  },
+                  "propertyName": "action"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/SetClockModeIn"
+                  },
+                  {
+                    "$ref": "#/components/schemas/AdvanceClockIn"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClockOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "RFC 9457 problem details."
+          }
+        },
+        "summary": "Change the clock mode, or advance it in manual mode.",
+        "tags": [
+          "simulations"
+        ]
+      }
+    },
+    "/api/v1/simulations/reset": {
+      "post": {
+        "operationId": "reset_simulation_api_v1_simulations_reset_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ResetIn"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResetOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "RFC 9457 problem details."
+          }
+        },
+        "summary": "Stop every run, restart the clock in realtime and start a fresh baseline.",
+        "tags": [
+          "simulations"
+        ]
+      }
+    },
+    "/api/v1/simulations/runs": {
+      "get": {
+        "operationId": "list_runs_api_v1_simulations_runs_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/RunStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioRunPageOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "RFC 9457 problem details."
+          }
+        },
+        "summary": "Scenario runs, newest first.",
+        "tags": [
+          "simulations"
+        ]
+      }
+    },
+    "/api/v1/simulations/runs/{run_id}/stop": {
+      "post": {
+        "operationId": "stop_run_api_v1_simulations_runs__run_id__stop_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioRunOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "RFC 9457 problem details."
+          }
+        },
+        "summary": "Stop an active scenario run.",
+        "tags": [
+          "simulations"
+        ]
+      }
+    },
+    "/api/v1/simulations/scenarios": {
+      "get": {
+        "operationId": "list_scenarios_api_v1_simulations_scenarios_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioCatalogOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "RFC 9457 problem details."
+          }
+        },
+        "summary": "Scenario catalog with parameters and expected outcomes.",
+        "tags": [
+          "simulations"
+        ]
+      },
+      "post": {
+        "operationId": "start_scenario_api_v1_simulations_scenarios_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartScenarioIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioRunOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "RFC 9457 problem details."
+          }
+        },
+        "summary": "Start a scenario run on a component.",
+        "tags": [
+          "simulations"
+        ]
+      }
+    },
     "/health": {
       "get": {
         "operationId": "health_health_get",

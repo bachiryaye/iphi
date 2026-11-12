@@ -5,14 +5,14 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
-from app.core.db import Base
+from app.core.db import Base, check_in
 from app.monitor.domain import Heartbeat, ProcessStatus
 
 
 class MonitorHeartbeatRecord(Base):
     __tablename__ = "monitor_heartbeat"
     __table_args__ = (
-        CheckConstraint("status IN ('running', 'stopped')", name="status"),
+        CheckConstraint(check_in("status", ProcessStatus), name="status"),
         CheckConstraint("last_cycle_duration_ms >= 0", name="duration_non_negative"),
         CheckConstraint("cycle_lag_ms >= 0", name="lag_non_negative"),
     )
