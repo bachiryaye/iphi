@@ -270,7 +270,8 @@ Aucune réalisation n'invente d'API AVEVA PI ni n'annonce une compatibilité non
 
 | Story | Statut | Preuve |
 |---|---|---|
-| US-01 … US-12 | À faire | — |
+| US-01 | Fait (2026-11-12) | `docker compose up --build` → `/health` 200, `/ready` 200 ; CI GitHub Actions verte (backend + PostgreSQL, frontend, contrat API, images, secrets) |
+| US-02 … US-12 | À faire | — |
 
 Le statut n'est mis à jour que sur preuve (commandes et résultats).
 
