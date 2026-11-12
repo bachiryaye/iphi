@@ -1,6 +1,6 @@
 # ADR 0013 — Socle US-01 : versions d'outillage, modules `monitor` et `topology`, valeurs locales par défaut
 
-- **Statut :** Proposée
+- **Statut :** Acceptée
 - **Date :** 2026-11-12
 - **Portée :** US-01
 
