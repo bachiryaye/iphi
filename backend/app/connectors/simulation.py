@@ -11,8 +11,8 @@ from app.connectors.domain import (
     ObservedLog,
     ObservedSample,
 )
-from app.core.observation import ObservationSource
-from app.simulation.domain.clock import first_tick_at_or_after, tick_of, tick_time
+from app.core.observation import ObservationSource, tick_of, tick_time
+from app.simulation.domain.clock import first_tick_at_or_after
 from app.simulation.domain.generator import MAX_TICKS_PER_BATCH, TickObservations
 
 SIMULATION_CONNECTOR_KEY = "simulation"

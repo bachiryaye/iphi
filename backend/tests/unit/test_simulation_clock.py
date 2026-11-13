@@ -2,13 +2,11 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from app.core.observation import SAMPLE_INTERVAL_S
+from app.core.observation import SAMPLE_INTERVAL_S, tick_of, tick_time
 from app.simulation.domain.clock import (
     ClockMode,
     ClockState,
     first_tick_at_or_after,
-    tick_of,
-    tick_time,
 )
 from app.simulation.domain.errors import ClockNotManualError, ClockSpeedError
 

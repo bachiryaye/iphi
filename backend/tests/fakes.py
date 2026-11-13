@@ -34,6 +34,11 @@ class NoCollection:
         return []
 
 
+class NoHealth:
+    def evaluate(self, _session: Session, _platform_now: datetime) -> None:
+        return None
+
+
 class NoRetention:
     def purge_if_due(self, _factory: sessionmaker[Session], _platform_now: datetime) -> int:
         return 0
@@ -41,7 +46,7 @@ class NoRetention:
 
 def idle_steps(wall: FixedClock) -> CycleSteps:
     """Cycle steps that touch nothing but the clock: the worker writes only its heartbeat."""
-    return CycleSteps(WallPlatformTime(wall), NoCollection(), NoRetention())
+    return CycleSteps(WallPlatformTime(wall), NoCollection(), NoHealth(), NoRetention())
 
 
 def cycling_worker(session_factory: sessionmaker[Session], wall: FixedClock) -> Worker:

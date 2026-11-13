@@ -24,6 +24,7 @@ from app.topology.domain import (
     ComponentSpec,
     ComponentType,
     Criticality,
+    Dependency,
     DependencyKind,
     DependencySpec,
 )
@@ -100,10 +101,8 @@ class TopologyRepository:
         )
         return self._session.execute(statement).scalar_one()
 
-    def platform_id(self, key: str) -> uuid.UUID | None:
-        return self._session.execute(
-            select(PlatformRecord.id).where(PlatformRecord.key == key)
-        ).scalar_one_or_none()
+    def platforms(self) -> list[PlatformRecord]:
+        return list(self._session.scalars(select(PlatformRecord).order_by(PlatformRecord.key)))
 
     def upsert_component(self, platform_id: uuid.UUID, spec: ComponentSpec) -> None:
         changes = {
@@ -125,6 +124,19 @@ class TopologyRepository:
             .order_by(ComponentRecord.key)
         )
         return [_to_component(r) for r in records]
+
+    def dependencies(self, platform_id: uuid.UUID) -> list[Dependency]:
+        records = self._session.scalars(
+            select(DependencyRecord)
+            .where(DependencyRecord.platform_id == platform_id)
+            .order_by(
+                DependencyRecord.dependent_component_id, DependencyRecord.dependency_component_id
+            )
+        )
+        return [
+            Dependency(r.dependent_component_id, r.dependency_component_id, DependencyKind(r.kind))
+            for r in records
+        ]
 
     def replace_dependencies(
         self,

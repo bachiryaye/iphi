@@ -3,8 +3,8 @@ from datetime import datetime, timedelta
 
 from app.connectors.domain import CollectionRequest, CollectionResult
 from app.connectors.simulation import SimulationConnector
-from app.core.observation import ObservationSource
-from app.simulation.domain.clock import first_tick_at_or_after, tick_of, tick_time
+from app.core.observation import ObservationSource, tick_of, tick_time
+from app.simulation.domain.clock import first_tick_at_or_after
 from app.simulation.domain.generator import MAX_TICKS_PER_BATCH, TickObservations, generate_range
 from app.simulation.domain.platform import SIMULATED_PLATFORM
 from tests.simulation_runs import FIRST_TICK, GOLDEN_START, baseline

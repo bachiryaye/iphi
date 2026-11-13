@@ -35,10 +35,20 @@ class TopologyService:
         )
 
     def platform(self, platform_key: str) -> PlatformTopology | None:
+        return next((p for p in self.platforms() if p.key == platform_key), None)
+
+    def platforms(self) -> list[PlatformTopology]:
+        """Every platform with its components and dependency edges, by key."""
         with self._session_factory() as session:
             repository = TopologyRepository(session)
-            platform_id = repository.platform_id(platform_key)
-            if platform_id is None:
-                return None
-            components = tuple(repository.components(platform_id))
-        return PlatformTopology(platform_id, components)
+            return [
+                PlatformTopology(
+                    platform_id=record.id,
+                    key=record.key,
+                    name=record.name,
+                    environment=record.environment,
+                    components=tuple(repository.components(record.id)),
+                    dependencies=tuple(repository.dependencies(record.id)),
+                )
+                for record in repository.platforms()
+            ]

@@ -4,9 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
 
-# Probes sample every component every SAMPLE_INTERVAL_S of platform time, whatever the worker
-# period: accelerated mode then yields more samples per wall second, not sparser series.
-from app.core.observation import SAMPLE_INTERVAL_S, UNIX_EPOCH
+from app.core.observation import tick_of, tick_time
 from app.simulation.domain.errors import ClockNotManualError, ClockSpeedError
 
 MAX_ACCELERATION = 60.0
@@ -66,15 +64,6 @@ class ClockState:
     def reset(self, seed: int, wall_now: datetime) -> ClockState:
         start = max(wall_now, self.platform_time(wall_now))
         return ClockState(ClockMode.REALTIME, 1.0, start, wall_now, seed)
-
-
-def tick_of(at: datetime) -> int:
-    """Index of the last sample slot at or before `at`."""
-    return (at - UNIX_EPOCH) // timedelta(seconds=SAMPLE_INTERVAL_S)
-
-
-def tick_time(tick: int) -> datetime:
-    return UNIX_EPOCH + timedelta(seconds=tick * SAMPLE_INTERVAL_S)
 
 
 def first_tick_at_or_after(at: datetime) -> int:

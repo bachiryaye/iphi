@@ -15,9 +15,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from types import MappingProxyType
 
-from app.core.observation import LogSeverity, ObservationSource, Quality
+from app.core.observation import LogSeverity, ObservationSource, Quality, tick_of, tick_time
 from app.simulation.domain.catalog import SCENARIOS, EffectContext, ScenarioKey
-from app.simulation.domain.clock import tick_of, tick_time
 from app.simulation.domain.errors import SimulationNotInitializedError
 from app.simulation.domain.platform import SimulatedComponent, SimulatedPlatform
 from app.simulation.domain.runs import ScenarioRun

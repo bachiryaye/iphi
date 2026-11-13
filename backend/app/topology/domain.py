@@ -1,8 +1,11 @@
 import re
 import uuid
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
+from http import HTTPStatus
+
+from app.core.exceptions import IphiError
 
 # V1 hosts simulated platforms only (architecture §03.1).
 SIMULATION_ENVIRONMENT = "simulation"
@@ -34,6 +37,16 @@ class DependencyKind(StrEnum):
 
 class TopologyError(ValueError):
     pass
+
+
+class ComponentNotFoundError(IphiError):
+    status = HTTPStatus.NOT_FOUND
+    code = "COMPONENT_NOT_FOUND"
+
+
+class PlatformNotFoundError(IphiError):
+    status = HTTPStatus.NOT_FOUND
+    code = "PLATFORM_NOT_FOUND"
 
 
 @dataclass(frozen=True, slots=True)
@@ -120,12 +133,46 @@ def downstream_of(key: str, dependencies: Iterable[DependencySpec]) -> frozenset
 
 
 @dataclass(frozen=True, slots=True)
+class Dependency:
+    """`dependent_id` depends on `dependency_id` (architecture §03.1)."""
+
+    dependent_id: uuid.UUID
+    dependency_id: uuid.UUID
+    kind: DependencyKind
+
+
+def upstream_ids(component_id: uuid.UUID, dependencies: Sequence[Dependency]) -> set[uuid.UUID]:
+    """Transitive dependencies of a component, whatever the dependency kind."""
+    direct: dict[uuid.UUID, list[uuid.UUID]] = {}
+    for d in dependencies:
+        direct.setdefault(d.dependent_id, []).append(d.dependency_id)
+    found: set[uuid.UUID] = set()
+    frontier = [component_id]
+    while frontier:
+        for parent in direct.get(frontier.pop(), ()):
+            if parent not in found:
+                found.add(parent)
+                frontier.append(parent)
+    return found
+
+
+@dataclass(frozen=True, slots=True)
 class PlatformTopology:
     platform_id: uuid.UUID
+    key: str
+    name: str
+    environment: str
     components: tuple[Component, ...]
+    dependencies: tuple[Dependency, ...]
 
     def component(self, key: str) -> Component | None:
         return next((c for c in self.components if c.key == key), None)
+
+    def component_by_id(self, component_id: uuid.UUID) -> Component:
+        found = next((c for c in self.components if c.id == component_id), None)
+        if found is None:
+            raise ComponentNotFoundError(f"No component {component_id}.")
+        return found
 
     def keys_by_id(self) -> dict[uuid.UUID, str]:
         return {c.id: c.key for c in self.components}

@@ -1,0 +1,167 @@
+# Default health rules (architecture §05.3, ADR 0004, ADR 0016).
+#
+# Thresholds are demonstration values sized for the simulated platform, not industrial
+# recommendations. Loaded by the bootstrap: a changed rule becomes a new immutable version, a
+# removed rule a disabled version. Windows are in seconds of platform time; raise_after and
+# clear_after count consecutive evaluations, one per 5 s sample slot.
+#
+# A level raises when `<value> <operator> threshold` holds and clears once it no longer holds
+# at `clear`. `targets` restricts a rule to component types or keys; empty means every component.
+
+rules:
+  - key: R-AVAIL-001
+    type: threshold
+    failure_class: availability
+    metric: up
+    aggregation: last
+    window_s: 10
+    operator: lt
+    critical: {threshold: 1, clear: 1}
+    raise_after: 2
+    clear_after: 3
+    rationale: >-
+      The active probe got no answer: the component is down or unreachable. Two failed probes
+      in a row are required, so an isolated loss stays a connectivity matter.
+    recommendation: >-
+      Check that the service process is running and reachable from the collector network;
+      review its last logs before the outage.
+
+  - key: R-CONN-001
+    type: availability_ratio
+    failure_class: connectivity
+    metric: up
+    aggregation: ratio
+    window_s: 300
+    operator: lt
+    warning: {threshold: 0.95, clear: 0.98}
+    critical: {threshold: 0.80, clear: 0.90}
+    raise_after: 1
+    clear_after: 3
+    rationale: >-
+      Share of answered probes over five minutes. Intermittent losses degrade data
+      completeness long before a sustained outage.
+    recommendation: >-
+      Inspect the network path and the link quality between the probe and the component;
+      correlate the drops with network or load events.
+
+  - key: R-LAT-001
+    type: threshold
+    failure_class: latency
+    metric: probe_latency_ms
+    aggregation: p95
+    window_s: 60
+    operator: gt
+    warning: {threshold: 250, clear: 200}
+    critical: {threshold: 1000, clear: 800}
+    raise_after: 3
+    clear_after: 3
+    rationale: >-
+      The 95th percentile of probe latency over one minute: sustained slowness delays data
+      delivery to downstream consumers.
+    recommendation: >-
+      Check resource saturation and queueing on the component and its network path; compare
+      with upstream latency to locate where the delay starts.
+
+  - key: R-FRESH-001
+    type: freshness
+    failure_class: freshness
+    metric: data_age_s
+    aggregation: last
+    window_s: 10
+    operator: gt
+    warning: {threshold: 60, clear: 30}
+    critical: {threshold: 300, clear: 120}
+    targets: {types: [historian, analytics]}
+    raise_after: 2
+    clear_after: 3
+    rationale: >-
+      Age of the newest process data the component holds. A service can answer its probe while
+      serving stale data; this is a freshness issue, distinct from availability.
+    recommendation: >-
+      Check whether upstream producers still publish and whether the component's ingestion
+      job is stuck; compare its data age with its upstream components.
+
+  - key: R-ERR-001
+    type: threshold
+    failure_class: errors
+    metric: error_count
+    aggregation: sum
+    window_s: 60
+    operator: ge
+    warning: {threshold: 5, clear: 2}
+    critical: {threshold: 20, clear: 5}
+    raise_after: 1
+    clear_after: 3
+    rationale: >-
+      Errors reported over one minute. A burst of failed requests means lost or delayed data
+      for consumers even while the service answers its probe.
+    recommendation: >-
+      Group the error logs by message fingerprint, identify the failing dependency or request
+      type, and check recent configuration or deployment changes.
+
+  - key: R-RES-001
+    type: threshold
+    failure_class: resources
+    metric: cpu_pct
+    aggregation: avg
+    window_s: 120
+    operator: gt
+    warning: {threshold: 85, clear: 75}
+    critical: {threshold: 95, clear: 90}
+    raise_after: 2
+    clear_after: 3
+    rationale: >-
+      Mean processor utilisation over two minutes. Sustained saturation precedes latency and
+      backlog growth.
+    recommendation: >-
+      Identify the processes consuming the processor and whether the load is expected (batch
+      jobs, catch-up after an outage) or abnormal.
+
+  - key: R-RES-002
+    type: threshold
+    failure_class: resources
+    metric: mem_pct
+    aggregation: avg
+    window_s: 120
+    operator: gt
+    warning: {threshold: 85, clear: 75}
+    critical: {threshold: 95, clear: 90}
+    raise_after: 2
+    clear_after: 3
+    rationale: >-
+      Mean memory utilisation over two minutes. Near exhaustion, the component risks swapping
+      or being stopped by the operating system.
+    recommendation: >-
+      Check memory growth over time for a leak, cache sizing and the number of open sessions.
+
+  - key: R-QUEUE-001
+    type: threshold
+    failure_class: backlog
+    metric: queue_depth
+    aggregation: last
+    window_s: 30
+    operator: gt
+    warning: {threshold: 1000, clear: 500}
+    critical: {threshold: 5000, clear: 2000}
+    targets: {types: [gateway, collector]}
+    raise_after: 2
+    clear_after: 3
+    rationale: >-
+      Messages waiting in the component's buffer. A growing backlog means the component
+      consumes slower than it receives and will eventually drop data.
+    recommendation: >-
+      Check the throughput of the downstream consumer and whether the component's workers are
+      stalled; size the buffer against the expected catch-up.
+
+  - key: R-TEL-001
+    type: absence
+    failure_class: telemetry_loss
+    window_s: 15
+    raise_after: 1
+    clear_after: 2
+    rationale: >-
+      No observation of any kind for three sample intervals: IPHI is blind to this component.
+      Its state is Unknown, never assumed Healthy.
+    recommendation: >-
+      Check the connector and its collection runs in the system status, then the network path
+      between IPHI and the component.

@@ -10,11 +10,13 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.clock import Clock
 from app.core.exceptions import IphiError
+from app.core.observation import tick_time
+from app.health.service import HealthHistory
 from app.identity.domain import AuditAction, AuditContext, AuditEntry, AuditOutcome
 from app.identity.service import AuditLog
 from app.ingestion.service import ObservationHistory
 from app.simulation.domain.catalog import CATALOG, SCENARIOS, ScenarioDefinition, ScenarioKey
-from app.simulation.domain.clock import ClockMode, ClockState, tick_time
+from app.simulation.domain.clock import ClockMode, ClockState
 from app.simulation.domain.errors import (
     BaselineRunPermanentError,
     ScenarioRunNotActiveError,
@@ -201,7 +203,8 @@ class SimulationService:
         return stopped
 
     def reset(self, seed: int, context: AuditContext) -> ResetOutcome:
-        """Stops every run, restarts the clock in realtime with `seed` and a fresh baseline."""
+        """Stops every run, restarts the clock in realtime with `seed` and a fresh baseline, and
+        purges the simulated observations with the health state derived from them."""
         with self._mutation(context, AuditAction.SIMULATION_RESET) as mutation:
             mutation.audit.details["seed"] = seed
             clock = mutation.clock.reset(seed, mutation.wall_now)
@@ -218,6 +221,8 @@ class SimulationService:
             baseline = runs.add(baseline_plan(started_at, seed, context.actor_label))
             purged = ObservationHistory(mutation.session).purge_source(OBSERVATION_SOURCE)
             mutation.audit.details["purged_observations"] = purged
+            # V1 platforms are simulated only: every health state derives from what was purged.
+            mutation.audit.details["purged_evaluations"] = HealthHistory(mutation.session).clear()
         log.info(
             "simulation.reset",
             seed=seed,
