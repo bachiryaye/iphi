@@ -12,9 +12,10 @@ IPHI monitors the health of an **industrial data platform** — sources, gateway
 | US-02 | Seven-component simulated platform, deterministic generator, nine scenarios, platform clock | Delivered (API only) |
 | US-03 | Validated ingestion, PostgreSQL history, metric and log APIs, collection monitoring | Delivered (API only) |
 | US-04 | Versioned health rules, hysteresis, `Unknown`, component and platform health with justification | Delivered (API only) |
-| US-05 → US-12 | Incidents, dashboard, diagnosis, reports, security | Planned ([backlog](docs/03-backlog.md)) |
+| US-05 | Deduplicated incidents with evidence, lifecycle, downstream suppression, deterministic diagnosis | Delivered (API only) |
+| US-06 → US-12 | Dashboard, live updates, AI diagnosis, reports, security | Planned ([backlog](docs/03-backlog.md)) |
 
-What runs today: PostgreSQL, a migration and seed job, the FastAPI API (`/health`, `/ready`, simulation, metrics, logs, health and system status endpoints, OpenAPI), a worker that holds the scheduler lock and, every cycle, collects the simulated observations, validates and stores them, evaluates the health rules, purges data past retention and writes a heartbeat, and the frontend shell showing monitor readiness. Incidents arrive with US-05, health screens with US-06.
+What runs today: PostgreSQL, a migration and seed job, the FastAPI API (`/health`, `/ready`, simulation, metrics, logs, health and system status endpoints, OpenAPI), a worker that holds the scheduler lock and, every cycle, collects the simulated observations, validates and stores them, evaluates the health rules, opens, updates and resolves incidents, purges data past retention and writes a heartbeat, and the frontend shell showing monitor readiness. Health and incident screens arrive with US-06.
 
 ![Overview, light theme](docs/design/screenshots/us-01-overview-light-1440.png)
 
@@ -52,7 +53,7 @@ curl -i http://127.0.0.1:8000/ready    # 200 once migrated and the worker has cy
 
 The simulated platform (`sim-plant-01`) has seven components — `plc-sim-01 → edge-gateway-01 → collector-01 → historian-01 (+ timeseries-db-01) → data-api-01 → analytics-01` — each probed every 5 s of **platform time** (`up`, `probe_latency_ms`, plus load, queue, data age and error metrics depending on its type). Values are a pure function of seed, component, metric, sample slot and the scenario runs covering it: the same inputs give the same observations, in any order and after any restart.
 
-| Scenario | Default target | Expected outcome (default rules, from US-04) |
+| Scenario | Default target | Expected outcome (default rules) |
 |---|---|---|
 | `baseline` | all | Healthy everywhere; always running |
 | `collector_down` | collector-01 | Critical, downstream impacted, one availability incident |
@@ -115,6 +116,24 @@ curl -s $A/health-rules                 # active rule versions (read-only)
 
 Every state cites its rule version, window, threshold, observed value and the IDs of the samples behind it. If the worker stops evaluating, the API reports `unknown` with `stale: true` instead of the last computed state.
 
+## Incidents
+
+When a rule turns `Warning` or `Critical` (or a component that was observed goes silent), the worker opens an incident, fingerprinted by platform, component and failure class: a database index guarantees at most one active incident per fingerprint, so a persistent fault updates the same incident (occurrences, severity up or down) instead of opening new ones. An incident resolves itself once every rule it covers is back to `Healthy`; the same failure within 15 minutes of platform time reopens it. Losing connectivity on an unreachable component is part of the same incident. Alerts of components downstream of an unreachable or silent one are attached to the upstream incident as impact rather than opening their own.
+
+Every incident links the rule evaluations behind it and the samples and logs they cite; these are kept by retention and by `reset`, which closes active incidents (`resolution: reset`). The timeline (opened, occurrences, severity changes, acknowledgement, resolution, reopening, suppressed downstream alerts, diagnoses) is append-only.
+
+```sh
+curl -s "$A/incidents?status=open&status=acknowledged"    # newest first, cursor pagination
+I=$(curl -s "$A/incidents?status=open" | python3 -c 'import json,sys; print(json.load(sys.stdin)["items"][0]["id"])')
+curl -s $A/incidents/$I                     # covered rules, evidence (E1…En), timeline
+curl -s -X POST $A/incidents/$I/ack -H 'content-type: application/json'
+curl -s -X POST "$A/incidents/$I/diagnose?mode=deterministic" -H 'content-type: application/json'
+curl -s -X POST $A/incidents/$I/resolve -H 'content-type: application/json' \
+     -d '{"comment": "Collector restarted."}'   # 409 while the condition is still active
+```
+
+The deterministic diagnosis lists observed facts, a hypothesis (the most upstream component in fault, always worded as a correlation) and the checks recommended by the rules involved, each citing its evidence; it needs no AI provider. Acknowledgement, resolution and diagnosis follow the same mutation guard as the simulation and are audited.
+
 ## Develop and test
 
 ```sh
@@ -142,7 +161,8 @@ The design dossier is in French: [requirements](docs/01-cahier-des-charges.md), 
 
 ## Limitations
 
-- Health states are not turned into incidents yet (US-05); there is no health, Scenarios or metrics screen before US-06.
+- There is no health, incident, Scenarios or metrics screen before US-06; comments on incidents arrive with US-07, the AI diagnosis with US-08.
+- Downstream suppression can hide a second, independent fault downstream: its evidence stays attached to the upstream incident as impact.
 - An observation arriving late, after its sample slot was evaluated, does not trigger a re-evaluation of that slot.
 - After the worker has been stopped for more than 10 minutes of platform time, the missed sample slots are not backfilled: they remain a visible gap.
 - Simulation simplifications: `stale_data` does not age downstream data; one fault scenario per component at a time.
@@ -151,4 +171,4 @@ The design dossier is in French: [requirements](docs/01-cahier-des-charges.md), 
 
 ## Résumé en français
 
-IPHI surveille la santé d'une plateforme de données industrielle **simulée** : collecte, règles de santé explicables, incidents dédupliqués et prouvés, diagnostic optionnel. `docker compose up --build` démarre PostgreSQL, les migrations et le seed, l'API, le worker et l'interface (http://127.0.0.1:8080). La plateforme simulée compte sept composants et neuf scénarios de panne reproductibles (seed, horloge de plateforme accélérable) ; ses mesures et logs sont validés, historisés dans PostgreSQL et consultables par l'API, et des règles versionnées avec hystérésis en déduisent l'état justifié de chaque composant et de la plateforme (jamais « sain » faute de données). Le dossier de conception (cahier des charges, architecture, backlog, design system, ADR) est dans `docs/`. Aucune connexion à une installation réelle n'existe ni n'est revendiquée.
+IPHI surveille la santé d'une plateforme de données industrielle **simulée** : collecte, règles de santé explicables, incidents dédupliqués et prouvés, diagnostic optionnel. `docker compose up --build` démarre PostgreSQL, les migrations et le seed, l'API, le worker et l'interface (http://127.0.0.1:8080). La plateforme simulée compte sept composants et neuf scénarios de panne reproductibles (seed, horloge de plateforme accélérable) ; ses mesures et logs sont validés, historisés dans PostgreSQL et consultables par l'API, et des règles versionnées avec hystérésis en déduisent l'état justifié de chaque composant et de la plateforme (jamais « sain » faute de données). Une panne ouvre un incident unique, dédoublonné par la base, rattaché aux évaluations et observations qui le prouvent, avec suppression des alertes en aval, résolution automatique au retour à la normale et diagnostic déterministe sans IA. Le dossier de conception (cahier des charges, architecture, backlog, design system, ADR) est dans `docs/`. Aucune connexion à une installation réelle n'existe ni n'est revendiquée.
