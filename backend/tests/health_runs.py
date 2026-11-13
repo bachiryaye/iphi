@@ -19,8 +19,9 @@ from tests.simulation_runs import GOLDEN_SEED
 
 CONTEXT = AuditContext("dev-local", "corr-health-test")
 STEP_S = 30
-# Long enough for every rule to leave its initial Unknown (clear_after 3 slots).
-WARMUP_S = 30
+# Long enough for every rule to leave its initial Unknown (clear_after 3 slots): the slot the
+# baseline starts at is not evaluated (ADR 0017), the first pass evaluates only its newest slot.
+WARMUP_S = 60
 
 
 @dataclass
@@ -83,6 +84,27 @@ class Platform:
     def platform_state(self) -> tuple[HealthState, int | None]:
         (row,) = self.rows("SELECT state, priority FROM platform_health")
         return HealthState(row[0]), row[1]
+
+    def incidents(self) -> list[Any]:
+        """(component, failure class, status, severity, occurrences, resolution), oldest first."""
+        return self.rows(
+            "SELECT c.key, i.failure_class, i.status, i.severity, i.occurrence_count, "
+            "i.resolution FROM incident i JOIN component c ON c.id = i.component_id "
+            "ORDER BY i.number"
+        )
+
+    def active_incidents(self) -> set[tuple[str, str]]:
+        return {(r[0], r[1]) for r in self.incidents() if r[2] != "resolved"}
+
+    def events(self, component: str, failure_class: str) -> list[str]:
+        rows = self.rows(
+            "SELECT e.event_type FROM incident_event e JOIN incident i ON i.id = e.incident_id "
+            "JOIN component c ON c.id = i.component_id WHERE c.key = :component "
+            "AND i.failure_class = :failure_class ORDER BY e.occurred_at, e.id",
+            component=component,
+            failure_class=failure_class,
+        )
+        return [r[0] for r in rows]
 
     def rows(self, sql: str, **params: Any) -> list[Any]:
         """Rows of a read-only test query."""

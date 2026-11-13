@@ -72,6 +72,142 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/incidents": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Incidents, newest opened first, filterable. */
+    get: operations["list_incidents_api_v1_incidents_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/incidents/{incident_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Incident with its condition, evidence and timeline. */
+    get: operations["incident_detail_api_v1_incidents__incident_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/incidents/{incident_id}/ack": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Acknowledge an incident; idempotent. */
+    post: operations["acknowledge_incident_api_v1_incidents__incident_id__ack_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/incidents/{incident_id}/diagnose": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Diagnose an incident from its stored evidence. */
+    post: operations["diagnose_incident_api_v1_incidents__incident_id__diagnose_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/incidents/{incident_id}/diagnostics": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Stored diagnostics, newest first. */
+    get: operations["list_diagnostics_api_v1_incidents__incident_id__diagnostics_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/incidents/{incident_id}/events": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Timeline of an incident, oldest first. */
+    get: operations["incident_events_api_v1_incidents__incident_id__events_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/incidents/{incident_id}/evidence": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Evidence of an incident, oldest first. */
+    get: operations["incident_evidence_api_v1_incidents__incident_id__evidence_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/incidents/{incident_id}/resolve": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Resolve an incident manually; refused while its condition is active. */
+    post: operations["resolve_incident_api_v1_incidents__incident_id__resolve_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/logs": {
     parameters: {
       query?: never;
@@ -316,6 +452,11 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /**
+     * ActorType
+     * @enum {string}
+     */
+    ActorType: "system" | "user";
     /** AdvanceClockIn */
     AdvanceClockIn: {
       /**
@@ -365,6 +506,20 @@ export interface components {
      * @enum {string}
      */
     CheckStatus: "ok" | "failed" | "disabled";
+    /** CitationOut */
+    CitationOut: {
+      /** Evidence Id */
+      evidence_id: number;
+      /** Label */
+      label: string;
+    };
+    /** ClaimOut */
+    ClaimOut: {
+      /** Evidence */
+      evidence: components["schemas"]["CitationOut"][];
+      /** Text */
+      text: string;
+    };
     /**
      * ClockMode
      * @enum {string}
@@ -592,6 +747,24 @@ export interface components {
       last_success_at: string | null;
       state: components["schemas"]["CollectionState"];
     };
+    /** CoveredRuleOut */
+    CoveredRuleOut: {
+      /**
+       * Alerting
+       * @description Whether this rule still calls for the incident.
+       */
+      alerting: boolean;
+      /**
+       * Evaluated At
+       * Format: date-time
+       */
+      evaluated_at: string;
+      failure_class: components["schemas"]["FailureClass"];
+      raw_state: components["schemas"]["HealthState"];
+      rule: components["schemas"]["RuleRefOut"];
+      /** @description Stored debounced state of the rule. */
+      state: components["schemas"]["HealthState"];
+    };
     /**
      * Criticality
      * @enum {string}
@@ -615,6 +788,68 @@ export interface components {
       component: components["schemas"]["ComponentRefOut"];
       kind: components["schemas"]["DependencyKind"];
     };
+    /**
+     * DiagnosticKind
+     * @enum {string}
+     */
+    DiagnosticKind: "deterministic" | "llm";
+    /** DiagnosticListOut */
+    DiagnosticListOut: {
+      /** Items */
+      items: components["schemas"]["DiagnosticOut"][];
+    };
+    /** DiagnosticOut */
+    DiagnosticOut: {
+      /**
+       * Created At
+       * Format: date-time
+       * @description Platform time.
+       */
+      created_at: string;
+      /** Created By */
+      created_by: string;
+      /**
+       * Environment
+       * @default simulation
+       * @constant
+       */
+      environment: "simulation";
+      /** Evidence Set Hash */
+      evidence_set_hash: string;
+      /**
+       * Hypotheses
+       * @description Correlations, never proven causes.
+       */
+      hypotheses: components["schemas"]["HypothesisOut"][];
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Incident Id
+       * Format: uuid
+       */
+      incident_id: string;
+      kind: components["schemas"]["DiagnosticKind"];
+      /** Limitations */
+      limitations: string[];
+      /** Model */
+      model: string;
+      /** Observed Facts */
+      observed_facts: components["schemas"]["ClaimOut"][];
+      /** Provider */
+      provider: string;
+      /** Recommended Checks */
+      recommended_checks: components["schemas"]["ClaimOut"][];
+      status: components["schemas"]["DiagnosticStatus"];
+      validation: components["schemas"]["ValidationOut"];
+    };
+    /**
+     * DiagnosticStatus
+     * @enum {string}
+     */
+    DiagnosticStatus: "succeeded" | "failed" | "rejected";
     /** EvaluationOut */
     EvaluationOut: {
       component: components["schemas"]["ComponentRefOut"];
@@ -623,7 +858,7 @@ export interface components {
        * Format: date-time
        */
       evaluated_at: string;
-      evidence: components["schemas"]["EvidenceOut"];
+      evidence: components["schemas"]["app__api__health__EvidenceOut"];
       /** Explanation */
       explanation: string;
       /** Id */
@@ -659,19 +894,71 @@ export interface components {
       /** Next Cursor */
       next_cursor: string | null;
     };
-    /** EvidenceOut */
-    EvidenceOut: {
+    /** EventOut */
+    EventOut: {
+      /** Actor Label */
+      actor_label: string;
+      actor_type: components["schemas"]["ActorType"];
+      /** Id */
+      id: number;
       /**
-       * Log Ids
-       * @description Stored log events (GET /logs items).
+       * Occurred At
+       * Format: date-time
+       * @description Platform time.
        */
-      log_ids: number[];
-      /**
-       * Sample Ids
-       * @description Stored metric samples (GET /metrics points).
-       */
-      sample_ids: number[];
+      occurred_at: string;
+      /** Payload */
+      payload: {
+        [key: string]: components["schemas"]["PayloadValue"];
+      };
+      type: components["schemas"]["EventType"];
     };
+    /** EventPageOut */
+    EventPageOut: {
+      /**
+       * Environment
+       * @default simulation
+       * @constant
+       */
+      environment: "simulation";
+      /** Items */
+      items: components["schemas"]["EventOut"][];
+      /** Next Cursor */
+      next_cursor: string | null;
+    };
+    /**
+     * EventType
+     * @enum {string}
+     */
+    EventType:
+      | "opened"
+      | "occurrence"
+      | "severity_changed"
+      | "acknowledged"
+      | "commented"
+      | "resolved"
+      | "reopened"
+      | "reclassified"
+      | "downstream_suppressed"
+      | "diagnostic_added";
+    /** EvidencePageOut */
+    EvidencePageOut: {
+      /**
+       * Environment
+       * @default simulation
+       * @constant
+       */
+      environment: "simulation";
+      /** Items */
+      items: components["schemas"]["app__api__incidents__EvidenceOut"][];
+      /** Next Cursor */
+      next_cursor: string | null;
+    };
+    /**
+     * EvidenceRole
+     * @enum {string}
+     */
+    EvidenceRole: "trigger" | "supporting" | "impact" | "recovery";
     /** ExpectedOutcomeOut */
     ExpectedOutcomeOut: {
       /** Incident */
@@ -818,6 +1105,225 @@ export interface components {
       last_cycle_duration_ms: number;
       status: components["schemas"]["ProcessStatus"];
     };
+    /** HypothesisOut */
+    HypothesisOut: {
+      /** Evidence */
+      evidence: components["schemas"]["CitationOut"][];
+      /** Text */
+      text: string;
+      uncertainty: components["schemas"]["Uncertainty"];
+    };
+    /** ImpactOut */
+    ImpactOut: {
+      component: components["schemas"]["ComponentRefOut"];
+      /**
+       * Since
+       * Format: date-time
+       */
+      since: string;
+    };
+    /** IncidentDetailOut */
+    IncidentDetailOut: {
+      /** Acknowledged At */
+      acknowledged_at: string | null;
+      /** Acknowledged By */
+      acknowledged_by: string | null;
+      component: components["schemas"]["ComponentRefOut"];
+      /**
+       * Condition
+       * @description Rules the incident covers; it resolves itself once all are Healthy.
+       */
+      condition: components["schemas"]["CoveredRuleOut"][];
+      /**
+       * Environment
+       * @default simulation
+       * @constant
+       */
+      environment: "simulation";
+      /** Event Count */
+      event_count: number;
+      /**
+       * Events
+       * @description First 200 events, oldest first.
+       */
+      events: components["schemas"]["EventOut"][];
+      /** Events Next Cursor */
+      events_next_cursor: string | null;
+      /**
+       * Evidence
+       * @description First 200 items, oldest first.
+       */
+      evidence: components["schemas"]["app__api__incidents__EvidenceOut"][];
+      /** Evidence Count */
+      evidence_count: number;
+      /** Evidence Next Cursor */
+      evidence_next_cursor: string | null;
+      failure_class: components["schemas"]["FailureClass"];
+      /**
+       * Fingerprint
+       * @description sha256(platform|component|failure class).
+       */
+      fingerprint: string;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Impacted
+       * @description Downstream components whose own alerts were suppressed into this incident.
+       */
+      impacted: components["schemas"]["ImpactOut"][];
+      /**
+       * Last Seen At
+       * Format: date-time
+       * @description Sample slot of the latest occurrence.
+       */
+      last_seen_at: string;
+      /** Number */
+      number: number;
+      /**
+       * Occurrence Count
+       * @description Stored evaluations that confirmed the condition.
+       */
+      occurrence_count: number;
+      /**
+       * Opened At
+       * Format: date-time
+       */
+      opened_at: string;
+      peak_severity: components["schemas"]["IncidentSeverity"];
+      /**
+       * Platform Id
+       * Format: uuid
+       */
+      platform_id: string;
+      /**
+       * Reference
+       * @description Human-readable identifier, INC-<number>.
+       */
+      reference: string;
+      /** Reopen Count */
+      reopen_count: number;
+      resolution: components["schemas"]["Resolution"] | null;
+      /**
+       * Resolvable
+       * @description Manual resolution is refused while a rule alerts.
+       */
+      resolvable: boolean;
+      /** Resolved At */
+      resolved_at: string | null;
+      /** Resolved By */
+      resolved_by: string | null;
+      /** Scenario Run Id */
+      scenario_run_id: string | null;
+      /** @description Current severity of the condition. */
+      severity: components["schemas"]["IncidentSeverity"];
+      source: components["schemas"]["ObservationSource"];
+      status: components["schemas"]["IncidentStatus"];
+      /** Title */
+      title: string;
+    };
+    /** IncidentOut */
+    IncidentOut: {
+      /** Acknowledged At */
+      acknowledged_at: string | null;
+      /** Acknowledged By */
+      acknowledged_by: string | null;
+      component: components["schemas"]["ComponentRefOut"];
+      /**
+       * Environment
+       * @default simulation
+       * @constant
+       */
+      environment: "simulation";
+      /** Evidence Count */
+      evidence_count: number;
+      failure_class: components["schemas"]["FailureClass"];
+      /**
+       * Fingerprint
+       * @description sha256(platform|component|failure class).
+       */
+      fingerprint: string;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Impacted
+       * @description Downstream components whose own alerts were suppressed into this incident.
+       */
+      impacted: components["schemas"]["ImpactOut"][];
+      /**
+       * Last Seen At
+       * Format: date-time
+       * @description Sample slot of the latest occurrence.
+       */
+      last_seen_at: string;
+      /** Number */
+      number: number;
+      /**
+       * Occurrence Count
+       * @description Stored evaluations that confirmed the condition.
+       */
+      occurrence_count: number;
+      /**
+       * Opened At
+       * Format: date-time
+       */
+      opened_at: string;
+      peak_severity: components["schemas"]["IncidentSeverity"];
+      /**
+       * Platform Id
+       * Format: uuid
+       */
+      platform_id: string;
+      /**
+       * Reference
+       * @description Human-readable identifier, INC-<number>.
+       */
+      reference: string;
+      /** Reopen Count */
+      reopen_count: number;
+      resolution: components["schemas"]["Resolution"] | null;
+      /** Resolved At */
+      resolved_at: string | null;
+      /** Resolved By */
+      resolved_by: string | null;
+      /** Scenario Run Id */
+      scenario_run_id: string | null;
+      /** @description Current severity of the condition. */
+      severity: components["schemas"]["IncidentSeverity"];
+      source: components["schemas"]["ObservationSource"];
+      status: components["schemas"]["IncidentStatus"];
+      /** Title */
+      title: string;
+    };
+    /** IncidentPageOut */
+    IncidentPageOut: {
+      /**
+       * Environment
+       * @default simulation
+       * @constant
+       */
+      environment: "simulation";
+      /** Items */
+      items: components["schemas"]["IncidentOut"][];
+      /** Next Cursor */
+      next_cursor: string | null;
+    };
+    /**
+     * IncidentSeverity
+     * @description Declared from least to most severe.
+     * @enum {string}
+     */
+    IncidentSeverity: "warning" | "critical";
+    /**
+     * IncidentStatus
+     * @enum {string}
+     */
+    IncidentStatus: "open" | "acknowledged" | "resolved";
     /** LevelOut */
     LevelOut: {
       /**
@@ -839,6 +1345,24 @@ export interface components {
        * @constant
        */
       status: "ok";
+    };
+    /** LogEvidenceOut */
+    LogEvidenceOut: {
+      /** Fingerprint */
+      fingerprint: string;
+      /** Id */
+      id: number;
+      /** Message */
+      message: string;
+      /**
+       * Observed At
+       * Format: date-time
+       */
+      observed_at: string;
+      /** Scenario Run Id */
+      scenario_run_id: string | null;
+      severity: components["schemas"]["LogSeverity"];
+      source: components["schemas"]["ObservationSource"];
     };
     /** LogOut */
     LogOut: {
@@ -994,6 +1518,7 @@ export interface components {
       /** Unit */
       unit: string;
     };
+    PayloadValue: string | number | boolean | null;
     /** PlatformHealthOut */
     PlatformHealthOut: {
       /** @description Components per evaluated state. */
@@ -1128,6 +1653,19 @@ export interface components {
       /** Stopped Runs */
       stopped_runs: number;
     };
+    /**
+     * Resolution
+     * @enum {string}
+     */
+    Resolution: "auto_recovered" | "manual" | "reset";
+    /** ResolveIn */
+    ResolveIn: {
+      /**
+       * Comment
+       * @description Why the incident is closed; kept in its timeline.
+       */
+      comment: string;
+    };
     /** RuleRefOut */
     RuleRefOut: {
       /**
@@ -1149,7 +1687,7 @@ export interface components {
        * Format: date-time
        */
       evaluated_at: string;
-      evidence: components["schemas"]["EvidenceOut"];
+      evidence: components["schemas"]["app__api__health__EvidenceOut"];
       /** Explanation */
       explanation: string;
       /** @description Debounced rule state; Unknown once stale. */
@@ -1186,6 +1724,26 @@ export interface components {
      * @enum {string}
      */
     RunStatus: "active" | "stopped" | "completed";
+    /** SampleEvidenceOut */
+    SampleEvidenceOut: {
+      /** Id */
+      id: number;
+      /** Metric Name */
+      metric_name: string;
+      /**
+       * Observed At
+       * Format: date-time
+       */
+      observed_at: string;
+      quality: components["schemas"]["Quality"];
+      /** Scenario Run Id */
+      scenario_run_id: string | null;
+      source: components["schemas"]["ObservationSource"];
+      /** Unit */
+      unit: string;
+      /** Value */
+      value: number;
+    };
     /** SamplePointOut */
     SamplePointOut: {
       /**
@@ -1424,12 +1982,67 @@ export interface components {
        */
       platform_id: string;
     };
+    /**
+     * Uncertainty
+     * @enum {string}
+     */
+    Uncertainty: "low" | "medium" | "high";
+    /** ValidationOut */
+    ValidationOut: {
+      /** Checked Claims */
+      checked_claims: number;
+      /** Dropped Citations */
+      dropped_citations: number;
+      /**
+       * Removed
+       * @description Claims dropped: no citation in the evidence set.
+       */
+      removed: string[];
+    };
     /** WorkerStatusOut */
     WorkerStatusOut: {
       /** Detail */
       detail: string;
       heartbeat: components["schemas"]["HeartbeatOut"] | null;
       status: components["schemas"]["CheckStatus"];
+    };
+    /** EvidenceOut */
+    app__api__health__EvidenceOut: {
+      /**
+       * Log Ids
+       * @description Stored log events (GET /logs items).
+       */
+      log_ids: number[];
+      /**
+       * Sample Ids
+       * @description Stored metric samples (GET /metrics points).
+       */
+      sample_ids: number[];
+    };
+    /** EvidenceOut */
+    app__api__incidents__EvidenceOut: {
+      /**
+       * Added At
+       * Format: date-time
+       */
+      added_at: string;
+      component: components["schemas"]["ComponentRefOut"] | null;
+      evaluation: components["schemas"]["EvaluationOut"] | null;
+      /** Id */
+      id: number;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "evaluation" | "sample" | "log";
+      /**
+       * Label
+       * @description Stable label within the incident: E1, E2…
+       */
+      label: string;
+      log: components["schemas"]["LogEvidenceOut"] | null;
+      role: components["schemas"]["EvidenceRole"];
+      sample: components["schemas"]["SampleEvidenceOut"] | null;
     };
   };
   responses: never;
@@ -1557,6 +2170,296 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["HealthRuleListOut"];
         };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
+  list_incidents_api_v1_incidents_get: {
+    parameters: {
+      query?: {
+        platform_id?: string | null;
+        /** @description Any of; all if empty. */
+        status?: components["schemas"]["IncidentStatus"][];
+        severity?: components["schemas"]["IncidentSeverity"] | null;
+        component_id?: string | null;
+        failure_class?: components["schemas"]["FailureClass"] | null;
+        /** @description Opened at or after. */
+        from?: string | null;
+        /** @description Opened before. */
+        to?: string | null;
+        cursor?: string | null;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["IncidentPageOut"];
+        };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
+  incident_detail_api_v1_incidents__incident_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        incident_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["IncidentDetailOut"];
+        };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
+  acknowledge_incident_api_v1_incidents__incident_id__ack_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        incident_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["IncidentOut"];
+        };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
+  diagnose_incident_api_v1_incidents__incident_id__diagnose_post: {
+    parameters: {
+      query?: {
+        /** @description `llm` arrives with US-08; deterministic is always available. */
+        mode?: "deterministic";
+      };
+      header?: {
+        "Idempotency-Key"?: string | null;
+      };
+      path: {
+        incident_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Same key or unchanged evidence. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DiagnosticOut"];
+        };
+      };
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DiagnosticOut"];
+        };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
+  list_diagnostics_api_v1_incidents__incident_id__diagnostics_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        incident_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DiagnosticListOut"];
+        };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
+  incident_events_api_v1_incidents__incident_id__events_get: {
+    parameters: {
+      query?: {
+        cursor?: string | null;
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        incident_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["EventPageOut"];
+        };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
+  incident_evidence_api_v1_incidents__incident_id__evidence_get: {
+    parameters: {
+      query?: {
+        cursor?: string | null;
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        incident_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["EvidencePageOut"];
+        };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
+  resolve_incident_api_v1_incidents__incident_id__resolve_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        incident_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ResolveIn"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["IncidentOut"];
+        };
+      };
+      /** @description INCIDENT_CONDITION_ACTIVE or INCIDENT_ILLEGAL_TRANSITION */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description RFC 9457 problem details. */
       default: {

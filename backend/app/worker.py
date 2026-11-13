@@ -23,12 +23,15 @@ from app.core.db import create_db_engine, create_session_factory
 from app.core.logging import configure_logging
 from app.core.retention import RetentionJob
 from app.core.settings import Settings
+from app.health.domain.records import HealthPass
 from app.health.service import HealthEvaluation, purge_evaluations
+from app.incidents.service import IncidentProcessing, evidence_holds
 from app.ingestion.domain.validation import IngestionPolicy
 from app.ingestion.service import CollectionService, purge_observations
 from app.monitor.domain import Heartbeat, ProcessStatus
 from app.monitor.service import WORKER_PROCESS, HeartbeatService
 from app.simulation.domain.platform import SIMULATED_PLATFORM
+from app.simulation.domain.signals import OBSERVATION_SOURCE
 from app.simulation.service import build_simulation
 from app.topology.service import TopologyService
 
@@ -88,7 +91,13 @@ class CollectionStep(Protocol):
 
 
 class HealthStep(Protocol):
-    def evaluate(self, session: Session, platform_now: datetime) -> object: ...
+    def evaluate(self, session: Session, platform_now: datetime) -> HealthPass | None: ...
+
+
+class IncidentStep(Protocol):
+    def process(
+        self, session: Session, platform_now: datetime, health: HealthPass | None
+    ) -> object: ...
 
 
 class RetentionStep(Protocol):
@@ -99,11 +108,12 @@ class RetentionStep(Protocol):
 
 @dataclass(frozen=True, slots=True)
 class CycleSteps:
-    """Steps of `run_cycle` in order (§02.2); US-05 adds incidents after health."""
+    """Steps of `run_cycle` in order (§02.2)."""
 
     clock: CycleClock
     collection: CollectionStep
     health: HealthStep
+    incidents: IncidentStep
     retention: RetentionStep
 
 
@@ -125,9 +135,9 @@ class Worker:
     def run_cycle(self, lag_ms: int) -> None:
         """One unit of work and a single commit: on this host a commit costs an fsync (ADR 0014).
 
-        Connectors and health evaluation are isolated in savepoints; any other failure rolls
-        the whole cycle back, heartbeat included, so /ready reports it. Retention follows in its
-        own transaction, at most once per platform hour.
+        Connectors, health evaluation and incident processing are isolated in savepoints; any
+        other failure rolls the whole cycle back, heartbeat included, so /ready reports it.
+        Retention follows in its own transaction, at most once per platform hour.
         """
         with _cycle_logs():
             self._run_cycle(lag_ms)
@@ -138,7 +148,8 @@ class Worker:
         with self._session_factory.begin() as session:
             platform_now = self._steps.clock.begin_cycle(session)
             self._steps.collection.collect(session, platform_now)
-            self._steps.health.evaluate(session, platform_now)
+            evaluated = self._steps.health.evaluate(session, platform_now)
+            self._steps.incidents.process(session, platform_now, evaluated)
             duration_ms = round((time.perf_counter() - started) * 1000)
             self._heartbeats.record(
                 session, Heartbeat(WORKER_PROCESS, at, duration_ms, lag_ms, ProcessStatus.RUNNING)
@@ -189,9 +200,18 @@ def build_cycle_steps(
         build_connectors(simulation), topology, SIMULATED_PLATFORM.key, policy, wall
     )
     # Slots older than the lateness bound cannot receive observations any more (ADR 0015).
-    health = HealthEvaluation(topology, SIMULATED_PLATFORM.key, policy.late_tolerance)
-    purges = (purge_observations, purge_evaluations)
-    return CycleSteps(simulation, collection, health, RetentionJob(retention, purges))
+    health = HealthEvaluation(topology, SIMULATED_PLATFORM.key, policy.late_tolerance, simulation)
+    incidents = IncidentProcessing(topology, SIMULATED_PLATFORM.key, simulation, OBSERVATION_SOURCE)
+    holds = evidence_holds()
+
+    def observations(session: Session, cutoff: datetime, batch: int) -> int:
+        return purge_observations(session, cutoff, batch, holds)
+
+    def evaluations(session: Session, cutoff: datetime, batch: int) -> int:
+        return purge_evaluations(session, cutoff, batch, holds)
+
+    job = RetentionJob(retention, (observations, evaluations))
+    return CycleSteps(simulation, collection, health, incidents, job)
 
 
 def main() -> int:

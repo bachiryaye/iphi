@@ -4,7 +4,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime
 
-from app.core.observation import Quality
+from app.core.observation import ObservationSource, Quality
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,3 +28,18 @@ class ObservationMark:
     observed_at: datetime
     sample_id: int | None
     log_id: int | None
+
+
+@dataclass(frozen=True, slots=True)
+class SampleDetail:
+    """A stored sample with its unit and provenance, as evidence shows it."""
+
+    id: int
+    component_id: uuid.UUID
+    metric_name: str
+    value: float
+    unit: str
+    quality: Quality
+    observed_at: datetime
+    source: ObservationSource
+    scenario_run_id: uuid.UUID | None

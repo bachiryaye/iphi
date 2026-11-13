@@ -1,8 +1,10 @@
+from datetime import datetime
+
 import structlog
 from fastapi import FastAPI
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from app.api import health, observations, simulations, system
+from app.api import health, incidents, observations, simulations, system
 from app.connectors.registry import ENABLED_CONNECTOR_KEYS
 from app.core.clock import WallClock
 from app.core.db import create_db_engine, create_session_factory
@@ -15,16 +17,18 @@ from app.core.middleware import (
 )
 from app.core.migrations import expected_head
 from app.core.settings import Settings
+from app.diagnostics.service import DiagnosticsService
 from app.health.service import HealthQueries
 from app.identity.domain import MutationPolicy
 from app.identity.service import AuditService
+from app.incidents.service import IncidentCommands, IncidentQueries
 from app.ingestion.service import MetricCatalogService, ObservationQueryService
 from app.monitor.service import MonitoredParts, ReadinessService, SystemStatusService
 from app.simulation.domain.platform import SIMULATED_PLATFORM
 from app.simulation.service import build_simulation
 from app.topology.service import TopologyService
 
-API_VERSION = "0.4.0"
+API_VERSION = "0.5.0"
 
 log = structlog.get_logger(__name__)
 
@@ -60,6 +64,13 @@ def create_app(settings: Settings) -> FastAPI:
         MonitoredParts(simulation, observation_queries, ENABLED_CONNECTOR_KEYS),
     )
     app.state.health = HealthQueries(session_factory, topology)
+
+    def platform_now() -> datetime:
+        return simulation.clock().platform_time
+
+    app.state.incident_queries = IncidentQueries(session_factory)
+    app.state.incident_commands = IncidentCommands(session_factory, wall, platform_now)
+    app.state.diagnostics = DiagnosticsService(session_factory, wall, platform_now, topology)
     app.state.cycle_interval_s = settings.cycle_interval_s
     app.state.audit = AuditService(session_factory, wall)
     app.state.sim_seed = settings.sim_seed
@@ -72,6 +83,7 @@ def create_app(settings: Settings) -> FastAPI:
     app.include_router(simulations.router)
     app.include_router(observations.router)
     app.include_router(health.router)
+    app.include_router(incidents.router)
     # Starlette runs the last added middleware first. Security headers wrap every response,
     # including the 413 and crash responses produced by the two inner middlewares.
     # Unauthenticated loopback mutations (ADR 0007) must not be reachable through a rebound

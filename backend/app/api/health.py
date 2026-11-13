@@ -422,7 +422,7 @@ def list_rule_evaluations(
     page, more = found[: params.limit], len(found) > params.limit
     keys = service.component_keys()
     return EvaluationPageOut(
-        items=[_evaluation_out(e, keys[e.component_id]) for e in page],
+        items=[evaluation_out(e, keys[e.component_id]) for e in page],
         next_cursor=_encode_cursor(page[-1], window) if more else None,
     )
 
@@ -458,7 +458,7 @@ def _component_out(view: ComponentHealthView) -> ComponentOut:
         criticality=c.criticality,
         platform_id=view.platform_id,
         health=HealthOut.of(view.health),
-        reason=None if reason is None else _evaluation_out(reason, c.key),
+        reason=None if reason is None else evaluation_out(reason, c.key),
         impacted_by=[ComponentRefOut.of(r) for r in view.impacted_by],
     )
 
@@ -528,7 +528,7 @@ def _measurement_fields(m: Measurement) -> dict[str, object]:
     }
 
 
-def _evaluation_out(e: StoredEvaluation, component_key: str) -> EvaluationOut:
+def evaluation_out(e: StoredEvaluation, component_key: str) -> EvaluationOut:
     return EvaluationOut(
         id=e.id,
         rule=RuleRefOut(id=e.rule.id, key=e.rule.key, version=e.rule.version),

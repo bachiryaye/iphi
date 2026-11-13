@@ -47,13 +47,17 @@ type EvaluationRef = int | EvaluationKey
 
 @dataclass(frozen=True, slots=True)
 class RuleTrack:
-    """Debounced state of one rule on one component and the evaluations that justify it."""
+    """Debounced state of one rule on one component and the evaluations that justify it.
+
+    `raw_state` is the state the latest measurement alone called for, before hysteresis.
+    """
 
     progress: RuleProgress
     evaluated_at: datetime
     recorded_at: datetime
     last_evaluation: EvaluationRef
     state_evaluation: EvaluationRef
+    raw_state: HealthState
 
 
 @dataclass(frozen=True, slots=True)
@@ -139,11 +143,14 @@ class EvaluationPlan:
 
 @dataclass(frozen=True, slots=True)
 class RecordedEvaluation:
+    """`sets_state`: the first evaluation of the rule on the component, or a state change."""
+
     component_id: uuid.UUID
     rule: HealthRule
     evaluated_at: datetime
     measurement: Measurement
     state: HealthState
+    sets_state: bool
 
     @property
     def key(self) -> EvaluationKey:
@@ -270,14 +277,18 @@ def _evaluate_pair(
     if changed:
         subject = f"{component.key}/{rule.key}"
         run.transitions.append(Transition(Scope.RULE, subject, progress.state, advanced.state, at))
+    raw = measurement.raw_state
     if track is None or changed or at - track.recorded_at >= RECORD_EVERY:
-        recorded = RecordedEvaluation(component.id, rule, at, measurement, advanced.state)
+        sets_state = track is None or changed
+        recorded = RecordedEvaluation(
+            component.id, rule, at, measurement, advanced.state, sets_state
+        )
         run.recorded.append(recorded)
         state_ref = recorded.key if track is None or changed else track.state_evaluation
-        track = RuleTrack(advanced, at, at, recorded.key, state_ref)
+        track = RuleTrack(advanced, at, at, recorded.key, state_ref, raw)
     else:
         track = RuleTrack(
-            advanced, at, track.recorded_at, track.last_evaluation, track.state_evaluation
+            advanced, at, track.recorded_at, track.last_evaluation, track.state_evaluation, raw
         )
     run.tracks[key] = track
     run.measured[key] = RuleSnapshot(component.id, rule, track, measurement)

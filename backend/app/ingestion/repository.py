@@ -30,6 +30,7 @@ from sqlalchemy.types import TIMESTAMP, Interval, TypeEngine, Uuid
 
 from app.core.db import Base, check_in
 from app.core.observation import LogSeverity, ObservationSource, Quality
+from app.core.retention import EvidenceHolds
 from app.ingestion.domain.catalog import MetricDefinition, MetricKind
 from app.ingestion.domain.collection import (
     MAX_ERROR_MESSAGE_CHARS,
@@ -38,7 +39,7 @@ from app.ingestion.domain.collection import (
     CollectionStatus,
 )
 from app.ingestion.domain.logs import LogQuery, StoredLog
-from app.ingestion.domain.observations import ObservationMark, StoredSample
+from app.ingestion.domain.observations import ObservationMark, SampleDetail, StoredSample
 from app.ingestion.domain.series import (
     BucketPoint,
     RawPoint,
@@ -458,16 +459,23 @@ class ObservationRepository:
         statement = statement.order_by(
             LogEventRecord.observed_at.desc(), LogEventRecord.id.desc()
         ).limit(query.limit)
+        return [_to_log(r) for r in self._session.scalars(statement)]
+
+    def logs_by_ids(self, ids: Sequence[int]) -> list[StoredLog]:
+        statement = select(LogEventRecord).where(LogEventRecord.id.in_(ids))
+        return [_to_log(r) for r in self._session.scalars(statement)]
+
+    def samples_by_ids(self, ids: Sequence[int]) -> list[SampleDetail]:
+        statement = select(MetricSampleRecord).where(MetricSampleRecord.id.in_(ids))
         return [
-            StoredLog(
+            SampleDetail(
                 id=r.id,
                 component_id=r.component_id,
-                severity=LogSeverity(r.severity),
-                message=r.message,
-                fingerprint=r.fingerprint,
-                attributes=MappingProxyType(dict(r.attributes)),
+                metric_name=r.metric_name,
+                value=r.value,
+                unit=r.unit,
+                quality=Quality(r.quality),
                 observed_at=r.observed_at,
-                received_at=r.received_at,
                 source=ObservationSource(r.source),
                 scenario_run_id=r.scenario_run_id,
             )
@@ -528,22 +536,45 @@ class ObservationRepository:
                 )
         return list(marks.values())
 
-    def purge_before(self, cutoff: datetime, batch: int) -> int:
-        """Deletes at most `batch` samples and `batch` logs observed before `cutoff`."""
+    def purge_before(self, cutoff: datetime, batch: int, holds: EvidenceHolds) -> int:
+        """Deletes at most `batch` samples and `batch` logs observed before `cutoff`, except
+        held ones."""
         deleted = 0
-        for record in (MetricSampleRecord, LogEventRecord):
-            oldest = select(record.id).where(record.observed_at < cutoff).limit(batch)
+        for record, hold in ((MetricSampleRecord, holds.samples), (LogEventRecord, holds.logs)):
+            oldest = (
+                select(record.id)
+                .where(record.observed_at < cutoff, ~hold(record.id.expression))
+                .limit(batch)
+            )
             deleted += self._deleted(delete(record).where(record.id.in_(oldest.scalar_subquery())))
         return deleted
 
     def _deleted(self, statement: Delete) -> int:
         return cast(CursorResult[Any], self._session.execute(statement)).rowcount
 
-    def purge_source(self, source: ObservationSource) -> int:
+    def purge_source(self, source: ObservationSource, holds: EvidenceHolds) -> int:
         deleted = 0
-        for record in (MetricSampleRecord, LogEventRecord):
-            deleted += self._deleted(delete(record).where(record.source == source.value))
+        for record, hold in ((MetricSampleRecord, holds.samples), (LogEventRecord, holds.logs)):
+            statement = delete(record).where(
+                record.source == source.value, ~hold(record.id.expression)
+            )
+            deleted += self._deleted(statement)
         return deleted
+
+
+def _to_log(r: LogEventRecord) -> StoredLog:
+    return StoredLog(
+        id=r.id,
+        component_id=r.component_id,
+        severity=LogSeverity(r.severity),
+        message=r.message,
+        fingerprint=r.fingerprint,
+        attributes=MappingProxyType(dict(r.attributes)),
+        observed_at=r.observed_at,
+        received_at=r.received_at,
+        source=ObservationSource(r.source),
+        scenario_run_id=r.scenario_run_id,
+    )
 
 
 def _series_filter(

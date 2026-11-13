@@ -1,6 +1,7 @@
 """Complete ORM metadata, for Alembic autogenerate and the migration drift check."""
 
 from app.core.db import Base
+from app.diagnostics.repository import DiagnosticRecord
 from app.health.repository import (
     ComponentHealthRecord,
     HealthRuleRecord,
@@ -9,6 +10,12 @@ from app.health.repository import (
     RuleStateRecord,
 )
 from app.identity.repository import AuditEventRecord
+from app.incidents.repository import (
+    IncidentEventRecord,
+    IncidentEvidenceRecord,
+    IncidentImpactRecord,
+    IncidentRecord,
+)
 from app.ingestion.repository import (
     CollectionCursorRecord,
     CollectionRunRecord,
@@ -27,7 +34,12 @@ RECORDS = (
     ComponentHealthRecord,
     ComponentRecord,
     DependencyRecord,
+    DiagnosticRecord,
     HealthRuleRecord,
+    IncidentEventRecord,
+    IncidentEvidenceRecord,
+    IncidentImpactRecord,
+    IncidentRecord,
     LogEventRecord,
     MetricDefinitionRecord,
     MetricSampleRecord,

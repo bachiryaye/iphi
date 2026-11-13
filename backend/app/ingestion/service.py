@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.connectors.domain import CollectionRequest, CollectionResult, Connector
 from app.core.clock import Clock
 from app.core.observation import SAMPLE_INTERVAL_S, ObservationSource
+from app.core.retention import EvidenceHolds
 from app.ingestion.domain.catalog import METRIC_CATALOG, MetricDefinition
 from app.ingestion.domain.collection import (
     CollectionOutcome,
@@ -17,7 +18,7 @@ from app.ingestion.domain.collection import (
 )
 from app.ingestion.domain.errors import MetricNotFoundError, PlatformNotSeededError
 from app.ingestion.domain.logs import LogQuery, StoredLog
-from app.ingestion.domain.observations import ObservationMark, StoredSample
+from app.ingestion.domain.observations import ObservationMark, SampleDetail, StoredSample
 from app.ingestion.domain.series import (
     Series,
     SeriesQuery,
@@ -213,10 +214,10 @@ class CollectionService:
         )
 
 
-def purge_observations(session: Session, cutoff: datetime, batch: int) -> int:
-    """Retention of observations, `batch` samples and `batch` logs at most (ADR 0008)."""
-    # TODO(US-05): keep observations referenced as incident evidence.
-    return ObservationRepository(session).purge_before(cutoff, batch)
+def purge_observations(session: Session, cutoff: datetime, batch: int, holds: EvidenceHolds) -> int:
+    """Retention of observations, `batch` samples and `batch` logs at most (ADR 0008); held
+    evidence stays."""
+    return ObservationRepository(session).purge_before(cutoff, batch, holds)
 
 
 class ObservationReader:
@@ -253,6 +254,12 @@ class ObservationReader:
     ) -> list[ObservationMark]:
         return self._repository.marks(component_ids, after, until)
 
+    def samples_by_ids(self, ids: Sequence[int]) -> dict[int, SampleDetail]:
+        return {s.id: s for s in self._repository.samples_by_ids(ids)} if ids else {}
+
+    def logs_by_ids(self, ids: Sequence[int]) -> dict[int, StoredLog]:
+        return {log.id: log for log in self._repository.logs_by_ids(ids)} if ids else {}
+
 
 class ObservationHistory:
     """Observation writes in the caller's unit of work, for other modules' use cases."""
@@ -261,11 +268,12 @@ class ObservationHistory:
         self._session = session
         self._repository = ObservationRepository(session)
 
-    def purge_source(self, source: ObservationSource) -> int:
-        """Deletes the source's observations and collection cursors: connectors restart from
-        the source's current coverage instead of resuming after purged data."""
+    def purge_source(self, source: ObservationSource, holds: EvidenceHolds) -> int:
+        """Deletes the source's observations, except held evidence, and its collection cursors:
+        connectors restart from the source's current coverage instead of resuming after purged
+        data."""
         CollectionCursorRepository(self._session).clear(source)
-        return self._repository.purge_source(source)
+        return self._repository.purge_source(source, holds)
 
 
 class ObservationQueryService:
