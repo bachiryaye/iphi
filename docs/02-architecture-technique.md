@@ -145,8 +145,8 @@ Le tableau ci-dessus (v1.0) reste le socle logique ; le modèle ci-dessous le pr
 | `platform` | id, key, name, environment (`simulation` \| `lab` \| `production`), created_at | `key` unique. En V1, seul `simulation` est autorisé (contrainte CHECK levée par ADR futur). |
 | `component` | id, platform_id, key, name, type (`source` \| `gateway` \| `collector` \| `historian` \| `database` \| `api` \| `analytics`), criticality (`high` \| `medium` \| `low`), config (jsonb), created_at | unique (platform_id, key). **Pas de colonne `status`** : l'état simulé vit dans le simulateur, l'état de santé calculé dans `component_health`. |
 | `dependency` | id, platform_id, dependent_component_id, dependency_component_id, kind (`data_flow` \| `runtime`) | Sens : **`dependent` dépend de `dependency`** (les données circulent de `dependency` vers `dependent`). unique (dependent, dependency) ; CHECK dependent ≠ dependency ; graphe acyclique vérifié au seed. Remplace `source/target` (v1.0), jugés ambigus. |
-| `component_health` | component_id (PK), state, since, last_evaluated_at, reason_evaluation_id, impacted_by (uuid[]) | Instantané dérivé de l'état courant, recalculé à chaque cycle. |
-| `platform_health` | platform_id (PK), state, since, counts (jsonb), rationale | Instantané dérivé ; `rationale` = règle d'agrégation appliquée. |
+| `component_health` | component_id (PK), state, since, last_evaluated_at, reason_evaluation_id, impacted_by (uuid[]) | Instantané dérivé de l'état courant, recalculé à chaque cycle ; `reason_evaluation_id` = évaluation de la règle décisive (aucune si Healthy, ADR 0016). |
+| `platform_health` | platform_id (PK), state, since, last_evaluated_at, counts (jsonb), priority, rationale, decided_by (uuid[]) | Instantané dérivé ; `priority` et `rationale` = ligne de la table d'agrégation appliquée, `decided_by` = composants décisifs. |
 
 **Simulation et collecte**
 
@@ -171,9 +171,9 @@ Observations tardives : acceptées si `observed_at` ≥ `now − late_tolerance`
 
 | Table | Champs | Contraintes / index |
 |---|---|---|
-| `health_rule` | id, key (ex. `R-LAT-001`), version, rule_type (`threshold` \| `freshness` \| `absence` \| `availability_ratio`), failure_class, target_selector (jsonb : type ou clé de composant), metric_name, aggregation (`last` \| `avg` \| `max` \| `p95` \| `sum` \| `ratio`), window_seconds, operator (`gt` \| `lt`), warning_threshold, critical_threshold, warning_clear, critical_clear, raise_after, clear_after, rationale, recommendation, enabled, created_at | unique (key, version). **Versions immuables** : toute modification crée une nouvelle version. Source : fichier `config/health_rules.yaml` versionné, chargé au démarrage. |
-| `rule_state` | component_id, rule_key, rule_id, state, raw_streak, since, last_evaluation_id | PK (component_id, rule_key). Persiste l'hystérésis entre redémarrages. |
-| `rule_evaluation` | id, rule_id, component_id, evaluated_at, window_start, window_end, observed_value, sample_count, raw_state, state, explanation, evidence (jsonb : ids de samples/logs, ≤ 50) | index (component_id, evaluated_at desc), (rule_id, evaluated_at desc). Persistée à chaque **changement d'état**, toutes les 60 s (battement) et chaque fois qu'elle sert de preuve à un incident. |
+| `health_rule` | id, key (ex. `R-LAT-001`), version, rule_type (`threshold` \| `freshness` \| `absence` \| `availability_ratio`), failure_class, target_selector (jsonb : types et clés de composant, union ; vide = tous), metric_name, aggregation (`last` \| `avg` \| `max` \| `p95` \| `sum` \| `ratio`), window_seconds, operator (`gt` \| `ge` \| `lt`), warning_threshold, critical_threshold, warning_clear, critical_clear, raise_after, clear_after, min_samples, rationale, recommendation, enabled, created_at | unique (key, version). **Versions immuables** (trigger : ni `UPDATE` ni `DELETE`) : toute modification crée une nouvelle version, une règle retirée du fichier une version désactivée. Source : fichier `config/health_rules.yaml` versionné, chargé au bootstrap (ADR 0016). |
+| `rule_state` | component_id, rule_key, rule_id, state, since, pending_state, raw_streak, raw_state, observed_value, sample_count, explanation, evidence, last_evaluated_at, last_evaluation_id, state_evaluation_id | PK (component_id, rule_key). Persiste l'hystérésis entre redémarrages (`pending_state` + `raw_streak` = transition en cours) et la mesure du dernier créneau ; `state_evaluation_id` = évaluation qui a fixé l'état. |
+| `rule_evaluation` | id (`BIGINT`), rule_id, component_id, evaluated_at, window_start (exclusif ; la fenêtre finit à evaluated_at), observed_value, sample_count, raw_state, state, explanation, evidence (jsonb : ids de samples/logs, ≤ 50) | unique (component_id, rule_id, evaluated_at) ; index (component_id, evaluated_at), (rule_id, evaluated_at), (evaluated_at, id). Une évaluation par créneau de 5 s (ADR 0016) ; persistée à la première évaluation, à chaque **changement d'état**, toutes les 60 s de plateforme (battement) et chaque fois qu'elle sert de preuve à un incident. |
 
 `failure_class` ∈ `availability`, `latency`, `freshness`, `errors`, `resources`, `backlog`, `connectivity`, `telemetry_loss`.
 
@@ -262,7 +262,7 @@ Le tableau v1.0 ci-dessus est conservé et étendu. Colonne *Story* = story qui 
 | POST /api/v1/simulations/scenarios | Démarre un `scenario_run` (clé, cible, durée, paramètres bornés) | US-02 | engineer |
 | GET /api/v1/simulations/runs | Scénarios actifs et historiques | US-02 | viewer |
 | POST /api/v1/simulations/runs/{id}/stop | Arrêt d'un scénario | US-02 | engineer |
-| POST /api/v1/simulations/reset | Arrête les scénarios, réinitialise horloge et seed, purge les observations simulées (pas l'audit) | US-02 | admin |
+| POST /api/v1/simulations/reset | Arrête les scénarios, réinitialise horloge et seed, purge les observations simulées et l'état de santé qui en dérive (pas l'audit) | US-02 | admin |
 | GET /api/v1/simulations/clock | État de l'horloge | US-02 | viewer |
 | POST /api/v1/simulations/clock | Changer de mode / avancer de N secondes (mode `manual`) | US-02 | engineer |
 | GET /api/v1/events/stream | SSE (voir §04.3) | US-07 | viewer |
@@ -343,14 +343,17 @@ Un service arrêté ne produit plus de métriques : sans précaution, « service
 |---|---|---|---|---|---|---|---|
 | R-AVAIL-001 | threshold | `up` / last | — | `lt 1` (`≥ 1`) | 10 s | 2 / 3 | availability |
 | R-CONN-001 | availability_ratio | `up` / ratio | `< 0.95` (`≥ 0.98`) | `< 0.80` (`≥ 0.90`) | 300 s | 1 / 3 | connectivity |
-| R-LAT-001 | threshold | `probe_latency_ms` / p95 | `> 250` (`< 200`) | `> 1000` (`< 800`) | 60 s | 3 / 3 | latency |
-| R-FRESH-001 | freshness | `data_age_s` / last | `> 60` (`< 30`) | `> 300` (`< 120`) | 10 s | 2 / 3 | freshness |
+| R-LAT-001 | threshold | `probe_latency_ms` / p95 | `> 250` (`≤ 200`) | `> 1000` (`≤ 800`) | 60 s | 3 / 3 | latency |
+| R-FRESH-001 | freshness | `data_age_s` / last — historian, analytics | `> 60` (`≤ 30`) | `> 300` (`≤ 120`) | 10 s | 2 / 3 | freshness |
 | R-ERR-001 | threshold | `error_count` / sum | `≥ 5` (`< 2`) | `≥ 20` (`< 5`) | 60 s | 1 / 3 | errors |
-| R-RES-001 | threshold | `cpu_pct`, `mem_pct` / avg | `> 85` (`< 75`) | `> 95` (`< 90`) | 120 s | 2 / 3 | resources |
-| R-QUEUE-001 | threshold | `queue_depth` / last | `> 1 000` (`< 500`) | `> 5 000` (`< 2 000`) | 30 s | 2 / 3 | backlog |
+| R-RES-001 | threshold | `cpu_pct` / avg | `> 85` (`≤ 75`) | `> 95` (`≤ 90`) | 120 s | 2 / 3 | resources |
+| R-RES-002 | threshold | `mem_pct` / avg | `> 85` (`≤ 75`) | `> 95` (`≤ 90`) | 120 s | 2 / 3 | resources |
+| R-QUEUE-001 | threshold | `queue_depth` / last — gateway, collector | `> 1 000` (`≤ 500`) | `> 5 000` (`≤ 2 000`) | 30 s | 2 / 3 | backlog |
 | R-TEL-001 | absence | toute observation | — | aucune depuis 3 × intervalle ⇒ `Unknown` | 15 s | 1 / 2 | telemetry_loss |
 
-Hystérésis : passer à un état plus grave exige `raise_after` évaluations consécutives au-delà du seuil ; revenir exige `clear_after` évaluations consécutives en deçà du seuil de retour (`clear`). Les seuils sont des valeurs de démonstration documentées, pas des recommandations industrielles.
+*Précision US-04 (ADR 0016) :* une règle porte une seule métrique (R-RES-001 scindée en `cpu_pct` / `mem_pct`) ; un niveau retombe quand sa comparaison n'est plus vraie au seuil de retour ; une règle s'évalue à chaque créneau de 5 s, fenêtre `(t − fenêtre, t]`, échantillons `bad` exclus, Unknown sous `min_samples` (1 par défaut).
+
+Hystérésis : passer à un état plus grave exige `raise_after` évaluations consécutives au-delà du seuil ; revenir exige `clear_after` évaluations consécutives en deçà du seuil de retour (`clear`). L'ordre de sévérité `Critical > Unknown > Warning > Healthy` vaut aussi ici : la perte de preuve se débruite comme une dégradation depuis Healthy ou Warning, et une panne confirmée est maintenue `clear_after` évaluations avant de passer Unknown (ADR 0016). Les seuils sont des valeurs de démonstration documentées, pas des recommandations industrielles.
 
 ### 05.4 — État d'un composant et agrégation (ADR 0004)
 
