@@ -11,9 +11,10 @@ IPHI monitors the health of an **industrial data platform** — sources, gateway
 | US-01 | One-command stack, migrations, readiness, CI, app shell | Delivered |
 | US-02 | Seven-component simulated platform, deterministic generator, nine scenarios, platform clock | Delivered (API only) |
 | US-03 | Validated ingestion, PostgreSQL history, metric and log APIs, collection monitoring | Delivered (API only) |
-| US-04 → US-12 | Health rules, incidents, dashboard, diagnosis, reports, security | Planned ([backlog](docs/03-backlog.md)) |
+| US-04 | Versioned health rules, hysteresis, `Unknown`, component and platform health with justification | Delivered (API only) |
+| US-05 → US-12 | Incidents, dashboard, diagnosis, reports, security | Planned ([backlog](docs/03-backlog.md)) |
 
-What runs today: PostgreSQL, a migration and seed job, the FastAPI API (`/health`, `/ready`, simulation, metrics, logs and system status endpoints, OpenAPI), a worker that holds the scheduler lock and, every cycle, collects the simulated observations, validates and stores them, purges data past retention and writes a heartbeat, and the frontend shell showing monitor readiness. No health state is computed yet (US-04).
+What runs today: PostgreSQL, a migration and seed job, the FastAPI API (`/health`, `/ready`, simulation, metrics, logs, health and system status endpoints, OpenAPI), a worker that holds the scheduler lock and, every cycle, collects the simulated observations, validates and stores them, evaluates the health rules, purges data past retention and writes a heartbeat, and the frontend shell showing monitor readiness. Incidents arrive with US-05, health screens with US-06.
 
 ![Overview, light theme](docs/design/screenshots/us-01-overview-light-1440.png)
 
@@ -96,7 +97,23 @@ curl -s "$A/metrics?component_id=$C&metric_name=probe_latency_ms&max_points=200"
 curl -s "$A/logs?component_id=$C&min_severity=warning&limit=20"
 ```
 
-`GET /metrics` returns raw samples while the window holds at most `max_points` (≤ 2000), otherwise min/avg/max buckets; windows are limited to 7 days, and stretches without data come back as explicit `gaps`, never interpolated. Component IDs are listed by `GET /components` from US-04.
+`GET /metrics` returns raw samples while the window holds at most `max_points` (≤ 2000), otherwise min/avg/max buckets; windows are limited to 7 days, and stretches without data come back as explicit `gaps`, never interpolated. Component IDs are listed by `GET /components`.
+
+## Health
+
+Nine default rules in [`backend/config/health_rules.yaml`](backend/config/health_rules.yaml) (availability, connectivity ratio, p95 latency, process-data freshness, errors, CPU, memory, backlog, telemetry loss) are evaluated at every 5 s sample slot of platform time, so the state history is the same in realtime, accelerated or manual mode. Each rule has warning and critical thresholds with distinct clear thresholds, and needs `raise_after` consecutive evaluations to get worse and `clear_after` to recover: a value oscillating inside the band never changes the state. A rule without samples in its window is `Unknown`, never `Healthy`; a component that stops answering its probe is `Critical`, one IPHI no longer observes at all is `Unknown`.
+
+A component takes the worst state of its rules (`Critical > Unknown > Warning > Healthy`); components downstream of a `Critical` or `Unknown` one are marked as impacted without changing their own state. The platform state follows a priority table, never an average: a high- or medium-criticality component `Critical` makes it `Critical`, a high one `Unknown` makes it `Unknown`, any other degradation `Warning`. Thresholds are demonstration values, not industrial recommendations; changing one in the file creates a new rule version at the next bootstrap.
+
+```sh
+curl -s $A/platforms                    # aggregated state, counts, priority line applied
+curl -s "$A/components?state=critical"  # current state, deciding evaluation, impacted_by
+curl -s $A/components/$C/health         # every rule: threshold, window, value, evidence, debounce
+curl -s "$A/rule-evaluations?component_id=$C&rule_key=R-LAT-001"   # stored evaluations
+curl -s $A/health-rules                 # active rule versions (read-only)
+```
+
+Every state cites its rule version, window, threshold, observed value and the IDs of the samples behind it. If the worker stops evaluating, the API reports `unknown` with `stale: true` instead of the last computed state.
 
 ## Develop and test
 
@@ -125,7 +142,8 @@ The design dossier is in French: [requirements](docs/01-cahier-des-charges.md), 
 
 ## Limitations
 
-- Stored observations are not evaluated or turned into incidents yet (US-04, US-05); there is no Scenarios or metrics screen before US-06.
+- Health states are not turned into incidents yet (US-05); there is no health, Scenarios or metrics screen before US-06.
+- An observation arriving late, after its sample slot was evaluated, does not trigger a re-evaluation of that slot.
 - After the worker has been stopped for more than 10 minutes of platform time, the missed sample slots are not backfilled: they remain a visible gap.
 - Simulation simplifications: `stale_data` does not age downstream data; one fault scenario per component at a time.
 - No authentication until US-11; the stack is meant for a local machine only (ADR 0007). The mutation guard trusts `IPHI_BIND_HOST`: publishing the API port any other way (e.g. a Compose override) bypasses it.
@@ -133,4 +151,4 @@ The design dossier is in French: [requirements](docs/01-cahier-des-charges.md), 
 
 ## Résumé en français
 
-IPHI surveille la santé d'une plateforme de données industrielle **simulée** : collecte, règles de santé explicables, incidents dédupliqués et prouvés, diagnostic optionnel. `docker compose up --build` démarre PostgreSQL, les migrations et le seed, l'API, le worker et l'interface (http://127.0.0.1:8080). La plateforme simulée compte sept composants et neuf scénarios de panne reproductibles (seed, horloge de plateforme accélérable) ; ses mesures et logs sont validés, historisés dans PostgreSQL et consultables par l'API. Le dossier de conception (cahier des charges, architecture, backlog, design system, ADR) est dans `docs/`. Aucune connexion à une installation réelle n'existe ni n'est revendiquée.
+IPHI surveille la santé d'une plateforme de données industrielle **simulée** : collecte, règles de santé explicables, incidents dédupliqués et prouvés, diagnostic optionnel. `docker compose up --build` démarre PostgreSQL, les migrations et le seed, l'API, le worker et l'interface (http://127.0.0.1:8080). La plateforme simulée compte sept composants et neuf scénarios de panne reproductibles (seed, horloge de plateforme accélérable) ; ses mesures et logs sont validés, historisés dans PostgreSQL et consultables par l'API, et des règles versionnées avec hystérésis en déduisent l'état justifié de chaque composant et de la plateforme (jamais « sain » faute de données). Le dossier de conception (cahier des charges, architecture, backlog, design system, ADR) est dans `docs/`. Aucune connexion à une installation réelle n'existe ni n'est revendiquée.
