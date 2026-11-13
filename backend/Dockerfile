@@ -14,6 +14,7 @@ COPY --from=build /app/.venv /app/.venv
 COPY alembic.ini ./
 COPY alembic ./alembic
 COPY app ./app
+COPY config ./config
 USER iphi
 EXPOSE 8000
 HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=3 \

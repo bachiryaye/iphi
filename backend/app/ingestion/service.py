@@ -1,6 +1,6 @@
 import uuid
-from collections.abc import Sequence
-from datetime import datetime, timedelta
+from collections.abc import Mapping, Sequence
+from datetime import datetime
 
 import structlog
 from sqlalchemy.exc import SQLAlchemyError
@@ -15,12 +15,9 @@ from app.ingestion.domain.collection import (
     CollectionRun,
     CollectionStatus,
 )
-from app.ingestion.domain.errors import (
-    ComponentNotFoundError,
-    MetricNotFoundError,
-    PlatformNotSeededError,
-)
+from app.ingestion.domain.errors import MetricNotFoundError, PlatformNotSeededError
 from app.ingestion.domain.logs import LogQuery, StoredLog
+from app.ingestion.domain.observations import ObservationMark, StoredSample
 from app.ingestion.domain.series import (
     Series,
     SeriesQuery,
@@ -38,11 +35,10 @@ from app.ingestion.repository import (
     MetricCatalogRepository,
     ObservationRepository,
 )
+from app.topology.domain import ComponentNotFoundError
 from app.topology.service import TopologyService
 
 MAX_REJECTION_EXAMPLES = 5
-RETENTION_BATCH = 50_000
-RETENTION_INTERVAL = timedelta(hours=1)
 
 log = structlog.get_logger(__name__)
 
@@ -217,38 +213,45 @@ class CollectionService:
         )
 
 
-class RetentionJob:
-    """Purges observations older than the retention period, in bounded batches (ADR 0008).
+def purge_observations(session: Session, cutoff: datetime, batch: int) -> int:
+    """Retention of observations, `batch` samples and `batch` logs at most (ADR 0008)."""
+    # TODO(US-05): keep observations referenced as incident evidence.
+    return ObservationRepository(session).purge_before(cutoff, batch)
 
-    Runs at most once per platform hour, except while a full batch shows a backlog remains.
-    """
 
-    def __init__(self, retention: timedelta) -> None:
-        self._retention = retention
-        self._last_run: datetime | None = None
-        self._backlog = False
+class ObservationReader:
+    """Observation reads in the caller's unit of work, for other modules' use cases."""
 
-    def purge_if_due(self, session_factory: sessionmaker[Session], platform_now: datetime) -> int:
-        """Own short transaction, after the cycle has committed: large deletes neither lengthen
-        the cycle's lock on sim_clock nor roll back with it. The schedule advances only once
-        the purge is committed."""
-        due = (
-            self._backlog
-            or self._last_run is None
-            or platform_now - self._last_run >= RETENTION_INTERVAL
-        )
-        if not due:
-            return 0
-        # TODO(US-05): keep observations referenced as incident evidence.
-        with session_factory.begin() as session:
-            deleted = ObservationRepository(session).purge_before(
-                platform_now - self._retention, RETENTION_BATCH
-            )
-        self._last_run = platform_now
-        self._backlog = deleted >= RETENTION_BATCH
-        if deleted:
-            log.info("retention.purged", deleted=deleted, backlog=self._backlog)
-        return deleted
+    def __init__(self, session: Session) -> None:
+        self._session = session
+        self._repository = ObservationRepository(session)
+
+    def collected_until(self) -> datetime | None:
+        """Event time up to which every connector has been read (ADR 0015 watermarks): later
+        sample slots may still be incomplete. None before any connector has collected."""
+        return CollectionCursorRepository(self._session).oldest()
+
+    def units(self) -> dict[str, str]:
+        """Canonical unit of every catalogued metric."""
+        return {d.metric_name: d.unit for d in MetricCatalogRepository(self._session).all()}
+
+    def samples(
+        self,
+        component_ids: Sequence[uuid.UUID],
+        lookback: Mapping[str, datetime],
+        until: datetime,
+    ) -> list[StoredSample]:
+        """Samples observed in (lookback[metric], until], for each metric of `lookback`."""
+        return [
+            sample
+            for metric_name, after in lookback.items()
+            for sample in self._repository.window_samples(component_ids, metric_name, after, until)
+        ]
+
+    def marks(
+        self, component_ids: Sequence[uuid.UUID], after: datetime, until: datetime
+    ) -> list[ObservationMark]:
+        return self._repository.marks(component_ids, after, until)
 
 
 class ObservationHistory:

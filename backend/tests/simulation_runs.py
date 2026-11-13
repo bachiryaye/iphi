@@ -4,8 +4,8 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from types import MappingProxyType
 
+from app.core.observation import tick_of
 from app.simulation.domain.catalog import SCENARIOS, ScenarioKey
-from app.simulation.domain.clock import tick_of
 from app.simulation.domain.runs import RunStatus, ScenarioRun
 
 GOLDEN_START = datetime(2026, 1, 1, tzinfo=UTC)

@@ -1,6 +1,6 @@
 import os
 import uuid
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 
 import pytest
 from alembic import command
@@ -28,18 +28,31 @@ def _admin_url() -> str:
 
 
 @pytest.fixture
-def empty_database_url() -> Iterator[str]:
-    """A fresh, empty database per test, dropped afterwards."""
+def database_factory() -> Iterator[Callable[[], str]]:
+    """Creates fresh, empty databases on demand; all are dropped after the test."""
     admin = create_engine(_admin_url(), isolation_level="AUTOCOMMIT")
-    name = f"iphi_test_{uuid.uuid4().hex[:12]}"
-    with admin.connect() as connection:
-        connection.execute(text(f'CREATE DATABASE "{name}"'))
+    names: list[str] = []
+
+    def create() -> str:
+        name = f"iphi_test_{uuid.uuid4().hex[:12]}"
+        with admin.connect() as connection:
+            connection.execute(text(f'CREATE DATABASE "{name}"'))
+        names.append(name)
+        return make_url(_admin_url()).set(database=name).render_as_string(hide_password=False)
+
     try:
-        yield make_url(_admin_url()).set(database=name).render_as_string(hide_password=False)
+        yield create
     finally:
         with admin.connect() as connection:
-            connection.execute(text(f'DROP DATABASE "{name}" WITH (FORCE)'))
+            for name in names:
+                connection.execute(text(f'DROP DATABASE "{name}" WITH (FORCE)'))
         admin.dispose()
+
+
+@pytest.fixture
+def empty_database_url(database_factory: Callable[[], str]) -> str:
+    """A fresh, empty database per test, dropped afterwards."""
+    return database_factory()
 
 
 @pytest.fixture

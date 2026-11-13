@@ -2,7 +2,7 @@ import structlog
 from fastapi import FastAPI
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from app.api import observations, simulations, system
+from app.api import health, observations, simulations, system
 from app.connectors.registry import ENABLED_CONNECTOR_KEYS
 from app.core.clock import WallClock
 from app.core.db import create_db_engine, create_session_factory
@@ -15,6 +15,7 @@ from app.core.middleware import (
 )
 from app.core.migrations import expected_head
 from app.core.settings import Settings
+from app.health.service import HealthQueries
 from app.identity.domain import MutationPolicy
 from app.identity.service import AuditService
 from app.ingestion.service import MetricCatalogService, ObservationQueryService
@@ -23,7 +24,7 @@ from app.simulation.domain.platform import SIMULATED_PLATFORM
 from app.simulation.service import build_simulation
 from app.topology.service import TopologyService
 
-API_VERSION = "0.3.0"
+API_VERSION = "0.4.0"
 
 log = structlog.get_logger(__name__)
 
@@ -58,6 +59,8 @@ def create_app(settings: Settings) -> FastAPI:
         settings.llm_provider,
         MonitoredParts(simulation, observation_queries, ENABLED_CONNECTOR_KEYS),
     )
+    app.state.health = HealthQueries(session_factory, topology)
+    app.state.cycle_interval_s = settings.cycle_interval_s
     app.state.audit = AuditService(session_factory, wall)
     app.state.sim_seed = settings.sim_seed
     policy = MutationPolicy.evaluate(settings.dev_mutations, settings.bind_host)
@@ -68,6 +71,7 @@ def create_app(settings: Settings) -> FastAPI:
     app.include_router(system.router)
     app.include_router(simulations.router)
     app.include_router(observations.router)
+    app.include_router(health.router)
     # Starlette runs the last added middleware first. Security headers wrap every response,
     # including the 413 and crash responses produced by the two inner middlewares.
     # Unauthenticated loopback mutations (ADR 0007) must not be reachable through a rebound

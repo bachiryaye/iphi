@@ -4,6 +4,74 @@
  */
 
 export interface paths {
+  "/api/v1/components": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Components with their current state, filterable. */
+    get: operations["list_components_api_v1_components_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/components/{component_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Component details, direct dependencies both ways, current state and impact. */
+    get: operations["component_detail_api_v1_components__component_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/components/{component_id}/health": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Latest evaluation of every applicable rule, with threshold, value and evidence. */
+    get: operations["component_health_api_v1_components__component_id__health_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/health-rules": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Health rules, read-only: active versions by default. */
+    get: operations["list_health_rules_api_v1_health_rules_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/logs": {
     parameters: {
       query?: never;
@@ -47,6 +115,57 @@ export interface paths {
     };
     /** Metric catalog: units and accepted ranges. */
     get: operations["metric_catalog_api_v1_metrics_catalog_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/platforms": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Platforms with their aggregated state and its rationale. */
+    get: operations["list_platforms_api_v1_platforms_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/platforms/{platform_id}/topology": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Components with state and impact, and dependency edges with explicit direction. */
+    get: operations["platform_topology_api_v1_platforms__platform_id__topology_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/rule-evaluations": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Stored rule evaluations, newest first. */
+    get: operations["list_rule_evaluations_api_v1_rule_evaluations_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -207,6 +326,11 @@ export interface components {
       /** Seconds */
       seconds: number;
     };
+    /**
+     * Aggregation
+     * @enum {string}
+     */
+    Aggregation: "last" | "avg" | "max" | "p95" | "sum" | "ratio";
     /** AiProviderStatusOut */
     AiProviderStatusOut: {
       /** Detail */
@@ -346,6 +470,110 @@ export interface components {
       /** @description Worst state among enabled connectors. */
       state: components["schemas"]["CollectionState"];
     };
+    /** ComponentDetailOut */
+    ComponentDetailOut: {
+      criticality: components["schemas"]["Criticality"];
+      /**
+       * Downstream
+       * @description Direct dependents: data goes to them.
+       */
+      downstream: components["schemas"]["DependencyOut"][];
+      /**
+       * Environment
+       * @default simulation
+       * @constant
+       */
+      environment: "simulation";
+      health: components["schemas"]["HealthOut"];
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Impacted By
+       * @description Upstream components Critical or Unknown; an annotation, not a state (D-06).
+       */
+      impacted_by: components["schemas"]["ComponentRefOut"][];
+      /** Key */
+      key: string;
+      /** Name */
+      name: string;
+      /**
+       * Platform Id
+       * Format: uuid
+       */
+      platform_id: string;
+      /** @description Evaluation that set the worst rule state (earliest first); none if Healthy. */
+      reason: components["schemas"]["EvaluationOut"] | null;
+      type: components["schemas"]["ComponentType"];
+      /**
+       * Upstream
+       * @description Direct dependencies: data comes from them.
+       */
+      upstream: components["schemas"]["DependencyOut"][];
+    };
+    /** ComponentListOut */
+    ComponentListOut: {
+      /** Items */
+      items: components["schemas"]["ComponentOut"][];
+    };
+    /** ComponentOut */
+    ComponentOut: {
+      criticality: components["schemas"]["Criticality"];
+      /**
+       * Environment
+       * @default simulation
+       * @constant
+       */
+      environment: "simulation";
+      health: components["schemas"]["HealthOut"];
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Impacted By
+       * @description Upstream components Critical or Unknown; an annotation, not a state (D-06).
+       */
+      impacted_by: components["schemas"]["ComponentRefOut"][];
+      /** Key */
+      key: string;
+      /** Name */
+      name: string;
+      /**
+       * Platform Id
+       * Format: uuid
+       */
+      platform_id: string;
+      /** @description Evaluation that set the worst rule state (earliest first); none if Healthy. */
+      reason: components["schemas"]["EvaluationOut"] | null;
+      type: components["schemas"]["ComponentType"];
+    };
+    /** ComponentRefOut */
+    ComponentRefOut: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Key */
+      key: string;
+    };
+    /** ComponentRulesOut */
+    ComponentRulesOut: {
+      component: components["schemas"]["ComponentRefOut"];
+      /**
+       * Environment
+       * @default simulation
+       * @constant
+       */
+      environment: "simulation";
+      health: components["schemas"]["HealthOut"];
+      /** Rules */
+      rules: components["schemas"]["RuleStatusOut"][];
+    };
     /**
      * ComponentType
      * @description ISA-95 level 2/3 roles along the data path (rules.md S-01).
@@ -364,6 +592,86 @@ export interface components {
       last_success_at: string | null;
       state: components["schemas"]["CollectionState"];
     };
+    /**
+     * Criticality
+     * @enum {string}
+     */
+    Criticality: "high" | "medium" | "low";
+    /** DebounceOut */
+    DebounceOut: {
+      pending_state: components["schemas"]["HealthState"];
+      /** Required */
+      required: number;
+      /** Streak */
+      streak: number;
+    };
+    /**
+     * DependencyKind
+     * @enum {string}
+     */
+    DependencyKind: "data_flow" | "runtime";
+    /** DependencyOut */
+    DependencyOut: {
+      component: components["schemas"]["ComponentRefOut"];
+      kind: components["schemas"]["DependencyKind"];
+    };
+    /** EvaluationOut */
+    EvaluationOut: {
+      component: components["schemas"]["ComponentRefOut"];
+      /**
+       * Evaluated At
+       * Format: date-time
+       */
+      evaluated_at: string;
+      evidence: components["schemas"]["EvidenceOut"];
+      /** Explanation */
+      explanation: string;
+      /** Id */
+      id: number;
+      /** Observed Value */
+      observed_value: number | null;
+      /** @description State of the value alone, before hysteresis. */
+      raw_state: components["schemas"]["HealthState"];
+      rule: components["schemas"]["RuleRefOut"];
+      /** Sample Count */
+      sample_count: number;
+      /** @description Debounced rule state after this evaluation. */
+      state: components["schemas"]["HealthState"];
+      /** Unit */
+      unit: string | null;
+      /**
+       * Window Start
+       * Format: date-time
+       * @description Exclusive start; the window ends at evaluated_at.
+       */
+      window_start: string;
+    };
+    /** EvaluationPageOut */
+    EvaluationPageOut: {
+      /**
+       * Environment
+       * @default simulation
+       * @constant
+       */
+      environment: "simulation";
+      /** Items */
+      items: components["schemas"]["EvaluationOut"][];
+      /** Next Cursor */
+      next_cursor: string | null;
+    };
+    /** EvidenceOut */
+    EvidenceOut: {
+      /**
+       * Log Ids
+       * @description Stored log events (GET /logs items).
+       */
+      log_ids: number[];
+      /**
+       * Sample Ids
+       * @description Stored metric samples (GET /metrics points).
+       */
+      sample_ids: number[];
+    };
     /** ExpectedOutcomeOut */
     ExpectedOutcomeOut: {
       /** Incident */
@@ -373,6 +681,19 @@ export interface components {
       /** State */
       state: string;
     };
+    /**
+     * FailureClass
+     * @enum {string}
+     */
+    FailureClass:
+      | "availability"
+      | "latency"
+      | "freshness"
+      | "errors"
+      | "resources"
+      | "backlog"
+      | "connectivity"
+      | "telemetry_loss";
     /** FieldError */
     FieldError: {
       /** Loc */
@@ -395,6 +716,95 @@ export interface components {
        */
       start: string;
     };
+    /** HealthOut */
+    HealthOut: {
+      /**
+       * Evaluated At
+       * @description Sample slot of the last evaluation.
+       */
+      evaluated_at: string | null;
+      /** @description Last computed state, stale or not. */
+      evaluated_state: components["schemas"]["HealthState"] | null;
+      /** Since */
+      since: string | null;
+      /** Stale */
+      stale: boolean;
+      /** Stale Reason */
+      stale_reason: string | null;
+      /** @description State to act on: Unknown when the stored evaluation is stale (D-02). */
+      state: components["schemas"]["HealthState"];
+    };
+    /** HealthRuleListOut */
+    HealthRuleListOut: {
+      /** Items */
+      items: components["schemas"]["HealthRuleOut"][];
+    };
+    /** HealthRuleOut */
+    HealthRuleOut: {
+      aggregation: components["schemas"]["Aggregation"] | null;
+      /**
+       * Clear After
+       * @description Consecutive evaluations to return to a better state.
+       */
+      clear_after: number;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      critical: components["schemas"]["LevelOut"] | null;
+      /** Enabled */
+      enabled: boolean;
+      failure_class: components["schemas"]["FailureClass"];
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Key */
+      key: string;
+      /**
+       * Metric Name
+       * @description None for absence rules: any observation counts.
+       */
+      metric_name: string | null;
+      /** Min Samples */
+      min_samples: number;
+      operator: components["schemas"]["Operator"] | null;
+      /**
+       * Raise After
+       * @description Consecutive evaluations to enter a worse state.
+       */
+      raise_after: number;
+      /** Rationale */
+      rationale: string;
+      /** Recommendation */
+      recommendation: string;
+      rule_type: components["schemas"]["RuleType"];
+      /** Target Components */
+      target_components: string[];
+      /**
+       * Target Types
+       * @description Empty with target_components: all.
+       */
+      target_types: components["schemas"]["ComponentType"][];
+      /** Unit */
+      unit: string | null;
+      /** Version */
+      version: number;
+      warning: components["schemas"]["LevelOut"] | null;
+      /** Window Seconds */
+      window_seconds: number;
+    };
+    /**
+     * HealthState
+     * @description Declared from least to most severe: Critical > Unknown > Warning > Healthy.
+     *
+     *     Unknown ranks above Warning so that missing evidence is never hidden behind a known
+     *     degradation, and below Critical so that a confirmed failure is never hidden behind it.
+     * @enum {string}
+     */
+    HealthState: "healthy" | "warning" | "unknown" | "critical";
     /** HeartbeatOut */
     HeartbeatOut: {
       /** Cycle Lag Ms */
@@ -407,6 +817,19 @@ export interface components {
       /** Last Cycle Duration Ms */
       last_cycle_duration_ms: number;
       status: components["schemas"]["ProcessStatus"];
+    };
+    /** LevelOut */
+    LevelOut: {
+      /**
+       * Clear
+       * @description Clears once `value <operator> clear` no longer holds.
+       */
+      clear: number;
+      /**
+       * Threshold
+       * @description Raises when `value <operator> threshold` holds.
+       */
+      threshold: number;
     };
     /** LivenessOut */
     LivenessOut: {
@@ -551,6 +974,11 @@ export interface components {
      * @enum {string}
      */
     ObservationSource: "simulation" | "mqtt";
+    /**
+     * Operator
+     * @enum {string}
+     */
+    Operator: "gt" | "ge" | "lt";
     /** ParameterOut */
     ParameterOut: {
       /** Default */
@@ -565,6 +993,62 @@ export interface components {
       name: string;
       /** Unit */
       unit: string;
+    };
+    /** PlatformHealthOut */
+    PlatformHealthOut: {
+      /** @description Components per evaluated state. */
+      counts: components["schemas"]["StateCountsOut"];
+      /**
+       * Decided By
+       * @description Components behind the state.
+       */
+      decided_by: components["schemas"]["ComponentRefOut"][];
+      /**
+       * Evaluated At
+       * @description Sample slot of the last evaluation.
+       */
+      evaluated_at: string | null;
+      /** @description Last computed state, stale or not. */
+      evaluated_state: components["schemas"]["HealthState"] | null;
+      /**
+       * Priority
+       * @description Line of the ADR 0004 aggregation table applied.
+       */
+      priority: number | null;
+      /** Rationale */
+      rationale: string;
+      /** Since */
+      since: string | null;
+      /** Stale */
+      stale: boolean;
+      /** Stale Reason */
+      stale_reason: string | null;
+      /** @description State to act on: Unknown when the stored evaluation is stale (D-02). */
+      state: components["schemas"]["HealthState"];
+    };
+    /** PlatformListOut */
+    PlatformListOut: {
+      /** Items */
+      items: components["schemas"]["PlatformOut"][];
+    };
+    /** PlatformOut */
+    PlatformOut: {
+      /**
+       * Environment
+       * @default simulation
+       * @constant
+       */
+      environment: "simulation";
+      health: components["schemas"]["PlatformHealthOut"];
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Key */
+      key: string;
+      /** Name */
+      name: string;
     };
     /** Problem */
     Problem: {
@@ -644,6 +1128,59 @@ export interface components {
       /** Stopped Runs */
       stopped_runs: number;
     };
+    /** RuleRefOut */
+    RuleRefOut: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Key */
+      key: string;
+      /** Version */
+      version: number;
+    };
+    /** RuleStatusOut */
+    RuleStatusOut: {
+      /** @description Transition in progress, if any. */
+      debounce: components["schemas"]["DebounceOut"] | null;
+      /**
+       * Evaluated At
+       * Format: date-time
+       */
+      evaluated_at: string;
+      evidence: components["schemas"]["EvidenceOut"];
+      /** Explanation */
+      explanation: string;
+      /** @description Debounced rule state; Unknown once stale. */
+      health: components["schemas"]["HealthOut"];
+      /**
+       * Last Evaluation Id
+       * @description Latest stored evaluation of this rule.
+       */
+      last_evaluation_id: number;
+      /** Observed Value */
+      observed_value: number | null;
+      raw_state: components["schemas"]["HealthState"];
+      rule: components["schemas"]["HealthRuleOut"];
+      /** Sample Count */
+      sample_count: number;
+      /**
+       * State Evaluation Id
+       * @description Stored evaluation that set the current state.
+       */
+      state_evaluation_id: number;
+      /**
+       * Window Start
+       * Format: date-time
+       */
+      window_start: string;
+    };
+    /**
+     * RuleType
+     * @enum {string}
+     */
+    RuleType: "threshold" | "freshness" | "absence" | "availability_ratio";
     /**
      * RunStatus
      * @enum {string}
@@ -804,6 +1341,17 @@ export interface components {
        */
       target_component_key?: string | null;
     };
+    /** StateCountsOut */
+    StateCountsOut: {
+      /** Critical */
+      critical: number;
+      /** Healthy */
+      healthy: number;
+      /** Unknown */
+      unknown: number;
+      /** Warning */
+      warning: number;
+    };
     /** SystemStatusOut */
     SystemStatusOut: {
       ai_provider: components["schemas"]["AiProviderStatusOut"];
@@ -824,6 +1372,58 @@ export interface components {
       environment: "simulation";
       worker: components["schemas"]["WorkerStatusOut"];
     };
+    /** TopologyEdgeOut */
+    TopologyEdgeOut: {
+      /**
+       * Dependency Id
+       * Format: uuid
+       * @description Data flows from it to dependent_id.
+       */
+      dependency_id: string;
+      /**
+       * Dependent Id
+       * Format: uuid
+       * @description Depends on dependency_id.
+       */
+      dependent_id: string;
+      kind: components["schemas"]["DependencyKind"];
+    };
+    /** TopologyNodeOut */
+    TopologyNodeOut: {
+      criticality: components["schemas"]["Criticality"];
+      health: components["schemas"]["HealthOut"];
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Impacted By */
+      impacted_by: string[];
+      /** Key */
+      key: string;
+      /** Name */
+      name: string;
+      type: components["schemas"]["ComponentType"];
+    };
+    /** TopologyOut */
+    TopologyOut: {
+      /** Edges */
+      edges: components["schemas"]["TopologyEdgeOut"][];
+      /**
+       * Environment
+       * @default simulation
+       * @constant
+       */
+      environment: "simulation";
+      health: components["schemas"]["PlatformHealthOut"];
+      /** Nodes */
+      nodes: components["schemas"]["TopologyNodeOut"][];
+      /**
+       * Platform Id
+       * Format: uuid
+       */
+      platform_id: string;
+    };
     /** WorkerStatusOut */
     WorkerStatusOut: {
       /** Detail */
@@ -840,6 +1440,135 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  list_components_api_v1_components_get: {
+    parameters: {
+      query?: {
+        platform_id?: string | null;
+        /** @description Matches the state to act on. */
+        state?: components["schemas"]["HealthState"] | null;
+        type?: components["schemas"]["ComponentType"] | null;
+        criticality?: components["schemas"]["Criticality"] | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ComponentListOut"];
+        };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
+  component_detail_api_v1_components__component_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        component_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ComponentDetailOut"];
+        };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
+  component_health_api_v1_components__component_id__health_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        component_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ComponentRulesOut"];
+        };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
+  list_health_rules_api_v1_health_rules_get: {
+    parameters: {
+      query?: {
+        /** @description Every stored version, disabled too. */
+        all_versions?: boolean;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HealthRuleListOut"];
+        };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
   list_logs_api_v1_logs_get: {
     parameters: {
       query?: {
@@ -932,6 +1661,106 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["MetricCatalogOut"];
+        };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
+  list_platforms_api_v1_platforms_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PlatformListOut"];
+        };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
+  platform_topology_api_v1_platforms__platform_id__topology_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        platform_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TopologyOut"];
+        };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
+  list_rule_evaluations_api_v1_rule_evaluations_get: {
+    parameters: {
+      query?: {
+        /** @description Inclusive start; defaults to one hour before `to`. */
+        from?: string | null;
+        /** @description Exclusive end; defaults to platform time. */
+        to?: string | null;
+        component_id?: string | null;
+        rule_key?: string | null;
+        state?: components["schemas"]["HealthState"] | null;
+        /** @description From next_cursor; it keeps the first page's window, `from`/`to` are ignored. */
+        cursor?: string | null;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["EvaluationPageOut"];
         };
       };
       /** @description RFC 9457 problem details. */

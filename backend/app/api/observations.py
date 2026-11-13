@@ -1,9 +1,9 @@
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, Query, Request
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 
 from app.api.pagination import (
     DEFAULT_PAGE_SIZE,
@@ -16,6 +16,7 @@ from app.api.pagination import (
     encode_instant,
 )
 from app.api.simulations import simulation_service
+from app.api.windows import WindowParams, window_of
 from app.core.observation import LogSeverity, ObservationSource, Quality
 from app.ingestion.domain.catalog import MetricKind
 from app.ingestion.domain.logs import LogPosition, LogQuery, StoredLog
@@ -24,14 +25,12 @@ from app.ingestion.domain.series import (
     Series,
     SeriesMode,
     SeriesQuery,
-    TimeWindow,
 )
 from app.ingestion.service import MetricCatalogService, ObservationQueryService
 from app.simulation.service import SimulationService
 
 router = APIRouter(prefix="/api/v1", tags=["observations"])
 
-DEFAULT_WINDOW = timedelta(hours=1)
 DEFAULT_MAX_POINTS = 500
 METRIC_NAME_PATTERN = r"^[a-z][a-z0-9_]{0,63}$"
 Simulation = Literal["simulation"]
@@ -131,17 +130,6 @@ Observations = Annotated[ObservationQueryService, Depends(observation_service)]
 PlatformNow = Annotated[datetime, Depends(platform_now)]
 
 
-class WindowParams(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    start: AwareDatetime | None = Field(
-        default=None, alias="from", description="Inclusive start; defaults to one hour before `to`."
-    )
-    end: AwareDatetime | None = Field(
-        default=None, alias="to", description="Exclusive end; defaults to platform time."
-    )
-
-
 class SeriesParams(WindowParams):
     component_id: uuid.UUID
     metric_name: str = Field(pattern=METRIC_NAME_PATTERN)
@@ -155,11 +143,6 @@ class LogParams(WindowParams):
     )
     cursor: str | None = Field(default=None, max_length=MAX_CURSOR_CHARS)
     limit: int = Field(default=DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE)
-
-
-def window_of(params: WindowParams, now: datetime) -> TimeWindow:
-    end = params.end or now
-    return TimeWindow(params.start or end - DEFAULT_WINDOW, end)
 
 
 @router.get("/metrics/catalog", summary="Metric catalog: units and accepted ranges.")

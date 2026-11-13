@@ -38,6 +38,7 @@ from app.ingestion.domain.collection import (
     CollectionStatus,
 )
 from app.ingestion.domain.logs import LogQuery, StoredLog
+from app.ingestion.domain.observations import ObservationMark, StoredSample
 from app.ingestion.domain.series import (
     BucketPoint,
     RawPoint,
@@ -279,6 +280,10 @@ class CollectionCursorRepository:
             delete(CollectionCursorRecord).where(CollectionCursorRecord.source == source.value)
         )
 
+    def oldest(self) -> datetime | None:
+        """Lowest watermark across connectors; None before any connector has collected."""
+        return self._session.execute(select(func.min(CollectionCursorRecord.watermark))).scalar()
+
 
 def _to_run(record: CollectionRunRecord) -> CollectionRun:
     return CollectionRun(
@@ -468,6 +473,60 @@ class ObservationRepository:
             )
             for r in self._session.scalars(statement)
         ]
+
+    def window_samples(
+        self,
+        component_ids: Sequence[uuid.UUID],
+        metric_name: str,
+        after: datetime,
+        until: datetime,
+    ) -> list[StoredSample]:
+        """Samples of one metric in (after, until]; served by the unique index per component."""
+        statement = select(
+            MetricSampleRecord.id,
+            MetricSampleRecord.component_id,
+            MetricSampleRecord.value,
+            MetricSampleRecord.quality,
+            MetricSampleRecord.observed_at,
+        ).where(
+            MetricSampleRecord.component_id.in_(component_ids),
+            MetricSampleRecord.metric_name == metric_name,
+            MetricSampleRecord.observed_at > after,
+            MetricSampleRecord.observed_at <= until,
+        )
+        return [
+            StoredSample(
+                r.id, r.component_id, metric_name, r.value, Quality(r.quality), r.observed_at
+            )
+            for r in self._session.execute(statement)
+        ]
+
+    def marks(
+        self, component_ids: Sequence[uuid.UUID], after: datetime, until: datetime
+    ) -> list[ObservationMark]:
+        """One mark per component and instant observed in (after, until], samples first."""
+        marks: dict[tuple[uuid.UUID, datetime], ObservationMark] = {}
+        for record, is_sample in ((MetricSampleRecord, True), (LogEventRecord, False)):
+            statement = (
+                select(record.component_id, record.observed_at, func.min(record.id))
+                .where(
+                    record.component_id.in_(component_ids),
+                    record.observed_at > after,
+                    record.observed_at <= until,
+                )
+                .group_by(record.component_id, record.observed_at)
+            )
+            for component_id, observed_at, first_id in self._session.execute(statement):
+                marks.setdefault(
+                    (component_id, observed_at),
+                    ObservationMark(
+                        component_id,
+                        observed_at,
+                        first_id if is_sample else None,
+                        None if is_sample else first_id,
+                    ),
+                )
+        return list(marks.values())
 
     def purge_before(self, cutoff: datetime, batch: int) -> int:
         """Deletes at most `batch` samples and `batch` logs observed before `cutoff`."""

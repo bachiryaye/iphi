@@ -18,6 +18,7 @@ from app.connectors.domain import (
     ObservedSample,
 )
 from app.core.observation import LogSeverity, ObservationSource, Quality
+from app.core.retention import RetentionJob
 from app.identity.domain import AuditContext
 from app.ingestion.domain.collection import (
     MAX_ERROR_MESSAGE_CHARS,
@@ -28,7 +29,7 @@ from app.ingestion.domain.validation import IngestionPolicy
 from app.ingestion.repository import (
     MetricSampleRecord,
 )
-from app.ingestion.service import CollectionService, RetentionJob
+from app.ingestion.service import CollectionService, purge_observations
 from app.simulation.domain.catalog import ScenarioKey
 from app.simulation.domain.clock import ClockMode
 from app.simulation.domain.platform import SIMULATED_PLATFORM
@@ -384,7 +385,7 @@ def test_retention_purges_old_observations_in_bounded_batches(
     times = [old - timedelta(seconds=5 * i) for i in range(30)] + [recent]
     collector = component_id(session_factory, "collector-01")
     insert_samples(session_factory, collector, [(t, 1.0) for t in times])
-    job = RetentionJob(timedelta(days=7))
+    job = RetentionJob(timedelta(days=7), [purge_observations])
 
     deleted = job.purge_if_due(session_factory, NOW)
     again = job.purge_if_due(session_factory, NOW + timedelta(minutes=5))

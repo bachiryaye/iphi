@@ -8,9 +8,10 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.bootstrap import seed
 from app.core.db import create_session_factory
+from app.core.observation import tick_of
 from app.identity.domain import AuditContext
 from app.simulation.domain.catalog import ScenarioKey
-from app.simulation.domain.clock import ClockMode, tick_of
+from app.simulation.domain.clock import ClockMode
 from app.simulation.domain.errors import (
     BaselineRunPermanentError,
     ScenarioRunNotActiveError,
