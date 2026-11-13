@@ -31,6 +31,7 @@ from sqlalchemy.sql.selectable import CompoundSelect
 from sqlalchemy.types import Uuid
 
 from app.core.db import Base, check_in
+from app.core.retention import RowHold
 from app.health.domain.engine import (
     ComponentSnapshot,
     EvaluationKey,
@@ -385,8 +386,9 @@ class RuleEvaluationRepository:
         return {r.id: _to_evaluation(r, rules[r.rule_id]) for r in records}
 
 
-def purge_evaluations_before(session: Session, cutoff: datetime, batch: int) -> int:
-    """Deletes at most `batch` evaluations older than `cutoff` that no current state cites."""
+def purge_evaluations_before(session: Session, cutoff: datetime, batch: int, hold: RowHold) -> int:
+    """Deletes at most `batch` evaluations older than `cutoff` that neither a current state nor
+    a hold cites."""
     record = RuleEvaluationRecord
     cited: CompoundSelect[tuple[int]] = union(
         select(RuleStateRecord.last_evaluation_id),
@@ -395,9 +397,10 @@ def purge_evaluations_before(session: Session, cutoff: datetime, batch: int) -> 
             ComponentHealthRecord.reason_evaluation_id.is_not(None)
         ),
     )
-    # TODO(US-05): also keep evaluations cited as incident evidence.
     oldest = (
-        select(record.id).where(record.evaluated_at < cutoff, record.id.not_in(cited)).limit(batch)
+        select(record.id)
+        .where(record.evaluated_at < cutoff, record.id.not_in(cited), ~hold(record.id.expression))
+        .limit(batch)
     )
     result = session.execute(delete(record).where(record.id.in_(oldest.scalar_subquery())))
     return cast(CursorResult[Any], result).rowcount
@@ -465,7 +468,7 @@ class RuleStateRepository:
         return {
             (r.component_id, r.rule_key): RuleTrack(
                 _progress(r), r.last_evaluated_at, recorded_at, r.last_evaluation_id,
-                r.state_evaluation_id,
+                r.state_evaluation_id, HealthState(r.raw_state),
             )
             for r, recorded_at in self._session.execute(statement)
         }  # fmt: skip
@@ -628,9 +631,11 @@ class HealthSnapshotRepository:
         )
 
 
-def clear_health_state(session: Session) -> int:
-    """Deletes every derived state and evaluation; rule versions stay. Returns evaluations."""
+def clear_health_state(session: Session, hold: RowHold) -> int:
+    """Deletes every derived state and every evaluation but held ones; rule versions stay.
+    Returns the evaluations deleted."""
     for record in (ComponentHealthRecord, PlatformHealthRecord, RuleStateRecord):
         session.execute(delete(record))
-    result = session.execute(delete(RuleEvaluationRecord))
+    evaluation = RuleEvaluationRecord
+    result = session.execute(delete(evaluation).where(~hold(evaluation.id.expression)))
     return cast(CursorResult[Any], result).rowcount

@@ -1,19 +1,18 @@
 import uuid
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
 
 import structlog
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.clock import Clock
-from app.core.exceptions import IphiError
 from app.core.observation import tick_time
 from app.health.service import HealthHistory
-from app.identity.domain import AuditAction, AuditContext, AuditEntry, AuditOutcome
-from app.identity.service import AuditLog
+from app.identity.domain import AuditAction, AuditContext
+from app.identity.service import AuditDraft, AuditedMutations
+from app.incidents.service import IncidentHistory, actor_of, evidence_holds
 from app.ingestion.service import ObservationHistory
 from app.simulation.domain.catalog import CATALOG, SCENARIOS, ScenarioDefinition, ScenarioKey
 from app.simulation.domain.clock import ClockMode, ClockState
@@ -75,34 +74,12 @@ class ResetOutcome:
     stopped_runs: int
 
 
-@dataclass(slots=True)
-class _AuditDraft:
-    platform_time: datetime | None = None
-    target_type: str | None = None
-    target_id: str | None = None
-    details: dict[str, Any] = field(default_factory=dict)
-
-    def entry(
-        self, context: AuditContext, action: AuditAction, outcome: AuditOutcome, at: datetime
-    ) -> AuditEntry:
-        return AuditEntry(
-            context,
-            action,
-            outcome,
-            at,
-            self.platform_time,
-            self.target_type,
-            self.target_id,
-            dict(self.details),
-        )
-
-
 @dataclass(frozen=True, slots=True)
 class _Mutation:
     session: Session
     wall_now: datetime
     clock: ClockState
-    audit: _AuditDraft
+    audit: AuditDraft
 
     @property
     def platform_now(self) -> datetime:
@@ -121,6 +98,7 @@ class SimulationService:
     ) -> None:
         self._session_factory = session_factory
         self._wall = wall
+        self._audited = AuditedMutations(session_factory, wall)
         self._topology_service = topology
         self._platform = platform
         self._loaded_topology: PlatformTopology | None = None
@@ -219,14 +197,22 @@ class SimulationService:
                 runs.finish(run.id, RunStatus.STOPPED, started_at)
             ClockRepository(mutation.session).save(clock, mutation.wall_now)
             baseline = runs.add(baseline_plan(started_at, seed, context.actor_label))
-            purged = ObservationHistory(mutation.session).purge_source(OBSERVATION_SOURCE)
-            mutation.audit.details["purged_observations"] = purged
+            # Incidents outlive the history they stood on: they close, their evidence stays.
+            closed = IncidentHistory(mutation.session).close_all(actor_of(context), started_at)
+            holds = evidence_holds()
+            purged = ObservationHistory(mutation.session).purge_source(OBSERVATION_SOURCE, holds)
             # V1 platforms are simulated only: every health state derives from what was purged.
-            mutation.audit.details["purged_evaluations"] = HealthHistory(mutation.session).clear()
+            evaluations = HealthHistory(mutation.session).clear(holds)
+            mutation.audit.details.update(
+                closed_incidents=closed,
+                purged_observations=purged,
+                purged_evaluations=evaluations,
+            )
         log.info(
             "simulation.reset",
             seed=seed,
             stopped_runs=len(active),
+            closed_incidents=closed,
             purged_observations=purged,
             platform_time=started_at,
         )
@@ -262,6 +248,25 @@ class SimulationService:
         self._complete_due(self._runs(session), now)
         return now
 
+    def run_on(self, session: Session, component_id: uuid.UUID, at: datetime) -> uuid.UUID | None:
+        """The run that shaped the component's observations at `at`: its fault run, otherwise
+        the baseline. Reads in the caller's unit of work."""
+        topology = self._topology()
+        key = next((c.key for c in topology.components if c.id == component_id), None)
+        covering = [r for r in self._runs(session).overlapping(at, at) if r.covers(at)]
+        fault = next((r for r in covering if key is not None and r.target_key == key), None)
+        baseline = next((r for r in covering if r.scenario is ScenarioKey.BASELINE), None)
+        chosen = fault or baseline
+        return None if chosen is None else chosen.id
+
+    def history_start(self, session: Session) -> datetime | None:
+        """Start of the active baseline: the latest seed or reset. Reads in the caller's unit
+        of work."""
+        baseline = next(
+            (r for r in self._runs(session).active() if r.scenario is ScenarioKey.BASELINE), None
+        )
+        return None if baseline is None else baseline.started_at
+
     def coverage_start(self) -> datetime:
         """Start of the active baseline: no earlier sample slot belongs to the current history."""
         with self._session_factory() as session:
@@ -283,24 +288,11 @@ class SimulationService:
 
     @contextmanager
     def _mutation(self, context: AuditContext, action: AuditAction) -> Iterator[_Mutation]:
-        """Serialized, audited unit of work; a refused action is audited as `failed` (X-14)."""
-        wall_now = self._wall.now()
-        draft = _AuditDraft()
-        try:
-            with self._session_factory.begin() as session:
-                clock = self._require_clock(ClockRepository(session).get(for_update=True))
-                draft.platform_time = clock.platform_time(wall_now)
-                yield _Mutation(session, wall_now, clock, draft)
-                AuditLog(session).record(
-                    draft.entry(context, action, AuditOutcome.ALLOWED, wall_now)
-                )
-        except IphiError as exc:
-            draft.details["error_code"] = exc.code
-            with self._session_factory.begin() as session:
-                AuditLog(session).record(
-                    draft.entry(context, action, AuditOutcome.FAILED, wall_now)
-                )
-            raise
+        """Audited unit of work, serialized with cycles and other mutations by the clock lock."""
+        with self._audited.run(context, action) as work:
+            clock = self._require_clock(ClockRepository(work.session).get(for_update=True))
+            work.audit.platform_time = clock.platform_time(work.wall_now)
+            yield _Mutation(work.session, work.wall_now, clock, work.audit)
 
     @staticmethod
     def _complete_due(runs: RunRepository, now: datetime) -> list[ScenarioRun]:

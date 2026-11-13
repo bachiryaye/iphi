@@ -2,6 +2,7 @@ import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
+from functools import partial
 from typing import Any
 
 import pytest
@@ -18,7 +19,7 @@ from app.connectors.domain import (
     ObservedSample,
 )
 from app.core.observation import LogSeverity, ObservationSource, Quality
-from app.core.retention import RetentionJob
+from app.core.retention import EvidenceHolds, RetentionJob
 from app.identity.domain import AuditContext
 from app.ingestion.domain.collection import (
     MAX_ERROR_MESSAGE_CHARS,
@@ -355,11 +356,20 @@ def test_reset_purges_simulated_history_and_never_replays_stopped_runs(
     cycle.run_cycle(0)
 
     reset_at = reset.baseline.started_at.isoformat()
-    assert count(engine, "metric_sample", f"observed_at < '{reset_at}'") == 0
+    # Samples cited as incident evidence outlive the reset (ADR 0017); nothing else does.
+    unheld = (
+        "NOT EXISTS (SELECT 1 FROM incident_evidence i WHERE i.metric_sample_id = metric_sample.id)"
+    )
+    assert count(engine, "metric_sample", f"observed_at < '{reset_at}' AND {unheld}") == 0
     assert count(engine, "log_event", "attributes ? 'request_id'") == 0
     assert count(engine, "metric_sample") > 0
     with engine.connect() as connection:
-        runs = connection.execute(text("SELECT DISTINCT scenario_run_id FROM metric_sample")).all()
+        runs = connection.execute(
+            text(
+                "SELECT DISTINCT scenario_run_id FROM metric_sample m WHERE NOT EXISTS "
+                "(SELECT 1 FROM incident_evidence i WHERE i.metric_sample_id = m.id)"
+            )
+        ).all()
     assert [r[0] for r in runs] == [reset.baseline.id]
     assert reset.baseline.started_at in samples_per_tick(engine)
 
@@ -385,7 +395,7 @@ def test_retention_purges_old_observations_in_bounded_batches(
     times = [old - timedelta(seconds=5 * i) for i in range(30)] + [recent]
     collector = component_id(session_factory, "collector-01")
     insert_samples(session_factory, collector, [(t, 1.0) for t in times])
-    job = RetentionJob(timedelta(days=7), [purge_observations])
+    job = RetentionJob(timedelta(days=7), [partial(purge_observations, holds=EvidenceHolds())])
 
     deleted = job.purge_if_due(session_factory, NOW)
     again = job.purge_if_due(session_factory, NOW + timedelta(minutes=5))

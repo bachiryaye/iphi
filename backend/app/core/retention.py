@@ -1,9 +1,11 @@
 """Scheduled purge of history older than the retention period (ADR 0008)."""
 
 from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 import structlog
+from sqlalchemy import ColumnElement, false
 from sqlalchemy.orm import Session, sessionmaker
 
 RETENTION_BATCH = 50_000
@@ -11,6 +13,26 @@ RETENTION_INTERVAL = timedelta(hours=1)
 
 type Purge = Callable[[Session, datetime, int], int]
 """Deletes at most `batch` rows per table observed before `cutoff`; returns the count."""
+
+type RowHold = Callable[[ColumnElement[int]], ColumnElement[bool]]
+"""SQL predicate on a row ID column, true for the rows a purge must keep."""
+
+
+def no_hold(_row_id: ColumnElement[int]) -> ColumnElement[bool]:
+    return false()
+
+
+@dataclass(frozen=True, slots=True)
+class EvidenceHolds:
+    """Rows cited as incident evidence, which neither retention nor reset may delete (ADR 0008).
+
+    The incidents module provides them; ingestion and health apply them without depending on it.
+    """
+
+    samples: RowHold = no_hold
+    logs: RowHold = no_hold
+    evaluations: RowHold = no_hold
+
 
 log = structlog.get_logger(__name__)
 

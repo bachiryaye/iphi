@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
+from functools import partial
 
 import pytest
 import structlog
@@ -13,7 +14,7 @@ from app.connectors.domain import CollectionRequest, CollectionResult
 from app.connectors.simulation import SimulationConnector
 from app.core.db import create_session_factory
 from app.core.migrations import alembic_config
-from app.core.retention import RetentionJob
+from app.core.retention import EvidenceHolds, RetentionJob
 from app.health.config import DEFAULT_RULES_PATH, load_rules
 from app.health.domain.states import HealthState
 from app.health.service import HealthEvaluation, HealthRuleCatalog, purge_evaluations
@@ -24,7 +25,7 @@ from app.simulation.domain.platform import SIMULATED_PLATFORM
 from app.topology.domain import ComponentSpec, ComponentType, Criticality, TopologySpec
 from app.topology.service import TopologyService
 from app.worker import Worker
-from tests.fakes import FixedClock, idle_steps
+from tests.fakes import FixedClock, NoHistoryOrigin, idle_steps
 from tests.health_runs import CONTEXT, Platform, manual_platform
 from tests.simulation_runs import GOLDEN_SEED, GOLDEN_START
 
@@ -196,8 +197,10 @@ def test_reset_restarts_health_from_unknown(platform: Platform) -> None:
     platform.simulation.reset(GOLDEN_SEED, CONTEXT)
 
     (counts,) = platform.rows(
-        "SELECT (SELECT count(*) FROM rule_evaluation), (SELECT count(*) FROM rule_state), "
-        "(SELECT count(*) FROM component_health), (SELECT count(*) FROM platform_health)"
+        "SELECT (SELECT count(*) FROM rule_evaluation e WHERE NOT EXISTS (SELECT 1 FROM "
+        "incident_evidence i WHERE i.rule_evaluation_id = e.id)), "
+        "(SELECT count(*) FROM rule_state), (SELECT count(*) FROM component_health), "
+        "(SELECT count(*) FROM platform_health)"
     )
     assert tuple(counts) == (0, 0, 0, 0)
 
@@ -208,7 +211,7 @@ def test_retention_keeps_the_evaluations_current_states_cite(platform: Platform)
         total, newest = connection.execute(
             text("SELECT count(*), max(evaluated_at) FROM rule_evaluation")
         ).one()
-    job = RetentionJob(timedelta(0), [purge_evaluations])
+    job = RetentionJob(timedelta(0), [partial(purge_evaluations, holds=EvidenceHolds())])
     session_factory = create_session_factory(platform.engine)
 
     deleted = job.purge_if_due(session_factory, newest + timedelta(seconds=1))
@@ -310,9 +313,9 @@ def test_evaluating_one_platform_keeps_the_rule_states_of_another(
     TopologyService(session_factory).ensure(other)
     lookback = timedelta(minutes=10)
     with session_factory.begin() as session:
-        HealthEvaluation(TopologyService(session_factory), "other-plant", lookback).evaluate(
-            session, platform.simulation.clock().platform_time
-        )
+        HealthEvaluation(
+            TopologyService(session_factory), "other-plant", lookback, NoHistoryOrigin()
+        ).evaluate(session, platform.simulation.clock().platform_time)
 
     platform.advance(30)
 

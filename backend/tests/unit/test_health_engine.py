@@ -164,7 +164,7 @@ def test_slots_to_evaluate_resume_after_the_oldest_rule_within_the_bound(
 def test_skipped_slots_break_the_streak_in_progress() -> None:
     # Two breaching slots before a gap and one after: not three consecutive evaluations.
     rule = RULES[0]
-    before = RuleTrack(RuleProgress(H, T0, C, 2), SLOTS[0], SLOTS[0], 1, 1)
+    before = RuleTrack(RuleProgress(H, T0, C, 2), SLOTS[0], SLOTS[0], 1, 1, C)
     plan = EvaluationPlan(
         TOPOLOGY, [rule], [SLOTS[30]], {(GATEWAY.id, rule.key): before}, {}, None, INDEX
     )
@@ -175,4 +175,4 @@ def test_skipped_slots_break_the_streak_in_progress() -> None:
 
 
 def _track(at: datetime) -> RuleTrack:
-    return RuleTrack(RuleProgress(H, at), at, at, 1, 1)
+    return RuleTrack(RuleProgress(H, at), at, at, 1, 1, H)

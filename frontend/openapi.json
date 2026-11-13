@@ -1,6 +1,14 @@
 {
   "components": {
     "schemas": {
+      "ActorType": {
+        "enum": [
+          "system",
+          "user"
+        ],
+        "title": "ActorType",
+        "type": "string"
+      },
       "AdvanceClockIn": {
         "additionalProperties": false,
         "properties": {
@@ -112,6 +120,45 @@
         ],
         "title": "CheckStatus",
         "type": "string"
+      },
+      "CitationOut": {
+        "properties": {
+          "evidence_id": {
+            "title": "Evidence Id",
+            "type": "integer"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "evidence_id",
+          "label"
+        ],
+        "title": "CitationOut",
+        "type": "object"
+      },
+      "ClaimOut": {
+        "properties": {
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/CitationOut"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "evidence"
+        ],
+        "title": "ClaimOut",
+        "type": "object"
       },
       "ClockMode": {
         "enum": [
@@ -621,6 +668,43 @@
         "title": "ConnectorStatusOut",
         "type": "object"
       },
+      "CoveredRuleOut": {
+        "properties": {
+          "alerting": {
+            "description": "Whether this rule still calls for the incident.",
+            "title": "Alerting",
+            "type": "boolean"
+          },
+          "evaluated_at": {
+            "format": "date-time",
+            "title": "Evaluated At",
+            "type": "string"
+          },
+          "failure_class": {
+            "$ref": "#/components/schemas/FailureClass"
+          },
+          "raw_state": {
+            "$ref": "#/components/schemas/HealthState"
+          },
+          "rule": {
+            "$ref": "#/components/schemas/RuleRefOut"
+          },
+          "state": {
+            "$ref": "#/components/schemas/HealthState",
+            "description": "Stored debounced state of the rule."
+          }
+        },
+        "required": [
+          "rule",
+          "failure_class",
+          "state",
+          "raw_state",
+          "evaluated_at",
+          "alerting"
+        ],
+        "title": "CoveredRuleOut",
+        "type": "object"
+      },
       "Criticality": {
         "enum": [
           "high",
@@ -676,6 +760,137 @@
         "title": "DependencyOut",
         "type": "object"
       },
+      "DiagnosticKind": {
+        "enum": [
+          "deterministic",
+          "llm"
+        ],
+        "title": "DiagnosticKind",
+        "type": "string"
+      },
+      "DiagnosticListOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DiagnosticOut"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "DiagnosticListOut",
+        "type": "object"
+      },
+      "DiagnosticOut": {
+        "properties": {
+          "created_at": {
+            "description": "Platform time.",
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "title": "Created By",
+            "type": "string"
+          },
+          "environment": {
+            "const": "simulation",
+            "default": "simulation",
+            "title": "Environment",
+            "type": "string"
+          },
+          "evidence_set_hash": {
+            "title": "Evidence Set Hash",
+            "type": "string"
+          },
+          "hypotheses": {
+            "description": "Correlations, never proven causes.",
+            "items": {
+              "$ref": "#/components/schemas/HypothesisOut"
+            },
+            "title": "Hypotheses",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "incident_id": {
+            "format": "uuid",
+            "title": "Incident Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/DiagnosticKind"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "observed_facts": {
+            "items": {
+              "$ref": "#/components/schemas/ClaimOut"
+            },
+            "title": "Observed Facts",
+            "type": "array"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "recommended_checks": {
+            "items": {
+              "$ref": "#/components/schemas/ClaimOut"
+            },
+            "title": "Recommended Checks",
+            "type": "array"
+          },
+          "status": {
+            "$ref": "#/components/schemas/DiagnosticStatus"
+          },
+          "validation": {
+            "$ref": "#/components/schemas/ValidationOut"
+          }
+        },
+        "required": [
+          "id",
+          "incident_id",
+          "kind",
+          "provider",
+          "model",
+          "status",
+          "observed_facts",
+          "hypotheses",
+          "recommended_checks",
+          "limitations",
+          "evidence_set_hash",
+          "validation",
+          "created_by",
+          "created_at"
+        ],
+        "title": "DiagnosticOut",
+        "type": "object"
+      },
+      "DiagnosticStatus": {
+        "enum": [
+          "succeeded",
+          "failed",
+          "rejected"
+        ],
+        "title": "DiagnosticStatus",
+        "type": "string"
+      },
       "EvaluationOut": {
         "properties": {
           "component": {
@@ -687,7 +902,7 @@
             "type": "string"
           },
           "evidence": {
-            "$ref": "#/components/schemas/EvidenceOut"
+            "$ref": "#/components/schemas/app__api__health__EvidenceOut"
           },
           "explanation": {
             "title": "Explanation",
@@ -792,31 +1007,140 @@
         "title": "EvaluationPageOut",
         "type": "object"
       },
-      "EvidenceOut": {
+      "EventOut": {
         "properties": {
-          "log_ids": {
-            "description": "Stored log events (GET /logs items).",
-            "items": {
-              "type": "integer"
-            },
-            "title": "Log Ids",
-            "type": "array"
+          "actor_label": {
+            "title": "Actor Label",
+            "type": "string"
           },
-          "sample_ids": {
-            "description": "Stored metric samples (GET /metrics points).",
-            "items": {
-              "type": "integer"
+          "actor_type": {
+            "$ref": "#/components/schemas/ActorType"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "occurred_at": {
+            "description": "Platform time.",
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PayloadValue"
             },
-            "title": "Sample Ids",
-            "type": "array"
+            "title": "Payload",
+            "type": "object"
+          },
+          "type": {
+            "$ref": "#/components/schemas/EventType"
           }
         },
         "required": [
-          "sample_ids",
-          "log_ids"
+          "id",
+          "type",
+          "occurred_at",
+          "actor_type",
+          "actor_label",
+          "payload"
         ],
-        "title": "EvidenceOut",
+        "title": "EventOut",
         "type": "object"
+      },
+      "EventPageOut": {
+        "properties": {
+          "environment": {
+            "const": "simulation",
+            "default": "simulation",
+            "title": "Environment",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EventOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "EventPageOut",
+        "type": "object"
+      },
+      "EventType": {
+        "enum": [
+          "opened",
+          "occurrence",
+          "severity_changed",
+          "acknowledged",
+          "commented",
+          "resolved",
+          "reopened",
+          "reclassified",
+          "downstream_suppressed",
+          "diagnostic_added"
+        ],
+        "title": "EventType",
+        "type": "string"
+      },
+      "EvidencePageOut": {
+        "properties": {
+          "environment": {
+            "const": "simulation",
+            "default": "simulation",
+            "title": "Environment",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/app__api__incidents__EvidenceOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "EvidencePageOut",
+        "type": "object"
+      },
+      "EvidenceRole": {
+        "enum": [
+          "trigger",
+          "supporting",
+          "impact",
+          "recovery"
+        ],
+        "title": "EvidenceRole",
+        "type": "string"
       },
       "ExpectedOutcomeOut": {
         "properties": {
@@ -1193,6 +1517,533 @@
         "title": "HeartbeatOut",
         "type": "object"
       },
+      "HypothesisOut": {
+        "properties": {
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/CitationOut"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "uncertainty": {
+            "$ref": "#/components/schemas/Uncertainty"
+          }
+        },
+        "required": [
+          "text",
+          "evidence",
+          "uncertainty"
+        ],
+        "title": "HypothesisOut",
+        "type": "object"
+      },
+      "ImpactOut": {
+        "properties": {
+          "component": {
+            "$ref": "#/components/schemas/ComponentRefOut"
+          },
+          "since": {
+            "format": "date-time",
+            "title": "Since",
+            "type": "string"
+          }
+        },
+        "required": [
+          "component",
+          "since"
+        ],
+        "title": "ImpactOut",
+        "type": "object"
+      },
+      "IncidentDetailOut": {
+        "properties": {
+          "acknowledged_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acknowledged At"
+          },
+          "acknowledged_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acknowledged By"
+          },
+          "component": {
+            "$ref": "#/components/schemas/ComponentRefOut"
+          },
+          "condition": {
+            "description": "Rules the incident covers; it resolves itself once all are Healthy.",
+            "items": {
+              "$ref": "#/components/schemas/CoveredRuleOut"
+            },
+            "title": "Condition",
+            "type": "array"
+          },
+          "environment": {
+            "const": "simulation",
+            "default": "simulation",
+            "title": "Environment",
+            "type": "string"
+          },
+          "event_count": {
+            "title": "Event Count",
+            "type": "integer"
+          },
+          "events": {
+            "description": "First 200 events, oldest first.",
+            "items": {
+              "$ref": "#/components/schemas/EventOut"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "events_next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Events Next Cursor"
+          },
+          "evidence": {
+            "description": "First 200 items, oldest first.",
+            "items": {
+              "$ref": "#/components/schemas/app__api__incidents__EvidenceOut"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "evidence_count": {
+            "title": "Evidence Count",
+            "type": "integer"
+          },
+          "evidence_next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Next Cursor"
+          },
+          "failure_class": {
+            "$ref": "#/components/schemas/FailureClass"
+          },
+          "fingerprint": {
+            "description": "sha256(platform|component|failure class).",
+            "title": "Fingerprint",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "impacted": {
+            "description": "Downstream components whose own alerts were suppressed into this incident.",
+            "items": {
+              "$ref": "#/components/schemas/ImpactOut"
+            },
+            "title": "Impacted",
+            "type": "array"
+          },
+          "last_seen_at": {
+            "description": "Sample slot of the latest occurrence.",
+            "format": "date-time",
+            "title": "Last Seen At",
+            "type": "string"
+          },
+          "number": {
+            "title": "Number",
+            "type": "integer"
+          },
+          "occurrence_count": {
+            "description": "Stored evaluations that confirmed the condition.",
+            "title": "Occurrence Count",
+            "type": "integer"
+          },
+          "opened_at": {
+            "format": "date-time",
+            "title": "Opened At",
+            "type": "string"
+          },
+          "peak_severity": {
+            "$ref": "#/components/schemas/IncidentSeverity"
+          },
+          "platform_id": {
+            "format": "uuid",
+            "title": "Platform Id",
+            "type": "string"
+          },
+          "reference": {
+            "description": "Human-readable identifier, INC-<number>.",
+            "title": "Reference",
+            "type": "string"
+          },
+          "reopen_count": {
+            "title": "Reopen Count",
+            "type": "integer"
+          },
+          "resolution": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Resolution"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resolvable": {
+            "description": "Manual resolution is refused while a rule alerts.",
+            "title": "Resolvable",
+            "type": "boolean"
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved At"
+          },
+          "resolved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved By"
+          },
+          "scenario_run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenario Run Id"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/IncidentSeverity",
+            "description": "Current severity of the condition."
+          },
+          "source": {
+            "$ref": "#/components/schemas/ObservationSource"
+          },
+          "status": {
+            "$ref": "#/components/schemas/IncidentStatus"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "reference",
+          "title",
+          "platform_id",
+          "component",
+          "failure_class",
+          "fingerprint",
+          "status",
+          "severity",
+          "peak_severity",
+          "opened_at",
+          "last_seen_at",
+          "acknowledged_at",
+          "acknowledged_by",
+          "resolved_at",
+          "resolved_by",
+          "resolution",
+          "occurrence_count",
+          "reopen_count",
+          "evidence_count",
+          "impacted",
+          "scenario_run_id",
+          "source",
+          "condition",
+          "resolvable",
+          "evidence",
+          "evidence_next_cursor",
+          "events",
+          "event_count",
+          "events_next_cursor"
+        ],
+        "title": "IncidentDetailOut",
+        "type": "object"
+      },
+      "IncidentOut": {
+        "properties": {
+          "acknowledged_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acknowledged At"
+          },
+          "acknowledged_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acknowledged By"
+          },
+          "component": {
+            "$ref": "#/components/schemas/ComponentRefOut"
+          },
+          "environment": {
+            "const": "simulation",
+            "default": "simulation",
+            "title": "Environment",
+            "type": "string"
+          },
+          "evidence_count": {
+            "title": "Evidence Count",
+            "type": "integer"
+          },
+          "failure_class": {
+            "$ref": "#/components/schemas/FailureClass"
+          },
+          "fingerprint": {
+            "description": "sha256(platform|component|failure class).",
+            "title": "Fingerprint",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "impacted": {
+            "description": "Downstream components whose own alerts were suppressed into this incident.",
+            "items": {
+              "$ref": "#/components/schemas/ImpactOut"
+            },
+            "title": "Impacted",
+            "type": "array"
+          },
+          "last_seen_at": {
+            "description": "Sample slot of the latest occurrence.",
+            "format": "date-time",
+            "title": "Last Seen At",
+            "type": "string"
+          },
+          "number": {
+            "title": "Number",
+            "type": "integer"
+          },
+          "occurrence_count": {
+            "description": "Stored evaluations that confirmed the condition.",
+            "title": "Occurrence Count",
+            "type": "integer"
+          },
+          "opened_at": {
+            "format": "date-time",
+            "title": "Opened At",
+            "type": "string"
+          },
+          "peak_severity": {
+            "$ref": "#/components/schemas/IncidentSeverity"
+          },
+          "platform_id": {
+            "format": "uuid",
+            "title": "Platform Id",
+            "type": "string"
+          },
+          "reference": {
+            "description": "Human-readable identifier, INC-<number>.",
+            "title": "Reference",
+            "type": "string"
+          },
+          "reopen_count": {
+            "title": "Reopen Count",
+            "type": "integer"
+          },
+          "resolution": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Resolution"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved At"
+          },
+          "resolved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved By"
+          },
+          "scenario_run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenario Run Id"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/IncidentSeverity",
+            "description": "Current severity of the condition."
+          },
+          "source": {
+            "$ref": "#/components/schemas/ObservationSource"
+          },
+          "status": {
+            "$ref": "#/components/schemas/IncidentStatus"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "reference",
+          "title",
+          "platform_id",
+          "component",
+          "failure_class",
+          "fingerprint",
+          "status",
+          "severity",
+          "peak_severity",
+          "opened_at",
+          "last_seen_at",
+          "acknowledged_at",
+          "acknowledged_by",
+          "resolved_at",
+          "resolved_by",
+          "resolution",
+          "occurrence_count",
+          "reopen_count",
+          "evidence_count",
+          "impacted",
+          "scenario_run_id",
+          "source"
+        ],
+        "title": "IncidentOut",
+        "type": "object"
+      },
+      "IncidentPageOut": {
+        "properties": {
+          "environment": {
+            "const": "simulation",
+            "default": "simulation",
+            "title": "Environment",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/IncidentOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "IncidentPageOut",
+        "type": "object"
+      },
+      "IncidentSeverity": {
+        "description": "Declared from least to most severe.",
+        "enum": [
+          "warning",
+          "critical"
+        ],
+        "title": "IncidentSeverity",
+        "type": "string"
+      },
+      "IncidentStatus": {
+        "enum": [
+          "open",
+          "acknowledged",
+          "resolved"
+        ],
+        "title": "IncidentStatus",
+        "type": "string"
+      },
       "LevelOut": {
         "properties": {
           "clear": {
@@ -1223,6 +2074,56 @@
           }
         },
         "title": "LivenessOut",
+        "type": "object"
+      },
+      "LogEvidenceOut": {
+        "properties": {
+          "fingerprint": {
+            "title": "Fingerprint",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "scenario_run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenario Run Id"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/LogSeverity"
+          },
+          "source": {
+            "$ref": "#/components/schemas/ObservationSource"
+          }
+        },
+        "required": [
+          "id",
+          "severity",
+          "message",
+          "fingerprint",
+          "observed_at",
+          "source",
+          "scenario_run_id"
+        ],
+        "title": "LogEvidenceOut",
         "type": "object"
       },
       "LogOut": {
@@ -1552,6 +2453,25 @@
         ],
         "title": "ParameterOut",
         "type": "object"
+      },
+      "PayloadValue": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ]
       },
       "PlatformHealthOut": {
         "properties": {
@@ -1889,6 +2809,32 @@
         "title": "ResetOut",
         "type": "object"
       },
+      "Resolution": {
+        "enum": [
+          "auto_recovered",
+          "manual",
+          "reset"
+        ],
+        "title": "Resolution",
+        "type": "string"
+      },
+      "ResolveIn": {
+        "additionalProperties": false,
+        "properties": {
+          "comment": {
+            "description": "Why the incident is closed; kept in its timeline.",
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Comment",
+            "type": "string"
+          }
+        },
+        "required": [
+          "comment"
+        ],
+        "title": "ResolveIn",
+        "type": "object"
+      },
       "RuleRefOut": {
         "properties": {
           "id": {
@@ -1932,7 +2878,7 @@
             "type": "string"
           },
           "evidence": {
-            "$ref": "#/components/schemas/EvidenceOut"
+            "$ref": "#/components/schemas/app__api__health__EvidenceOut"
           },
           "explanation": {
             "title": "Explanation",
@@ -2014,6 +2960,61 @@
         ],
         "title": "RunStatus",
         "type": "string"
+      },
+      "SampleEvidenceOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "metric_name": {
+            "title": "Metric Name",
+            "type": "string"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "quality": {
+            "$ref": "#/components/schemas/Quality"
+          },
+          "scenario_run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenario Run Id"
+          },
+          "source": {
+            "$ref": "#/components/schemas/ObservationSource"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "metric_name",
+          "value",
+          "unit",
+          "quality",
+          "observed_at",
+          "source",
+          "scenario_run_id"
+        ],
+        "title": "SampleEvidenceOut",
+        "type": "object"
       },
       "SamplePointOut": {
         "properties": {
@@ -2567,6 +3568,42 @@
         "title": "TopologyOut",
         "type": "object"
       },
+      "Uncertainty": {
+        "enum": [
+          "low",
+          "medium",
+          "high"
+        ],
+        "title": "Uncertainty",
+        "type": "string"
+      },
+      "ValidationOut": {
+        "properties": {
+          "checked_claims": {
+            "title": "Checked Claims",
+            "type": "integer"
+          },
+          "dropped_citations": {
+            "title": "Dropped Citations",
+            "type": "integer"
+          },
+          "removed": {
+            "description": "Claims dropped: no citation in the evidence set.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Removed",
+            "type": "array"
+          }
+        },
+        "required": [
+          "checked_claims",
+          "removed",
+          "dropped_citations"
+        ],
+        "title": "ValidationOut",
+        "type": "object"
+      },
       "WorkerStatusOut": {
         "properties": {
           "detail": {
@@ -2594,13 +3631,122 @@
         ],
         "title": "WorkerStatusOut",
         "type": "object"
+      },
+      "app__api__health__EvidenceOut": {
+        "properties": {
+          "log_ids": {
+            "description": "Stored log events (GET /logs items).",
+            "items": {
+              "type": "integer"
+            },
+            "title": "Log Ids",
+            "type": "array"
+          },
+          "sample_ids": {
+            "description": "Stored metric samples (GET /metrics points).",
+            "items": {
+              "type": "integer"
+            },
+            "title": "Sample Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "sample_ids",
+          "log_ids"
+        ],
+        "title": "EvidenceOut",
+        "type": "object"
+      },
+      "app__api__incidents__EvidenceOut": {
+        "properties": {
+          "added_at": {
+            "format": "date-time",
+            "title": "Added At",
+            "type": "string"
+          },
+          "component": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ComponentRefOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evaluation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EvaluationOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "evaluation",
+              "sample",
+              "log"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "description": "Stable label within the incident: E1, E2\u2026",
+            "title": "Label",
+            "type": "string"
+          },
+          "log": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LogEvidenceOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "role": {
+            "$ref": "#/components/schemas/EvidenceRole"
+          },
+          "sample": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SampleEvidenceOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "role",
+          "kind",
+          "added_at",
+          "component",
+          "evaluation",
+          "sample",
+          "log"
+        ],
+        "title": "EvidenceOut",
+        "type": "object"
       }
     }
   },
   "info": {
     "summary": "Health intelligence for a simulated industrial data platform.",
     "title": "IPHI API",
-    "version": "0.4.0"
+    "version": "0.5.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -2832,6 +3978,598 @@
         "summary": "Health rules, read-only: active versions by default.",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/api/v1/incidents": {
+      "get": {
+        "operationId": "list_incidents_api_v1_incidents_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "platform_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Platform Id"
+            }
+          },
+          {
+            "description": "Any of; all if empty.",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "description": "Any of; all if empty.",
+              "items": {
+                "$ref": "#/components/schemas/IncidentStatus"
+              },
+              "title": "Status",
+              "type": "array"
+            }
+          },
+          {
+            "in": "query",
+            "name": "severity",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/IncidentSeverity"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Severity"
+            }
+          },
+          {
+            "in": "query",
+            "name": "component_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Component Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "failure_class",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/FailureClass"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Failure Class"
+            }
+          },
+          {
+            "description": "Opened at or after.",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Opened at or after.",
+              "title": "From"
+            }
+          },
+          {
+            "description": "Opened before.",
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Opened before.",
+              "title": "To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncidentPageOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "RFC 9457 problem details."
+          }
+        },
+        "summary": "Incidents, newest opened first, filterable.",
+        "tags": [
+          "incidents"
+        ]
+      }
+    },
+    "/api/v1/incidents/{incident_id}": {
+      "get": {
+        "operationId": "incident_detail_api_v1_incidents__incident_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "incident_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Incident Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncidentDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "RFC 9457 problem details."
+          }
+        },
+        "summary": "Incident with its condition, evidence and timeline.",
+        "tags": [
+          "incidents"
+        ]
+      }
+    },
+    "/api/v1/incidents/{incident_id}/ack": {
+      "post": {
+        "operationId": "acknowledge_incident_api_v1_incidents__incident_id__ack_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "incident_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Incident Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncidentOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "RFC 9457 problem details."
+          }
+        },
+        "summary": "Acknowledge an incident; idempotent.",
+        "tags": [
+          "incidents"
+        ]
+      }
+    },
+    "/api/v1/incidents/{incident_id}/diagnose": {
+      "post": {
+        "operationId": "diagnose_incident_api_v1_incidents__incident_id__diagnose_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "incident_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Incident Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "`llm` arrives with US-08; deterministic is always available.",
+            "in": "query",
+            "name": "mode",
+            "required": false,
+            "schema": {
+              "const": "deterministic",
+              "default": "deterministic",
+              "description": "`llm` arrives with US-08; deterministic is always available.",
+              "title": "Mode",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^[A-Za-z0-9_.:-]{1,64}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiagnosticOut"
+                }
+              }
+            },
+            "description": "Same key or unchanged evidence."
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiagnosticOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "RFC 9457 problem details."
+          }
+        },
+        "summary": "Diagnose an incident from its stored evidence.",
+        "tags": [
+          "incidents"
+        ]
+      }
+    },
+    "/api/v1/incidents/{incident_id}/diagnostics": {
+      "get": {
+        "operationId": "list_diagnostics_api_v1_incidents__incident_id__diagnostics_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "incident_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Incident Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiagnosticListOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "RFC 9457 problem details."
+          }
+        },
+        "summary": "Stored diagnostics, newest first.",
+        "tags": [
+          "incidents"
+        ]
+      }
+    },
+    "/api/v1/incidents/{incident_id}/events": {
+      "get": {
+        "operationId": "incident_events_api_v1_incidents__incident_id__events_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "incident_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Incident Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventPageOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "RFC 9457 problem details."
+          }
+        },
+        "summary": "Timeline of an incident, oldest first.",
+        "tags": [
+          "incidents"
+        ]
+      }
+    },
+    "/api/v1/incidents/{incident_id}/evidence": {
+      "get": {
+        "operationId": "incident_evidence_api_v1_incidents__incident_id__evidence_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "incident_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Incident Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidencePageOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "RFC 9457 problem details."
+          }
+        },
+        "summary": "Evidence of an incident, oldest first.",
+        "tags": [
+          "incidents"
+        ]
+      }
+    },
+    "/api/v1/incidents/{incident_id}/resolve": {
+      "post": {
+        "operationId": "resolve_incident_api_v1_incidents__incident_id__resolve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "incident_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Incident Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncidentOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "description": "INCIDENT_CONDITION_ACTIVE or INCIDENT_ILLEGAL_TRANSITION"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "RFC 9457 problem details."
+          }
+        },
+        "summary": "Resolve an incident manually; refused while its condition is active.",
+        "tags": [
+          "incidents"
         ]
       }
     },

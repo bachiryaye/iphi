@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from app.health.domain.engine import Standing
-from app.health.domain.evaluation import Measurement
+from app.health.domain.evaluation import Evidence, Measurement
 from app.health.domain.hysteresis import RuleProgress
 from app.health.domain.rules import HealthRule
 from app.health.domain.states import HealthState
@@ -73,3 +73,45 @@ class StoredPlatformHealth:
     priority: int | None
     rationale: str
     decided_by: tuple[uuid.UUID, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class RuleCondition:
+    """Debounced state of a rule on a component, and what its latest measurement alone said."""
+
+    state: HealthState
+    raw_state: HealthState
+
+
+@dataclass(frozen=True, slots=True)
+class EvaluationOutcome:
+    """A rule evaluation stored by a health pass. `sets_state`: first evaluation of the rule on
+    the component, or a state change; a rule's state changes at no other evaluation."""
+
+    id: int
+    component_id: uuid.UUID
+    rule: HealthRule
+    evaluated_at: datetime
+    state: HealthState
+    raw_state: HealthState
+    sets_state: bool
+    evidence: Evidence
+
+    @property
+    def condition(self) -> RuleCondition:
+        return RuleCondition(self.state, self.raw_state)
+
+
+@dataclass(frozen=True, slots=True)
+class HealthPass:
+    """What one evaluation pass stored, for the incident step of the same cycle.
+
+    `before`: condition per (component, rule key) when the pass started; `outcomes`: stored
+    evaluations in evaluated_at order; `rules`: the active rule versions; `history_start`: the
+    instant the current history starts after (the latest reset).
+    """
+
+    history_start: datetime | None
+    rules: tuple[HealthRule, ...]
+    before: Mapping[tuple[uuid.UUID, str], RuleCondition]
+    outcomes: tuple[EvaluationOutcome, ...]

@@ -2,15 +2,17 @@ import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
+from typing import Protocol
 
 import structlog
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.observation import SAMPLE_INTERVAL
+from app.core.retention import EvidenceHolds
 from app.health.domain.engine import (
-    EvaluationPass,
     EvaluationPlan,
     ObservationIndex,
+    RecordedEvaluation,
     Scope,
     Standing,
     Transition,
@@ -20,7 +22,14 @@ from app.health.domain.engine import (
 )
 from app.health.domain.freshness import HealthView, ReadContext, health_view
 from app.health.domain.hysteresis import required_streak
-from app.health.domain.records import EvaluationFilter, StoredEvaluation, StoredRuleState
+from app.health.domain.records import (
+    EvaluationFilter,
+    EvaluationOutcome,
+    HealthPass,
+    RuleCondition,
+    StoredEvaluation,
+    StoredRuleState,
+)
 from app.health.domain.rules import HealthRule, RuleSpec
 from app.health.domain.states import HealthState
 from app.health.repository import (
@@ -77,16 +86,29 @@ class HealthRuleCatalog:
         return created
 
 
+class HistoryOrigin(Protocol):
+    def history_start(self, session: Session) -> datetime | None:
+        """Instant the current observation history starts after (the latest reset)."""
+        ...
+
+
 class HealthEvaluation:
     """Cycle steps 4-5 (architecture §02.2), inside the caller's unit of work."""
 
-    def __init__(self, topology: TopologyService, platform_key: str, lookback: timedelta) -> None:
+    def __init__(
+        self,
+        topology: TopologyService,
+        platform_key: str,
+        lookback: timedelta,
+        origin: HistoryOrigin,
+    ) -> None:
         self._topology_service = topology
         self._platform_key = platform_key
         self._lookback = lookback
+        self._origin = origin
         self._topology: PlatformTopology | None = None
 
-    def evaluate(self, session: Session, platform_now: datetime) -> EvaluationPass | None:
+    def evaluate(self, session: Session, platform_now: datetime) -> HealthPass | None:
         """Evaluates every collected sample slot not evaluated yet; None when there is none or
         when the evaluation failed.
 
@@ -102,7 +124,7 @@ class HealthEvaluation:
             log.exception("health.evaluation_failed", platform_time=platform_now)
             return None
 
-    def _evaluate(self, session: Session, platform_now: datetime) -> EvaluationPass | None:
+    def _evaluate(self, session: Session, platform_now: datetime) -> HealthPass | None:
         topology = self._platform()
         component_ids = [c.id for c in topology.components]
         reader = ObservationReader(session)
@@ -118,20 +140,24 @@ class HealthEvaluation:
         planned = slots_to_evaluate(pairs, prior, until, self._max_slots)
         if planned.skipped:
             log.warning("health.slots_skipped", slots=planned.skipped, resumed_at=planned.slots[0])
-        if not planned.slots:
+        # ADR 0017: a reset keeps the observations cited as incident evidence. Neither they
+        # nor the slots they cover belong to the history that restarted.
+        origin = self._origin.history_start(session)
+        slots = [s for s in planned.slots if origin is None or s > origin]
+        if not slots:
             return None
         snapshots = HealthSnapshotRepository(session)
         stored_platform = snapshots.platform(topology.platform_id)
         plan = EvaluationPlan(
             topology=topology,
             rules=rules,
-            ticks=planned.slots,
+            ticks=slots,
             prior_rules=prior,
             prior_components={
                 cid: s.standing for cid, s in snapshots.components(component_ids).items()
             },
             prior_platform=None if stored_platform is None else stored_platform.standing,
-            observations=self._observations(reader, component_ids, rules, planned.slots),
+            observations=self._observations(reader, component_ids, rules, slots, origin),
         )
         result = evaluate(plan)
         ids = RuleEvaluationRepository(session, rules_repository).insert(result.recorded)
@@ -141,7 +167,12 @@ class HealthEvaluation:
             snapshots.save_platform(result.platform)
         for transition in result.transitions:
             _log_transition(transition)
-        return result
+        return HealthPass(
+            history_start=origin,
+            rules=tuple(rules),
+            before={k: RuleCondition(t.progress.state, t.raw_state) for k, t in prior.items()},
+            outcomes=tuple(_outcome(e, ids[e.key]) for e in result.recorded),
+        )
 
     @property
     def _max_slots(self) -> int:
@@ -153,8 +184,14 @@ class HealthEvaluation:
         component_ids: Sequence[uuid.UUID],
         rules: Sequence[HealthRule],
         slots: Sequence[datetime],
+        origin: datetime | None,
     ) -> ObservationIndex:
-        """Everything the windows of these slots cover, one bounded read per metric."""
+        """Everything the windows of these slots cover after `origin`, one bounded read per
+        metric."""
+
+        def bounded(after: datetime) -> datetime:
+            return after if origin is None else max(after, origin)
+
         lookback: dict[str, datetime] = {}
         absence_window = 0
         for rule in rules:
@@ -162,11 +199,13 @@ class HealthEvaluation:
             if rule.definition.measure is None:
                 absence_window = max(absence_window, window)
                 continue
-            after = slots[0] - timedelta(seconds=window)
+            after = bounded(slots[0] - timedelta(seconds=window))
             metric = rule.definition.measure.metric_name
             lookback[metric] = min(after, lookback.get(metric, after))
         marks = (
-            reader.marks(component_ids, slots[0] - timedelta(seconds=absence_window), slots[-1])
+            reader.marks(
+                component_ids, bounded(slots[0] - timedelta(seconds=absence_window)), slots[-1]
+            )
             if absence_window
             else []
         )
@@ -180,6 +219,19 @@ class HealthEvaluation:
                 raise PlatformNotFoundError(f"Platform {self._platform_key} is not seeded.")
             self._topology = topology
         return self._topology
+
+
+def _outcome(e: RecordedEvaluation, evaluation_id: int) -> EvaluationOutcome:
+    return EvaluationOutcome(
+        id=evaluation_id,
+        component_id=e.component_id,
+        rule=e.rule,
+        evaluated_at=e.evaluated_at,
+        state=e.state,
+        raw_state=e.measurement.raw_state,
+        sets_state=e.sets_state,
+        evidence=e.measurement.evidence,
+    )
 
 
 def _log_transition(t: Transition) -> None:
@@ -197,16 +249,36 @@ class HealthHistory:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def clear(self) -> int:
-        """Forgets every derived state and evaluation, as when observations are purged: states
-        restart from Unknown instead of carrying hysteresis over a history that is gone."""
-        # TODO(US-05): incidents reference evaluations; reset must close them first.
-        return clear_health_state(self._session)
+    def clear(self, holds: EvidenceHolds) -> int:
+        """Forgets every derived state and every evaluation but held evidence, as when
+        observations are purged: states restart from Unknown instead of carrying hysteresis
+        over a history that is gone."""
+        return clear_health_state(self._session, holds.evaluations)
 
 
-def purge_evaluations(session: Session, cutoff: datetime, batch: int) -> int:
-    """Retention of evaluations no current state cites (ADR 0008)."""
-    return purge_evaluations_before(session, cutoff, batch)
+class HealthReader:
+    """Health reads in the caller's unit of work, for other modules' use cases."""
+
+    def __init__(self, session: Session) -> None:
+        self._rules = HealthRuleRepository(session, ObservationReader(session).units())
+        self._session = session
+
+    def active_rules(self) -> list[HealthRule]:
+        return self._rules.active()
+
+    def rule_states(self, component_id: uuid.UUID) -> list[StoredRuleState]:
+        """Current debounced state and latest measurement of each rule on the component."""
+        return RuleStateRepository(self._session, self._rules).of_component(component_id)
+
+    def evaluations(self, ids: Sequence[int]) -> dict[int, StoredEvaluation]:
+        if not ids:
+            return {}
+        return RuleEvaluationRepository(self._session, self._rules).get_many(ids)
+
+
+def purge_evaluations(session: Session, cutoff: datetime, batch: int, holds: EvidenceHolds) -> int:
+    """Retention of evaluations no current state cites and no hold keeps (ADR 0008)."""
+    return purge_evaluations_before(session, cutoff, batch, holds.evaluations)
 
 
 @dataclass(frozen=True, slots=True)

@@ -20,6 +20,9 @@ class AuditAction(StrEnum):
     SCENARIO_STOP = "scenario.stop"
     SIMULATION_RESET = "simulation.reset"
     CLOCK_UPDATE = "clock.update"
+    INCIDENT_ACK = "incident.ack"
+    INCIDENT_RESOLVE = "incident.resolve"
+    INCIDENT_DIAGNOSE = "incident.diagnose"
 
 
 class AuditOutcome(StrEnum):
