@@ -21,5 +21,6 @@ Format : contexte, décision, alternatives, conséquences. Statut de toutes les 
 | [0015](0015-ingestion-us03.md) | Ingestion US-03 : cycle en une transaction, curseur de collecte, dédoublonnage, trous explicites |
 | [0016](0016-moteur-sante-us04.md) | Moteur de santé US-04 : évaluation par créneau, hystérésis avec Unknown, versions de règles, lecture périmée |
 | [0017](0017-incidents-us05.md) | Incidents US-05 : déclenchement, famille disponibilité/connectivité, occurrences, preuves conservées, diagnostic déterministe |
+| [0018](0018-dashboard-us06.md) | Dashboard US-06 : métrique clé côté serveur, garde de mutation exposée, rafraîchissement, graphiques, primitives d'interface |
 
 Nouvelle ADR : copier le format, numéro suivant, statut *Proposée* jusqu'à validation.

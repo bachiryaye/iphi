@@ -239,11 +239,11 @@ Le tableau v1.0 ci-dessus est conservé et étendu. Colonne *Story* = story qui 
 |---|---|---|---|
 | GET /health | Liveness (processus vivant) | US-01 | public |
 | GET /ready | Readiness : DB joignable, migrations à jour, battement worker récent, statut fournisseur IA | US-01 | public |
-| GET /api/v1/system/status | Observabilité du moniteur : horloge, dernier cycle, retard, derniers `collection_run`, fournisseur IA | US-03 | viewer |
+| GET /api/v1/system/status | Observabilité du moniteur : horloge, dernier cycle, retard, derniers `collection_run`, fournisseur IA ; à partir de US-06, `mutations {enabled, reason}` (garde ADR 0007) pour que l'interface masque les contrôles refusés | US-03 / US-06 | viewer |
 | GET /api/v1/platforms | Plateformes, état agrégé, compteurs par état, justification de l'agrégation | US-04 | viewer |
 | GET /api/v1/platforms/{id}/topology | Nœuds (composants + état + impact) et arêtes (dépendances, sens explicite) | US-04 | viewer |
-| GET /api/v1/components | Liste filtrable avec état courant ; à partir de US-06, `key_metric` par composant (métrique choisie côté serveur, valeur, unité, bornes d'affichage, seuils, règle, état) pour le `RangeMeter` (design system §6.1) | US-04 / US-06 | viewer |
-| GET /api/v1/components/{id} | Détails, dépendances amont/aval, état courant, `impacted_by` | US-04 | viewer |
+| GET /api/v1/components | Liste filtrable avec état courant ; à partir de US-06, `key_metric` par composant (métrique choisie côté serveur, `kind` meter/availability/value, dernière mesure de la règle datée `evaluated_at`, unité, bornes d'affichage, seuils, règle, état ; ADR 0018) pour le `RangeMeter` (design system §6.1) | US-04 / US-06 | viewer |
+| GET /api/v1/components/{id} | Détails, dépendances amont/aval, état courant, `impacted_by`, `key_metric` | US-04 / US-06 | viewer |
 | GET /api/v1/components/{id}/health | Dernières évaluations par règle avec justification (règle/version, fenêtre, seuil, valeur, preuves) | US-04 | viewer |
 | GET /api/v1/components/{id}/state-history | Segments d'état (`state`, `from`, `to`, `evaluation_ids`) du composant et de chaque règle sur une fenêtre ; pire état par intervalle en sous-échantillonnage (`max_segments`) — `StateBand` (design system §6.3) | US-07 | viewer |
 | GET /api/v1/metrics/catalog | Métriques disponibles, unités, plages | US-03 | viewer |
