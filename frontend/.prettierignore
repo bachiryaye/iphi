@@ -2,3 +2,5 @@ dist
 coverage
 pnpm-lock.yaml
 openapi.json
+test-results
+playwright-report

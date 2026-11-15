@@ -65,6 +65,8 @@
   --color-status-unknown: var(--status-unknown);
   --color-on-warning: var(--on-warning);
   --color-on-critical: var(--on-critical);
+  --color-meter-normal: var(--meter-normal);
+  --color-band-healthy: var(--band-healthy);
   --color-transparent: transparent;
 
   --font-sans: "IBM Plex Sans", system-ui, sans-serif;
@@ -82,6 +84,8 @@
   --text-data--line-height: 18px;
   --text-small: 12px;
   --text-small--line-height: 16px;
+  --text-kpi: 28px;
+  --text-kpi--line-height: 32px;
   --text-micro: 11px;
   --text-micro--line-height: 14px;
 
@@ -129,6 +133,59 @@
   }
   .sim-banner::after {
     right: 0;
+  }
+
+  /* Stale view (§8): data whose refresh failed, muted on a light hatch. */
+  .stale-view {
+    background-image: repeating-linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--border) 45%, transparent) 0 1px,
+      transparent 1px 8px
+    );
+  }
+
+  /* Dense data tables (§6.6): 44 px rows, muted headers, numbers right-aligned. */
+  .data-table {
+    @apply w-full border-collapse;
+  }
+  .data-table thead th {
+    @apply border-b border-border px-3 py-2 text-left text-small font-medium whitespace-nowrap text-text-muted;
+  }
+  .data-table tbody th {
+    @apply h-11 border-b border-border px-3 text-left align-middle font-normal;
+  }
+  .data-table td {
+    @apply h-11 border-b border-border px-3 align-middle;
+  }
+  .data-table tbody tr:last-child > * {
+    @apply border-b-0;
+  }
+  .data-table th:first-child,
+  .data-table td:first-child {
+    @apply pl-4;
+  }
+  .data-table th:last-child,
+  .data-table td:last-child {
+    @apply pr-4;
+  }
+  .data-table tbody tr:hover > * {
+    background: color-mix(in srgb, var(--surface-sunken) 55%, transparent);
+  }
+  .data-table tr.row-critical > :first-child {
+    box-shadow: inset 3px 0 0 var(--status-critical);
+  }
+  .data-table tr.row-highlight > * {
+    background: var(--highlight);
+  }
+  .data-table tr.row-highlight > :first-child {
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+  .data-table .num {
+    @apply text-right;
+  }
+
+  .text-link {
+    @apply text-accent underline-offset-2 hover:underline;
   }
 
   /* Static skeleton (§8): shape of the content, no animation. */

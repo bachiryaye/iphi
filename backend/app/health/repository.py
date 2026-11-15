@@ -516,11 +516,14 @@ class RuleStateRepository:
         return cast(CursorResult[Any], result).rowcount
 
     def of_component(self, component_id: uuid.UUID) -> list[StoredRuleState]:
+        return self.of_components([component_id])
+
+    def of_components(self, component_ids: Sequence[uuid.UUID]) -> list[StoredRuleState]:
         records = list(
             self._session.scalars(
                 select(RuleStateRecord)
-                .where(RuleStateRecord.component_id == component_id)
-                .order_by(RuleStateRecord.rule_key)
+                .where(RuleStateRecord.component_id.in_(component_ids))
+                .order_by(RuleStateRecord.component_id, RuleStateRecord.rule_key)
             )
         )
         rules = self._rules.by_ids(list({r.rule_id for r in records}))

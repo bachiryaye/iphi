@@ -21,6 +21,7 @@ from app.api.simulations import simulation_service
 from app.api.windows import WindowParams, window_of
 from app.health.domain.evaluation import Evidence, Measurement
 from app.health.domain.freshness import HealthView, ReadContext, evaluation_max_age
+from app.health.domain.key_metric import KeyMetric, KeyMetricKind
 from app.health.domain.records import EvaluationFilter, EvaluationPosition, StoredEvaluation
 from app.health.domain.rules import (
     RULE_KEY_PATTERN,
@@ -120,6 +121,10 @@ class RuleRefOut(BaseModel):
     key: str
     version: int
 
+    @classmethod
+    def of(cls, rule: HealthRule) -> RuleRefOut:
+        return cls(id=rule.id, key=rule.key, version=rule.version)
+
 
 class EvaluationOut(BaseModel):
     id: int
@@ -136,6 +141,49 @@ class EvaluationOut(BaseModel):
     evidence: EvidenceOut
 
 
+class KeyMetricOut(BaseModel):
+    """The measurement representing the component on the Overview (design system §6.1)."""
+
+    name: str
+    unit: str | None
+    kind: KeyMetricKind = Field(
+        description="meter: range meter; availability: text (DOWN since); value: number only."
+    )
+    aggregation: Aggregation
+    window_seconds: int
+    value: float | None = Field(description="Rule's latest measurement; null without samples.")
+    evaluated_at: datetime = Field(description="End of the window the value was measured over.")
+    display_min: float
+    display_max: float = Field(description="1.25 x the highest threshold, within the metric range.")
+    warning_threshold: float | None
+    critical_threshold: float | None
+    rule: RuleRefOut
+    state: HealthState = Field(description="Debounced rule state; Unknown once stale.")
+    since: datetime | None
+    evaluation_id: int = Field(description="Latest stored evaluation of the rule.")
+
+    @classmethod
+    def of(cls, metric: KeyMetric) -> KeyMetricOut:
+        s, m = metric.state, metric.measure
+        return cls(
+            name=m.metric_name,
+            unit=s.rule.unit,
+            kind=metric.kind,
+            aggregation=m.aggregation,
+            window_seconds=s.rule.definition.window_seconds,
+            value=s.measurement.observed_value,
+            evaluated_at=s.evaluated_at,
+            display_min=metric.display_min,
+            display_max=metric.display_max,
+            warning_threshold=None if m.warning is None else m.warning.threshold,
+            critical_threshold=None if m.critical is None else m.critical.threshold,
+            rule=RuleRefOut.of(s.rule),
+            state=metric.health.state,
+            since=metric.health.since,
+            evaluation_id=s.last_evaluation_id,
+        )
+
+
 class ComponentOut(BaseModel):
     id: uuid.UUID
     key: str
@@ -150,6 +198,10 @@ class ComponentOut(BaseModel):
     )
     impacted_by: list[ComponentRefOut] = Field(
         description="Upstream components Critical or Unknown; an annotation, not a state (D-06)."
+    )
+    key_metric: KeyMetricOut | None = Field(
+        description="Metric of the rule behind the worst state, else the type's default metric; "
+        "null before the first evaluation."
     )
 
 
@@ -460,6 +512,7 @@ def _component_out(view: ComponentHealthView) -> ComponentOut:
         health=HealthOut.of(view.health),
         reason=None if reason is None else evaluation_out(reason, c.key),
         impacted_by=[ComponentRefOut.of(r) for r in view.impacted_by],
+        key_metric=None if view.key_metric is None else KeyMetricOut.of(view.key_metric),
     )
 
 
@@ -531,7 +584,7 @@ def _measurement_fields(m: Measurement) -> dict[str, object]:
 def evaluation_out(e: StoredEvaluation, component_key: str) -> EvaluationOut:
     return EvaluationOut(
         id=e.id,
-        rule=RuleRefOut(id=e.rule.id, key=e.rule.key, version=e.rule.version),
+        rule=RuleRefOut.of(e.rule),
         component=ComponentRefOut(id=e.component_id, key=component_key),
         evaluated_at=e.evaluated_at,
         window_start=e.window_start,

@@ -85,6 +85,25 @@ def test_components_filter_by_state_and_criticality(client: TestClient) -> None:
     assert client.get("/api/v1/components", params={"colour": "red"}).status_code == 422
 
 
+def test_key_metric_follows_the_worst_rule_else_the_type_default(client: TestClient) -> None:
+    collector = component(client, "collector-01")["key_metric"]
+    gateway = component(client, "edge-gateway-01")["key_metric"]
+    historian = component(client, "historian-01")
+
+    assert (collector["kind"], collector["name"], collector["value"]) == ("availability", "up", 0)
+    assert (collector["state"], collector["rule"]["key"]) == ("critical", "R-AVAIL-001")
+    assert collector["since"] is not None
+    assert (gateway["kind"], gateway["name"], gateway["rule"]["key"]) == (
+        "meter", "probe_latency_ms", "R-LAT-001",
+    )  # fmt: skip
+    assert (gateway["warning_threshold"], gateway["critical_threshold"]) == (250, 1000)
+    assert (gateway["display_min"], gateway["display_max"], gateway["unit"]) == (0, 1250, "ms")
+    assert gateway["aggregation"] == "p95"
+    assert historian["key_metric"]["name"] == "data_age_s"
+    detail = get(client, f"/components/{historian['id']}")
+    assert detail["key_metric"] == historian["key_metric"]
+
+
 def test_component_detail_lists_dependencies_both_ways_and_impact(client: TestClient) -> None:
     historian = get(client, f"/components/{component(client, 'historian-01')['id']}")
 

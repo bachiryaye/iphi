@@ -1,0 +1,243 @@
+import { ChevronRight } from "@carbon/icons-react";
+import { type ReactNode, useMemo, useState } from "react";
+import { Link, useParams } from "react-router";
+
+import { useDiagnostics, useIncident } from "@/shared/api/queries";
+import type { IncidentDetail } from "@/shared/api/types";
+import { IncidentStatusLabel } from "@/shared/status/IncidentStatus";
+import { SimTag } from "@/shared/status/SimTag";
+import { StatusBadge } from "@/shared/status/StatusBadge";
+import { Timestamp } from "@/shared/status/Timestamp";
+import { Card } from "@/shared/ui/Card";
+import { CopyButton } from "@/shared/ui/CopyButton";
+import { EmptyState, LoadError, RefreshMeta, SkeletonRows } from "@/shared/ui/QueryStates";
+import { staleClass } from "@/shared/ui/stale";
+
+import { DiagnosisBody, type EvidenceFocus } from "./DiagnosisCard";
+import { EvidenceChain } from "./EvidenceChain";
+import { IncidentActions } from "./IncidentActions";
+import { IncidentSignal } from "./IncidentSignal";
+import { IncidentTimeline } from "./IncidentTimeline";
+import { humanize } from "@/shared/format/labels";
+
+function Fact({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex items-center gap-2 border-l border-border px-4 first:border-l-0 first:pl-0">
+      <dt className="text-small text-text-muted">{label}</dt>
+      <dd>{children}</dd>
+    </div>
+  );
+}
+
+function Header({ incident }: { incident: IncidentDetail }) {
+  return (
+    <header className="flex flex-col gap-3">
+      <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-small text-text-muted">
+        <Link to="/incidents" className="text-link">
+          Incidents
+        </Link>
+        <ChevronRight size={16} aria-hidden="true" />
+        <span className="data text-text">{incident.reference}</span>
+      </nav>
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-6 gap-y-3 max-xl:grid-cols-1">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
+          <StatusBadge state={incident.severity} size="lg" />
+          <h1 className="text-display font-semibold">
+            <span className="mr-2 font-mono text-heading font-medium text-text-muted">
+              {incident.reference}
+            </span>
+            {incident.title}
+          </h1>
+        </div>
+        <IncidentActions incident={incident} />
+      </div>
+      <dl className="flex flex-wrap items-center gap-y-1">
+        <Fact label="Status">
+          <IncidentStatusLabel status={incident.status} acknowledgedBy={incident.acknowledged_by} />
+        </Fact>
+        <Fact label="Failure class">{humanize(incident.failure_class)}</Fact>
+        <Fact label="Opened">
+          <Timestamp iso={incident.opened_at} />{" "}
+          <span className="text-text-muted">
+            (<Timestamp iso={incident.opened_at} format="age" />)
+          </span>
+        </Fact>
+        <Fact label="Occurrences">
+          <span className="data">{incident.occurrence_count}</span>
+        </Fact>
+        <Fact label="Source">
+          <SimTag />
+        </Fact>
+      </dl>
+    </header>
+  );
+}
+
+function DetailRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="grid min-h-8 grid-cols-[104px_minmax(0,1fr)] items-center gap-2 border-t border-border first:border-t-0">
+      <dt className="text-small text-text-muted">{label}</dt>
+      <dd className="flex min-w-0 flex-wrap items-center gap-1.5">{children}</dd>
+    </div>
+  );
+}
+
+function Details({ incident }: { incident: IncidentDetail }) {
+  return (
+    <dl className="px-4 pt-2 pb-3">
+      <DetailRow label="Status">
+        <IncidentStatusLabel status={incident.status} acknowledgedBy={incident.acknowledged_by} />
+      </DetailRow>
+      <DetailRow label="Severity">
+        <StatusBadge state={incident.severity} />
+      </DetailRow>
+      <DetailRow label="Peak severity">
+        <StatusBadge state={incident.peak_severity} />
+      </DetailRow>
+      <DetailRow label="Component">
+        <Link to={`/components/${incident.component.id}`} className="text-link">
+          {incident.component.key}
+        </Link>
+      </DetailRow>
+      <DetailRow label="Failure class">{humanize(incident.failure_class)}</DetailRow>
+      <DetailRow label="First seen">
+        <Timestamp iso={incident.opened_at} />
+      </DetailRow>
+      <DetailRow label="Last seen">
+        <Timestamp iso={incident.last_seen_at} />
+      </DetailRow>
+      <DetailRow label="Occurrences">
+        <span className="data">{incident.occurrence_count}</span>
+      </DetailRow>
+      <DetailRow label="Reopened">
+        <span className="data">{incident.reopen_count}</span>
+      </DetailRow>
+      <DetailRow label="Fingerprint">
+        <span className="data" translate="no" title={incident.fingerprint}>
+          {incident.fingerprint.slice(0, 8)}
+        </span>
+        <CopyButton value={incident.fingerprint} label="Copy fingerprint" />
+      </DetailRow>
+      <DetailRow label="Impacted">
+        {incident.impacted.length === 0 ? (
+          <span className="text-text-muted">none</span>
+        ) : (
+          incident.impacted.map((impact) => (
+            <Link
+              key={impact.component.id}
+              to={`/components/${impact.component.id}`}
+              className="text-link mr-1"
+            >
+              {impact.component.key}
+            </Link>
+          ))
+        )}
+      </DetailRow>
+      {incident.resolved_at !== null && (
+        <>
+          <DetailRow label="Resolved">
+            <Timestamp iso={incident.resolved_at} />
+          </DetailRow>
+          <DetailRow label="Resolution">{humanize(incident.resolution ?? "")}</DetailRow>
+        </>
+      )}
+    </dl>
+  );
+}
+
+function Diagnosis({ incident, focus }: { incident: IncidentDetail; focus: EvidenceFocus }) {
+  const diagnostics = useDiagnostics(incident.id);
+  const latest = diagnostics.data?.items[0];
+  return (
+    <Card
+      title={latest === undefined ? "Diagnosis" : `Diagnosis: ${latest.kind}`}
+      titleId="diagnosis-title"
+      busy={diagnostics.isPending}
+      meta={
+        latest !== undefined && (
+          <span>
+            Generated <Timestamp iso={latest.created_at} /> by {latest.created_by}
+          </span>
+        )
+      }
+    >
+      {diagnostics.isPending && <SkeletonRows rows={4} />}
+      {diagnostics.isError && diagnostics.data === undefined && (
+        <LoadError what="the diagnosis" query={diagnostics} />
+      )}
+      {diagnostics.data !== undefined && latest === undefined && (
+        <EmptyState title="No diagnosis yet.">
+          Diagnose builds a deterministic reading of the stored evidence: facts, hypotheses with
+          their uncertainty, checks to run. It needs no AI provider.
+        </EmptyState>
+      )}
+      {latest !== undefined && <DiagnosisBody diagnostic={latest} focus={focus} />}
+    </Card>
+  );
+}
+
+export function IncidentPage() {
+  const { incidentId = "" } = useParams();
+  const query = useIncident(incidentId);
+  const incident = query.data;
+  const [active, setActive] = useState<number | null>(null);
+  const byId = useMemo(() => new Map((incident?.evidence ?? []).map((e) => [e.id, e])), [incident]);
+  const focus: EvidenceFocus = {
+    active,
+    byId,
+    toggle: (id) => {
+      setActive((current) => (current === id ? null : id));
+      document.getElementById(`evidence-${String(id)}`)?.scrollIntoView({ block: "nearest" });
+    },
+  };
+  const activeSample = active === null ? null : (byId.get(active)?.sample?.id ?? null);
+
+  if (query.isPending) {
+    return (
+      <div aria-busy="true">
+        <h1 className="sr-only">Incident</h1>
+        <SkeletonRows rows={6} />
+      </div>
+    );
+  }
+  if (incident === undefined) {
+    return (
+      <>
+        <h1 className="text-display font-semibold">Incident</h1>
+        <Card title="Incident" titleId="incident-error-title">
+          <LoadError what="this incident" query={query} />
+        </Card>
+      </>
+    );
+  }
+
+  return (
+    <div className={`flex flex-col gap-4 ${staleClass(query.isError)}`}>
+      <Header incident={incident} />
+      <div className="grid grid-cols-[minmax(0,1fr)_336px] items-start gap-4 max-xl:grid-cols-1">
+        <div className="flex min-w-0 flex-col gap-4">
+          <IncidentSignal incident={incident} activeSample={activeSample} />
+          <EvidenceChain incident={incident} active={active} />
+          <Diagnosis incident={incident} focus={focus} />
+        </div>
+        <aside className="flex flex-col gap-4 xl:sticky xl:top-4" aria-label="Incident context">
+          <Card
+            title="Details"
+            titleId="details-title"
+            meta={<RefreshMeta updatedAt={query.dataUpdatedAt} failed={query.isError} />}
+          >
+            <Details incident={incident} />
+          </Card>
+          <Card title="Timeline" titleId="timeline-title" meta={<span>Times shown in UTC</span>}>
+            <IncidentTimeline events={incident.events} />
+            {incident.events_next_cursor !== null && (
+              <p className="border-t border-border px-4 py-2.5 text-small text-text-muted">
+                Showing the first {incident.events.length} of {incident.event_count} events.
+              </p>
+            )}
+          </Card>
+        </aside>
+      </div>
+    </div>
+  );
+}

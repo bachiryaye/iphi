@@ -13,7 +13,7 @@ BACKEND := cd backend &&
 FRONTEND := cd frontend &&
 
 .DEFAULT_GOAL := help
-.PHONY: help up down logs db install lint typecheck test test-backend test-frontend \
+.PHONY: help up down logs db install lint typecheck test test-backend test-frontend test-e2e \
 	api-client api-drift check demo
 
 help: ## List targets
@@ -51,6 +51,9 @@ test-frontend: ## Vitest (components, accessibility)
 	$(FRONTEND) pnpm test
 
 test: test-backend test-frontend ## All automated tests
+
+test-e2e: ## Playwright against the running stack (make up first); resets the simulation
+	$(FRONTEND) pnpm test:e2e
 
 api-client: ## Regenerate openapi.json and the typed frontend client
 	$(BACKEND) uv run python -m scripts.export_openapi ../frontend/openapi.json

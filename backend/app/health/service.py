@@ -22,6 +22,7 @@ from app.health.domain.engine import (
 )
 from app.health.domain.freshness import HealthView, ReadContext, health_view
 from app.health.domain.hysteresis import required_streak
+from app.health.domain.key_metric import KeyMetric, MetricRange, choose_key_rule, key_metric
 from app.health.domain.records import (
     EvaluationFilter,
     EvaluationOutcome,
@@ -40,6 +41,7 @@ from app.health.repository import (
     clear_health_state,
     purge_evaluations_before,
 )
+from app.ingestion.domain.catalog import METRIC_CATALOG
 from app.ingestion.service import ObservationReader
 from app.topology.domain import (
     Component,
@@ -304,6 +306,7 @@ class ComponentHealthView:
     health: HealthView
     reason: StoredEvaluation | None
     impacted_by: tuple[ComponentRef, ...]
+    key_metric: KeyMetric | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -339,7 +342,7 @@ class HealthQueries:
         with self._session_factory() as session:
             return TopologyView(
                 _platform_view(session, topology, context),
-                _component_views(session, topology, topology.components, context),
+                _component_views(session, topology, topology.components, context, None),
             )
 
     def components(
@@ -352,7 +355,13 @@ class HealthQueries:
             return [
                 view
                 for topology in topologies
-                for view in _component_views(session, topology, topology.components, context)
+                for view in _component_views(
+                    session,
+                    topology,
+                    topology.components,
+                    context,
+                    _rule_states(session, [c.id for c in topology.components]),
+                )
             ]
 
     def component(
@@ -361,7 +370,9 @@ class HealthQueries:
         topology = self._owning_platform(component_id)
         component = topology.component_by_id(component_id)
         with self._session_factory() as session:
-            (view,) = _component_views(session, topology, [component], context)
+            (view,) = _component_views(
+                session, topology, [component], context, _rule_states(session, [component_id])
+            )
         return view, topology
 
     def component_rules(
@@ -370,14 +381,11 @@ class HealthQueries:
         topology = self._owning_platform(component_id)
         component = topology.component_by_id(component_id)
         with self._session_factory() as session:
-            (view,) = _component_views(session, topology, [component], context)
-            rules = HealthRuleRepository(session, ObservationReader(session).units())
-            states = RuleStateRepository(session, rules).of_component(component_id)
+            states = _rule_states(session, [component_id])
+            (view,) = _component_views(session, topology, [component], context, states)
         return view, [
             RuleStatusView(
-                s,
-                health_view(Standing(s.progress.state, s.progress.since), s.evaluated_at, context),
-                required_streak(s.rule.definition, s.progress),
+                s, _rule_health(s, context), required_streak(s.rule.definition, s.progress)
             )
             for s in states
         ]
@@ -415,33 +423,69 @@ def _component_views(
     topology: PlatformTopology,
     components: Sequence[Component],
     context: ReadContext,
+    rule_states: Sequence[StoredRuleState] | None,
 ) -> list[ComponentHealthView]:
+    """`rule_states` of these components feed `key_metric`; None skips it (topology)."""
     refs = {c.id: ComponentRef(c.id, c.key) for c in topology.components}
     stored = HealthSnapshotRepository(session).components([c.id for c in components])
     reason_ids = [s.reason_evaluation_id for s in stored.values() if s.reason_evaluation_id]
     rules = HealthRuleRepository(session, ObservationReader(session).units())
     reasons = RuleEvaluationRepository(session, rules).get_many(reason_ids)
+    by_component: dict[uuid.UUID, list[StoredRuleState]] = {c.id: [] for c in components}
+    for state in rule_states or ():
+        by_component[state.component_id].append(state)
     views = []
     for component in components:
         health = stored.get(component.id)
-        if health is None:
-            views.append(
-                ComponentHealthView(
-                    topology.platform_id, component, health_view(None, None, context), None, ()
-                )
-            )
-            continue
-        reason = health.reason_evaluation_id
+        standing, evaluated_at, reason = None, None, None
+        impacted_by: tuple[ComponentRef, ...] = ()
+        if health is not None:
+            standing, evaluated_at = health.standing, health.evaluated_at
+            impacted_by = tuple(refs[i] for i in health.impacted_by if i in refs)
+            if health.reason_evaluation_id is not None:
+                reason = reasons.get(health.reason_evaluation_id)
+        metric = None
+        if rule_states is not None:
+            metric = _key_metric(component, by_component[component.id], reason, context)
         views.append(
             ComponentHealthView(
                 topology.platform_id,
                 component,
-                health_view(health.standing, health.evaluated_at, context),
-                None if reason is None else reasons.get(reason),
-                tuple(refs[i] for i in health.impacted_by if i in refs),
+                health_view(standing, evaluated_at, context),
+                reason,
+                impacted_by,
+                metric,
             )
         )
     return views
+
+
+def _rule_states(session: Session, component_ids: Sequence[uuid.UUID]) -> list[StoredRuleState]:
+    rules = HealthRuleRepository(session, ObservationReader(session).units())
+    return RuleStateRepository(session, rules).of_components(component_ids)
+
+
+_METRIC_RANGES = {m.metric_name: MetricRange(m.min_value, m.max_value) for m in METRIC_CATALOG}
+
+
+def _key_metric(
+    component: Component,
+    states: Sequence[StoredRuleState],
+    reason: StoredEvaluation | None,
+    context: ReadContext,
+) -> KeyMetric | None:
+    chosen = choose_key_rule(states, None if reason is None else reason.rule.key, component.type)
+    if chosen is None:
+        return None
+    measure = chosen.rule.definition.measure
+    metric_range = None if measure is None else _METRIC_RANGES.get(measure.metric_name)
+    return key_metric(chosen, _rule_health(chosen, context), metric_range)
+
+
+def _rule_health(state: StoredRuleState, context: ReadContext) -> HealthView:
+    return health_view(
+        Standing(state.progress.state, state.progress.since), state.evaluated_at, context
+    )
 
 
 def _platform_view(

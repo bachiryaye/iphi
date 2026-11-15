@@ -2,6 +2,7 @@ import { Asleep, Light } from "@carbon/icons-react";
 
 import { Clock } from "./Clock";
 import { MonitorStatus } from "./MonitorStatus";
+import { PlatformSummary } from "./PlatformSummary";
 import { useTheme } from "./theme";
 
 export function TopBar() {
@@ -10,7 +11,7 @@ export function TopBar() {
 
   return (
     <header className="flex h-15 items-center gap-6 border-b border-border bg-surface px-6 max-lg:px-4">
-      <p className="min-w-0 truncate text-text-muted">No platform configured</p>
+      <PlatformSummary />
       <div className="ml-auto flex items-center gap-5">
         <MonitorStatus />
         <span aria-hidden="true" className="h-7 w-px bg-border max-md:hidden" />

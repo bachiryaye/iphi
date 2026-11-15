@@ -1,5 +1,7 @@
-import { Dashboard } from "@carbon/icons-react";
+import { Cube, Dashboard, Network_3, Play, Rule, WarningAlt } from "@carbon/icons-react";
 import { NavLink } from "react-router";
+
+import { useActiveIncidents } from "@/shared/api/queries";
 
 function BrandMark() {
   return (
@@ -23,7 +25,27 @@ function BrandMark() {
   );
 }
 
-const NAV_ITEMS = [{ to: "/", label: "Overview", Icon: Dashboard }] as const;
+const NAV_ITEMS = [
+  { to: "/", label: "Overview", Icon: Dashboard, end: true },
+  { to: "/topology", label: "Topology", Icon: Network_3, end: false },
+  { to: "/incidents", label: "Incidents", Icon: WarningAlt, end: false },
+  { to: "/components", label: "Components", Icon: Cube, end: false },
+  { to: "/scenarios", label: "Scenarios", Icon: Play, end: false },
+  { to: "/rules", label: "Rules", Icon: Rule, end: false },
+] as const;
+
+/** Neutral outline counter: red stays reserved for alarms (§4). */
+function ActiveCount() {
+  const { data } = useActiveIncidents();
+  if (data === undefined || data.items.length === 0) return null;
+  return (
+    <span className="ml-auto rounded-[3px] border border-border-strong px-1 font-mono text-micro text-text-muted max-lg:absolute max-lg:top-0.5 max-lg:right-0.5 max-lg:bg-surface">
+      {data.items.length}
+      {data.more && "+"}
+      <span className="sr-only"> active</span>
+    </span>
+  );
+}
 
 export function Sidebar() {
   return (
@@ -47,16 +69,17 @@ export function Sidebar() {
         </span>
       </NavLink>
       <ul className="flex flex-col gap-0.5">
-        {NAV_ITEMS.map(({ to, label, Icon }) => (
+        {NAV_ITEMS.map(({ to, label, Icon, end }) => (
           <li key={to}>
             <NavLink
               to={to}
-              end
+              end={end}
               title={label}
-              className="flex h-9 items-center gap-2.5 rounded-control px-2.5 text-text-muted hover:bg-surface-sunken hover:text-text aria-[current=page]:bg-surface-sunken aria-[current=page]:font-medium aria-[current=page]:text-text aria-[current=page]:shadow-[inset_2px_0_0_var(--text)] max-lg:justify-center max-lg:px-0"
+              className="relative flex h-9 items-center gap-2.5 rounded-control px-2.5 text-text-muted hover:bg-surface-sunken hover:text-text aria-[current=page]:bg-surface-sunken aria-[current=page]:font-medium aria-[current=page]:text-text aria-[current=page]:shadow-[inset_2px_0_0_var(--text)] max-lg:justify-center max-lg:px-0"
             >
               <Icon size={16} aria-hidden="true" />
               <span className="max-lg:sr-only">{label}</span>
+              {to === "/incidents" && <ActiveCount />}
             </NavLink>
           </li>
         ))}

@@ -426,6 +426,17 @@
             "title": "Key",
             "type": "string"
           },
+          "key_metric": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/KeyMetricOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Metric of the rule behind the worst state, else the type's default metric; null before the first evaluation."
+          },
           "name": {
             "title": "Name",
             "type": "string"
@@ -468,6 +479,7 @@
           "health",
           "reason",
           "impacted_by",
+          "key_metric",
           "upstream",
           "downstream"
         ],
@@ -521,6 +533,17 @@
             "title": "Key",
             "type": "string"
           },
+          "key_metric": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/KeyMetricOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Metric of the rule behind the worst state, else the type's default metric; null before the first evaluation."
+          },
           "name": {
             "title": "Name",
             "type": "string"
@@ -554,7 +577,8 @@
           "platform_id",
           "health",
           "reason",
-          "impacted_by"
+          "impacted_by",
+          "key_metric"
         ],
         "title": "ComponentOut",
         "type": "object"
@@ -2044,6 +2068,138 @@
         "title": "IncidentStatus",
         "type": "string"
       },
+      "KeyMetricKind": {
+        "enum": [
+          "meter",
+          "availability",
+          "value"
+        ],
+        "title": "KeyMetricKind",
+        "type": "string"
+      },
+      "KeyMetricOut": {
+        "description": "The measurement representing the component on the Overview (design system \u00a76.1).",
+        "properties": {
+          "aggregation": {
+            "$ref": "#/components/schemas/Aggregation"
+          },
+          "critical_threshold": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Critical Threshold"
+          },
+          "display_max": {
+            "description": "1.25 x the highest threshold, within the metric range.",
+            "title": "Display Max",
+            "type": "number"
+          },
+          "display_min": {
+            "title": "Display Min",
+            "type": "number"
+          },
+          "evaluated_at": {
+            "description": "End of the window the value was measured over.",
+            "format": "date-time",
+            "title": "Evaluated At",
+            "type": "string"
+          },
+          "evaluation_id": {
+            "description": "Latest stored evaluation of the rule.",
+            "title": "Evaluation Id",
+            "type": "integer"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/KeyMetricKind",
+            "description": "meter: range meter; availability: text (DOWN since); value: number only."
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "rule": {
+            "$ref": "#/components/schemas/RuleRefOut"
+          },
+          "since": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Since"
+          },
+          "state": {
+            "$ref": "#/components/schemas/HealthState",
+            "description": "Debounced rule state; Unknown once stale."
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Rule's latest measurement; null without samples.",
+            "title": "Value"
+          },
+          "warning_threshold": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Warning Threshold"
+          },
+          "window_seconds": {
+            "title": "Window Seconds",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "unit",
+          "kind",
+          "aggregation",
+          "window_seconds",
+          "value",
+          "evaluated_at",
+          "display_min",
+          "display_max",
+          "warning_threshold",
+          "critical_threshold",
+          "rule",
+          "state",
+          "since",
+          "evaluation_id"
+        ],
+        "title": "KeyMetricOut",
+        "type": "object"
+      },
       "LevelOut": {
         "properties": {
           "clear": {
@@ -2396,6 +2552,25 @@
           "gaps"
         ],
         "title": "MetricSeriesOut",
+        "type": "object"
+      },
+      "MutationsOut": {
+        "properties": {
+          "enabled": {
+            "description": "Whether scenario, clock and incident mutations are accepted.",
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled",
+          "reason"
+        ],
+        "title": "MutationsOut",
         "type": "object"
       },
       "ObservationSource": {
@@ -3442,6 +3617,10 @@
             "title": "Environment",
             "type": "string"
           },
+          "mutations": {
+            "$ref": "#/components/schemas/MutationsOut",
+            "description": "ADR 0007 guard, so the interface hides controls the API would refuse."
+          },
           "worker": {
             "$ref": "#/components/schemas/WorkerStatusOut"
           }
@@ -3452,7 +3631,8 @@
           "clock",
           "worker",
           "collection",
-          "ai_provider"
+          "ai_provider",
+          "mutations"
         ],
         "title": "SystemStatusOut",
         "type": "object"
@@ -3746,7 +3926,7 @@
   "info": {
     "summary": "Health intelligence for a simulated industrial data platform.",
     "title": "IPHI API",
-    "version": "0.5.0"
+    "version": "0.6.0"
   },
   "openapi": "3.1.0",
   "paths": {
