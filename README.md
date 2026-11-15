@@ -9,15 +9,16 @@ IPHI monitors the health of an **industrial data platform** — sources, gateway
 | Story | Scope | State |
 |---|---|---|
 | US-01 | One-command stack, migrations, readiness, CI, app shell | Delivered |
-| US-02 | Seven-component simulated platform, deterministic generator, nine scenarios, platform clock | Delivered (API only) |
-| US-03 | Validated ingestion, PostgreSQL history, metric and log APIs, collection monitoring | Delivered (API only) |
-| US-04 | Versioned health rules, hysteresis, `Unknown`, component and platform health with justification | Delivered (API only) |
-| US-05 | Deduplicated incidents with evidence, lifecycle, downstream suppression, deterministic diagnosis | Delivered (API only) |
-| US-06 → US-12 | Dashboard, live updates, AI diagnosis, reports, security | Planned ([backlog](docs/03-backlog.md)) |
+| US-02 | Seven-component simulated platform, deterministic generator, nine scenarios, platform clock | Delivered |
+| US-03 | Validated ingestion, PostgreSQL history, metric and log APIs, collection monitoring | Delivered |
+| US-04 | Versioned health rules, hysteresis, `Unknown`, component and platform health with justification | Delivered |
+| US-05 | Deduplicated incidents with evidence, lifecycle, downstream suppression, deterministic diagnosis | Delivered |
+| US-06 | Operator dashboard: Overview, Topology, Components, Incidents, Scenarios, Rules | Delivered |
+| US-07 → US-12 | Live updates, AI diagnosis, reports, security | Planned ([backlog](docs/03-backlog.md)) |
 
-What runs today: PostgreSQL, a migration and seed job, the FastAPI API (`/health`, `/ready`, simulation, metrics, logs, health and system status endpoints, OpenAPI), a worker that holds the scheduler lock and, every cycle, collects the simulated observations, validates and stores them, evaluates the health rules, opens, updates and resolves incidents, purges data past retention and writes a heartbeat, and the frontend shell showing monitor readiness. Health and incident screens arrive with US-06.
+What runs today: PostgreSQL, a migration and seed job, the FastAPI API (`/health`, `/ready`, simulation, metrics, logs, health and system status endpoints, OpenAPI), a worker that holds the scheduler lock and, every cycle, collects the simulated observations, validates and stores them, evaluates the health rules, opens, updates and resolves incidents, purges data past retention and writes a heartbeat, and the operator dashboard described below.
 
-![Overview, light theme](docs/design/screenshots/us-01-overview-light-1440.png)
+![Overview during the collector_down scenario, light theme](docs/design/screenshots/us-06-overview-light-1440.png)
 
 ## Requirements
 
@@ -134,6 +135,21 @@ curl -s -X POST $A/incidents/$I/resolve -H 'content-type: application/json' \
 
 The deterministic diagnosis lists observed facts, a hypothesis (the most upstream component in fault, always worded as a correlation) and the checks recommended by the rules involved, each citing its evidence; it needs no AI provider. Acknowledgement, resolution and diagnosis follow the same mutation guard as the simulation and are audited.
 
+## Dashboard
+
+Open http://127.0.0.1:8080. Every view polls the API every 10 s, shows when it was last updated, and keeps the last data visible but marked stale if a refresh fails; the top bar always carries the platform state and the monitor's own state.
+
+| View | What it answers |
+|---|---|
+| Overview | Platform state with the aggregation rationale, components by state, active incidents, one row per component with its key metric drawn against its thresholds (chosen by the API) |
+| Topology | The dependency chain left to right in the direction of the data, states and impact paths, with a table equivalent |
+| Components / Component | Header with the rule behind the state, metric history with thresholds and visible gaps (15 min to 24 h, table view), every rule with its condition, observed value and debounce, recent logs grouped by fingerprint, dependencies, recent incidents |
+| Incidents / Incident | Filterable list (filters in the URL, cursor pages); the incident page shows the triggering signal, the immutable evidence chain, the deterministic diagnosis with clickable evidence chips, the timeline with grouped occurrences, and Acknowledge, Resolve and Diagnose |
+| Scenarios | The fault catalog with each expected outcome, start and stop, the platform clock (mode, speed, advance in manual mode) and reset with an in-page confirmation |
+| Rules | The active rule versions: measure, thresholds and clear levels, debounce, targets, rationale |
+
+Controls that the API would refuse (mutations disabled, see ADR 0007) are hidden or disabled with the reason.
+
 ## Develop and test
 
 ```sh
@@ -143,7 +159,8 @@ make help        # every target
 ```
 
 - Backend tests run against a real PostgreSQL (`make test-backend` starts the `db` service; each test gets a fresh database).
-- Frontend tests use Vitest, Testing Library and axe-core.
+- Frontend tests use Vitest, Testing Library and axe-core (every screen is checked for serious accessibility violations).
+- End-to-end: with the stack running, `make test-e2e` resets the simulation, starts `collector_down` and checks the Overview and the incident in Chromium (Playwright). It resets the simulation again when done.
 - The TypeScript API types are generated from the backend OpenAPI document (`make api-client`); CI fails if they drift.
 - Frontend dev server with hot reload: `cd frontend && pnpm dev` (http://127.0.0.1:5173, proxied to the API on port 8000).
 
@@ -161,7 +178,7 @@ The design dossier is in French: [requirements](docs/01-cahier-des-charges.md), 
 
 ## Limitations
 
-- There is no health, incident, Scenarios or metrics screen before US-06; comments on incidents arrive with US-07, the AI diagnosis with US-08.
+- Views poll every 10 s; live updates (SSE), the interactive dependency graph, the state history band and incident comments arrive with US-07, the AI diagnosis with US-08.
 - Downstream suppression can hide a second, independent fault downstream: its evidence stays attached to the upstream incident as impact.
 - An observation arriving late, after its sample slot was evaluated, does not trigger a re-evaluation of that slot.
 - After the worker has been stopped for more than 10 minutes of platform time, the missed sample slots are not backfilled: they remain a visible gap.
@@ -171,4 +188,4 @@ The design dossier is in French: [requirements](docs/01-cahier-des-charges.md), 
 
 ## Résumé en français
 
-IPHI surveille la santé d'une plateforme de données industrielle **simulée** : collecte, règles de santé explicables, incidents dédupliqués et prouvés, diagnostic optionnel. `docker compose up --build` démarre PostgreSQL, les migrations et le seed, l'API, le worker et l'interface (http://127.0.0.1:8080). La plateforme simulée compte sept composants et neuf scénarios de panne reproductibles (seed, horloge de plateforme accélérable) ; ses mesures et logs sont validés, historisés dans PostgreSQL et consultables par l'API, et des règles versionnées avec hystérésis en déduisent l'état justifié de chaque composant et de la plateforme (jamais « sain » faute de données). Une panne ouvre un incident unique, dédoublonné par la base, rattaché aux évaluations et observations qui le prouvent, avec suppression des alertes en aval, résolution automatique au retour à la normale et diagnostic déterministe sans IA. Le dossier de conception (cahier des charges, architecture, backlog, design system, ADR) est dans `docs/`. Aucune connexion à une installation réelle n'existe ni n'est revendiquée.
+IPHI surveille la santé d'une plateforme de données industrielle **simulée** : collecte, règles de santé explicables, incidents dédupliqués et prouvés, diagnostic optionnel. `docker compose up --build` démarre PostgreSQL, les migrations et le seed, l'API, le worker et l'interface (http://127.0.0.1:8080). La plateforme simulée compte sept composants et neuf scénarios de panne reproductibles (seed, horloge de plateforme accélérable) ; ses mesures et logs sont validés, historisés dans PostgreSQL et consultables par l'API, et des règles versionnées avec hystérésis en déduisent l'état justifié de chaque composant et de la plateforme (jamais « sain » faute de données). Une panne ouvre un incident unique, dédoublonné par la base, rattaché aux évaluations et observations qui le prouvent, avec suppression des alertes en aval, résolution automatique au retour à la normale et diagnostic déterministe sans IA. Le tableau de bord (vue d'ensemble, topologie, composants, incidents, scénarios, règles) affiche ces états et leurs preuves, rafraîchis toutes les 10 s. Le dossier de conception (cahier des charges, architecture, backlog, design system, ADR) est dans `docs/`. Aucune connexion à une installation réelle n'existe ni n'est revendiquée.
