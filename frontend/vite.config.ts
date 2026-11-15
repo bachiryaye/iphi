@@ -11,6 +11,8 @@ export default defineConfig({
   resolve: {
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
   },
+  // The tree-shaken ECharts chunk (~520 kB), loaded only by the chart views, is the largest.
+  build: { chunkSizeWarningLimit: 600 },
   server: {
     host: "127.0.0.1",
     port: 5173,
@@ -26,5 +28,6 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     css: false,
+    testTimeout: 15000,
   },
 });

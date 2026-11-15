@@ -1,21 +1,9 @@
-import { useEffect, useState } from "react";
-
 import { formatLocalTime, formatUtcTime } from "@/shared/format/time";
-
-const TICK_MS = 1000;
+import { useNow } from "@/shared/hooks/useNow";
 
 /** Wall-clock time of the viewer's machine; platform time is shown separately from US-02. */
 export function Clock() {
-  const [now, setNow] = useState(() => new Date());
-
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      setNow(new Date());
-    }, TICK_MS);
-    return () => {
-      window.clearInterval(id);
-    };
-  }, []);
+  const now = useNow();
 
   return (
     <div className="text-right font-mono tabular-nums">

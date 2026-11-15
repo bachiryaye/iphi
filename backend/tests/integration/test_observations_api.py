@@ -178,6 +178,18 @@ def test_system_status_shows_absent_collection(client: TestClient) -> None:
     assert body["worker"]["status"] == "failed"
 
 
+def test_system_status_tells_whether_mutations_are_accepted(
+    client: TestClient, seeded_url: str
+) -> None:
+    disabled = client.get("/api/v1/system/status").json()["mutations"]
+    with client_for(seeded_url, dev_mutations=True) as enabled_client:
+        enabled = enabled_client.get("/api/v1/system/status").json()["mutations"]
+
+    assert disabled["enabled"] is False
+    assert "IPHI_DEV_MUTATIONS" in disabled["reason"]
+    assert enabled["enabled"] is True
+
+
 def test_system_status_reports_the_latest_collection(
     client: TestClient, factory: sessionmaker[Session], seeded_url: str
 ) -> None:

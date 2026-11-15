@@ -100,9 +100,10 @@ def test_progress_rejects_inconsistent_streaks(pending: HealthState | None) -> N
         RuleProgress(H, T0, pending, 0 if pending else 2)
 
 
-# Values strictly inside each hysteresis band: below the raise threshold, not below the clear.
-WARNING_BAND = st.floats(min_value=200, max_value=250)
-CRITICAL_BAND = st.floats(min_value=800, max_value=1000)
+# Values strictly inside each hysteresis band: not above the raise threshold, above the clear
+# (`> clear` no longer holding at the clear value itself is what clears).
+WARNING_BAND = st.floats(min_value=200, max_value=250, exclude_min=True)
+CRITICAL_BAND = st.floats(min_value=800, max_value=1000, exclude_min=True)
 
 
 @given(st.lists(WARNING_BAND, min_size=1, max_size=200))

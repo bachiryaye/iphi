@@ -1,7 +1,3 @@
-import { Copy, Renew, Time, WarningAlt } from "@carbon/icons-react";
-import { useState } from "react";
-
-import { ApiError } from "@/shared/api/client";
 import {
   type CheckName,
   type Readiness,
@@ -9,9 +5,12 @@ import {
   READINESS_REFRESH_MS,
   useReadiness,
 } from "@/shared/api/readiness";
-import { formatUtcDateTime, formatUtcTime } from "@/shared/format/time";
+import { formatUtcTime } from "@/shared/format/time";
 import { StatusBadge } from "@/shared/status/StatusBadge";
+import { Timestamp } from "@/shared/status/Timestamp";
 import { Card } from "@/shared/ui/Card";
+import { LoadError, RefreshMeta, SkeletonRows } from "@/shared/ui/QueryStates";
+import { staleClass } from "@/shared/ui/stale";
 
 const CHECK_LABEL: Record<CheckName, string> = {
   database: "Database",
@@ -49,15 +48,6 @@ function Verdict({ readiness }: { readiness: Readiness }) {
         </p>
       )}
     </div>
-  );
-}
-
-function EvidenceTime({ iso }: { iso: string }) {
-  const at = new Date(iso);
-  return (
-    <time dateTime={iso} className="data" title={formatUtcDateTime(at)}>
-      {formatUtcTime(at)} UTC
-    </time>
   );
 }
 
@@ -103,7 +93,7 @@ function ChecksTable({ checks }: { checks: readonly ReadinessCheck[] }) {
               <td className="border-b border-border px-3">{check.detail}</td>
               <td className="border-b border-border pr-4 pl-3 whitespace-nowrap">
                 {check.observed_at ? (
-                  <EvidenceTime iso={check.observed_at} />
+                  <Timestamp iso={check.observed_at} />
                 ) : (
                   <span className="text-text-muted">
                     <span aria-hidden="true">—</span>
@@ -119,106 +109,14 @@ function ChecksTable({ checks }: { checks: readonly ReadinessCheck[] }) {
   );
 }
 
-function LoadingRows() {
-  return (
-    <div className="flex flex-col gap-3 px-4 py-4" aria-hidden="true">
-      <div className="skeleton h-6 w-40" />
-      {[0, 1, 2, 3].map((row) => (
-        <div key={row} className="skeleton h-5 w-full" />
-      ))}
-    </div>
-  );
-}
-
-const COPIED_FEEDBACK_MS = 2000;
-
-function CorrelationId({ value }: { value: string }) {
-  const [copied, setCopied] = useState(false);
-  const copy = async () => {
-    await navigator.clipboard.writeText(value);
-    setCopied(true);
-    window.setTimeout(() => {
-      setCopied(false);
-    }, COPIED_FEEDBACK_MS);
-  };
-  return (
-    <p className="flex items-center gap-2 text-small text-text-muted">
-      Correlation ID{" "}
-      <span className="data text-text" translate="no">
-        {value}
-      </span>
-      <button
-        type="button"
-        aria-label="Copy correlation ID"
-        onClick={() => void copy()}
-        className="inline-grid size-6 cursor-pointer place-items-center rounded-control text-text-muted hover:bg-surface-sunken hover:text-text"
-      >
-        <Copy size={16} aria-hidden="true" />
-      </button>
-      <span aria-live="polite">{copied ? "Copied" : ""}</span>
-    </p>
-  );
-}
-
-interface LoadErrorProps {
-  error: Error;
-  failedAt: number;
-  retrying: boolean;
-  onRetry: () => void;
-}
-
-function LoadError({ error, failedAt, retrying, onRetry }: LoadErrorProps) {
-  const apiError = error instanceof ApiError ? error : null;
-  const correlationId = apiError?.correlationId ?? null;
-
-  return (
-    <div role="alert" className="flex items-start gap-3 px-4 py-4">
-      <WarningAlt size={20} aria-hidden="true" className="mt-0.5 flex-none text-text-muted" />
-      <div className="flex flex-col gap-2">
-        <p className="font-semibold">Could not load monitor readiness.</p>
-        <p className="text-text-muted">
-          {apiError?.status != null ? (
-            <>
-              The API answered {apiError.status} <span className="data">{apiError.code}</span>.
-            </>
-          ) : (
-            <>
-              The API did not answer; it may be stopped. Start it with{" "}
-              <code className="data">make up</code>.
-            </>
-          )}{" "}
-          Failed at <span className="data">{formatUtcTime(new Date(failedAt))} UTC</span>.
-        </p>
-        {correlationId !== null && <CorrelationId value={correlationId} />}
-        <div>
-          <button
-            type="button"
-            onClick={onRetry}
-            disabled={retrying}
-            className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-control border border-border-strong bg-surface px-3 font-medium hover:bg-surface-sunken disabled:cursor-default disabled:text-text-muted"
-          >
-            <Renew size={16} aria-hidden="true" />
-            {retrying ? "Retrying…" : "Retry"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function ReadinessPanel() {
-  const { data, error, isPending, isError, isFetching, refetch, dataUpdatedAt, errorUpdatedAt } =
-    useReadiness();
+  const readiness = useReadiness();
+  const { data, isPending, isError, dataUpdatedAt } = readiness;
   const stale = isError && data !== undefined;
-  const retry = () => void refetch();
 
   const meta =
     data === undefined ? undefined : stale ? (
-      <span className="flex items-center gap-1.5">
-        <Time size={16} aria-hidden="true" />
-        Data from <span className="data">{formatUtcTime(new Date(dataUpdatedAt))} UTC</span>;
-        refresh failed, retrying every {REFRESH_S}&nbsp;s.
-      </span>
+      <RefreshMeta updatedAt={dataUpdatedAt} failed />
     ) : (
       <span>
         Checked <span className="data">{formatUtcTime(new Date(data.checked_at))} UTC</span>,
@@ -228,12 +126,10 @@ export function ReadinessPanel() {
 
   return (
     <Card title="Monitor readiness" titleId="readiness-title" meta={meta} busy={isPending}>
-      {isPending && <LoadingRows />}
-      {isError && data === undefined && (
-        <LoadError error={error} failedAt={errorUpdatedAt} retrying={isFetching} onRetry={retry} />
-      )}
+      {isPending && <SkeletonRows />}
+      {isError && data === undefined && <LoadError what="monitor readiness" query={readiness} />}
       {data !== undefined && (
-        <div className={stale ? "text-text-muted" : undefined}>
+        <div className={staleClass(stale)}>
           <Verdict readiness={data} />
           <ChecksTable checks={data.checks} />
         </div>

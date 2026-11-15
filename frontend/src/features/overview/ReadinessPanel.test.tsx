@@ -2,21 +2,21 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
-import { readyBody, stalledBody } from "@/test/fixtures";
-import { renderApp, seriousViolations, stubFetch, stubUnreachable } from "@/test/render";
+import { stalledBody } from "@/test/fixtures";
+import { renderApp, seriousViolations, stubApi, stubUnreachable } from "@/test/render";
 
 const panel = () => screen.getByRole("region", { name: "Monitor readiness" });
 
 describe("ReadinessPanel", () => {
   it("is busy with a static skeleton while loading", () => {
-    stubFetch(200, readyBody);
+    stubApi();
     renderApp();
 
     expect(panel()).toHaveAttribute("aria-busy", "true");
   });
 
   it("states API ready and lists every check", async () => {
-    stubFetch(200, readyBody);
+    stubApi();
     renderApp();
 
     expect(await within(panel()).findByText("API ready")).toBeInTheDocument();
@@ -32,7 +32,7 @@ describe("ReadinessPanel", () => {
   });
 
   it("treats a 503 answer as a not-ready report, not a load error", async () => {
-    stubFetch(503, stalledBody);
+    stubApi({ "/ready": { status: 503, body: stalledBody } });
     renderApp();
 
     expect(await within(panel()).findByText("API not ready")).toBeInTheDocument();
@@ -42,23 +42,27 @@ describe("ReadinessPanel", () => {
   });
 
   it("explains a problem response with its code and correlation ID", async () => {
-    stubFetch(
-      500,
-      {
-        type: "urn:iphi:problem:internal-error",
-        title: "Internal Server Error",
+    stubApi({
+      "/ready": {
         status: 500,
-        detail: "An internal error occurred.",
-        code: "INTERNAL_ERROR",
-        correlation_id: "0192f1c4a7b37c3e",
-        errors: [],
+        body: {
+          type: "urn:iphi:problem:internal-error",
+          title: "Internal Server Error",
+          status: 500,
+          detail: "An internal error occurred.",
+          code: "INTERNAL_ERROR",
+          correlation_id: "0192f1c4a7b37c3e",
+          errors: [],
+        },
+        headers: { "x-correlation-id": "0192f1c4a7b37c3e" },
       },
-      { "x-correlation-id": "0192f1c4a7b37c3e" },
-    );
+    });
     renderApp();
 
-    const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent("The API answered 500 INTERNAL_ERROR.");
+    const alert = await within(panel()).findByRole("alert");
+    expect(alert).toHaveTextContent(
+      "The API answered 500 INTERNAL_ERROR: An internal error occurred.",
+    );
     expect(alert).toHaveTextContent("0192f1c4a7b37c3e");
     expect(within(alert).getByRole("button", { name: "Copy correlation ID" })).toBeInTheDocument();
   });
@@ -67,10 +71,10 @@ describe("ReadinessPanel", () => {
     stubUnreachable();
     renderApp();
 
-    const alert = await screen.findByRole("alert");
+    const alert = await within(panel()).findByRole("alert");
     expect(alert).toHaveTextContent("The API did not answer");
 
-    const fetch = stubFetch(200, readyBody);
+    const fetch = stubApi();
     await userEvent.click(within(alert).getByRole("button", { name: "Retry" }));
 
     expect(await within(panel()).findByText("API ready")).toBeInTheDocument();
@@ -78,7 +82,7 @@ describe("ReadinessPanel", () => {
   });
 
   it("has no serious accessibility violation when not ready", async () => {
-    stubFetch(503, stalledBody);
+    stubApi({ "/ready": { status: 503, body: stalledBody } });
     const { container } = renderApp();
     await within(panel()).findByText("API not ready");
 

@@ -3,12 +3,12 @@ import { act, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
-import { readyBody, stalledBody } from "@/test/fixtures";
-import { renderApp, seriousViolations, stubFetch, stubUnreachable } from "@/test/render";
+import { stalledBody } from "@/test/fixtures";
+import { renderApp, seriousViolations, stubApi, stubUnreachable } from "@/test/render";
 
 describe("AppShell", () => {
   it("always labels the data as simulated", async () => {
-    stubFetch(200, readyBody);
+    stubApi();
     renderApp();
 
     expect(screen.getByRole("note")).toHaveTextContent("SIMULATED DATA");
@@ -16,7 +16,7 @@ describe("AppShell", () => {
   });
 
   it("offers a skip link to the main content", async () => {
-    stubFetch(200, readyBody);
+    stubApi();
     renderApp();
 
     expect(screen.getByRole("link", { name: "Skip to content" })).toHaveAttribute("href", "#main");
@@ -25,7 +25,7 @@ describe("AppShell", () => {
   });
 
   it("reports a running monitor with its cycle and AI status", async () => {
-    stubFetch(200, readyBody);
+    stubApi();
     renderApp();
 
     const monitor = screen.getByRole("group", { name: "Monitor status" });
@@ -35,7 +35,7 @@ describe("AppShell", () => {
   });
 
   it("raises a stalled monitor in the top bar", async () => {
-    stubFetch(503, stalledBody);
+    stubApi({ "/ready": { status: 503, body: stalledBody } });
     renderApp();
 
     const monitor = screen.getByRole("group", { name: "Monitor status" });
@@ -52,7 +52,7 @@ describe("AppShell", () => {
   });
 
   it("stops claiming the monitor runs once the API stops answering", async () => {
-    stubFetch(200, readyBody);
+    stubApi();
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     renderApp("/", client);
     const monitor = screen.getByRole("group", { name: "Monitor status" });
@@ -67,7 +67,7 @@ describe("AppShell", () => {
   });
 
   it("toggles and remembers the theme", async () => {
-    stubFetch(200, readyBody);
+    stubApi();
     document.documentElement.dataset.theme = "light";
     renderApp();
 
@@ -79,7 +79,7 @@ describe("AppShell", () => {
   });
 
   it("renders a not-found page for unknown addresses", async () => {
-    stubFetch(200, readyBody);
+    stubApi();
     renderApp("/nowhere");
 
     expect(screen.getByRole("heading", { level: 1, name: "Page not found" })).toBeInTheDocument();
@@ -87,7 +87,7 @@ describe("AppShell", () => {
   });
 
   it("has no serious accessibility violation", async () => {
-    stubFetch(200, readyBody);
+    stubApi();
     const { container } = renderApp();
     await screen.findByText("API ready");
 

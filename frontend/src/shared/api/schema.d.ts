@@ -652,6 +652,8 @@ export interface components {
       impacted_by: components["schemas"]["ComponentRefOut"][];
       /** Key */
       key: string;
+      /** @description Metric of the rule behind the worst state, else the type's default metric; null before the first evaluation. */
+      key_metric: components["schemas"]["KeyMetricOut"] | null;
       /** Name */
       name: string;
       /**
@@ -695,6 +697,8 @@ export interface components {
       impacted_by: components["schemas"]["ComponentRefOut"][];
       /** Key */
       key: string;
+      /** @description Metric of the rule behind the worst state, else the type's default metric; null before the first evaluation. */
+      key_metric: components["schemas"]["KeyMetricOut"] | null;
       /** Name */
       name: string;
       /**
@@ -1324,6 +1328,58 @@ export interface components {
      * @enum {string}
      */
     IncidentStatus: "open" | "acknowledged" | "resolved";
+    /**
+     * KeyMetricKind
+     * @enum {string}
+     */
+    KeyMetricKind: "meter" | "availability" | "value";
+    /**
+     * KeyMetricOut
+     * @description The measurement representing the component on the Overview (design system §6.1).
+     */
+    KeyMetricOut: {
+      aggregation: components["schemas"]["Aggregation"];
+      /** Critical Threshold */
+      critical_threshold: number | null;
+      /**
+       * Display Max
+       * @description 1.25 x the highest threshold, within the metric range.
+       */
+      display_max: number;
+      /** Display Min */
+      display_min: number;
+      /**
+       * Evaluated At
+       * Format: date-time
+       * @description End of the window the value was measured over.
+       */
+      evaluated_at: string;
+      /**
+       * Evaluation Id
+       * @description Latest stored evaluation of the rule.
+       */
+      evaluation_id: number;
+      /** @description meter: range meter; availability: text (DOWN since); value: number only. */
+      kind: components["schemas"]["KeyMetricKind"];
+      /** Name */
+      name: string;
+      rule: components["schemas"]["RuleRefOut"];
+      /** Since */
+      since: string | null;
+      /** @description Debounced rule state; Unknown once stale. */
+      state: components["schemas"]["HealthState"];
+      /** Unit */
+      unit: string | null;
+      /**
+       * Value
+       * @description Rule's latest measurement; null without samples.
+       */
+      value: number | null;
+      /** Warning Threshold */
+      warning_threshold: number | null;
+      /** Window Seconds */
+      window_seconds: number;
+    };
     /** LevelOut */
     LevelOut: {
       /**
@@ -1491,6 +1547,16 @@ export interface components {
        * Format: date-time
        */
       window_start: string;
+    };
+    /** MutationsOut */
+    MutationsOut: {
+      /**
+       * Enabled
+       * @description Whether scenario, clock and incident mutations are accepted.
+       */
+      enabled: boolean;
+      /** Reason */
+      reason: string;
     };
     /**
      * ObservationSource
@@ -1928,6 +1994,8 @@ export interface components {
        * @constant
        */
       environment: "simulation";
+      /** @description ADR 0007 guard, so the interface hides controls the API would refuse. */
+      mutations: components["schemas"]["MutationsOut"];
       worker: components["schemas"]["WorkerStatusOut"];
     };
     /** TopologyEdgeOut */

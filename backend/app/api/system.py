@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Request, Response, status
 from pydantic import BaseModel, Field
 
 from app.core.observation import ObservationSource
+from app.identity.domain import MutationPolicy
 from app.ingestion.domain.collection import CollectionRun, CollectionStatus
 from app.monitor.domain import (
     CheckName,
@@ -152,6 +153,13 @@ class AiProviderStatusOut(BaseModel):
     detail: str
 
 
+class MutationsOut(BaseModel):
+    enabled: bool = Field(
+        description="Whether scenario, clock and incident mutations are accepted."
+    )
+    reason: str
+
+
 class SystemStatusOut(BaseModel):
     environment: Literal["simulation"] = "simulation"
     checked_at: datetime
@@ -160,9 +168,12 @@ class SystemStatusOut(BaseModel):
     worker: WorkerStatusOut
     collection: CollectionStatusOut
     ai_provider: AiProviderStatusOut
+    mutations: MutationsOut = Field(
+        description="ADR 0007 guard, so the interface hides controls the API would refuse."
+    )
 
     @classmethod
-    def of(cls, status: SystemStatus) -> SystemStatusOut:
+    def of(cls, status: SystemStatus, policy: MutationPolicy) -> SystemStatusOut:
         heartbeat = status.heartbeat
         return cls(
             checked_at=status.checked_at,
@@ -201,6 +212,7 @@ class SystemStatusOut(BaseModel):
             ai_provider=AiProviderStatusOut(
                 status=status.ai_provider.status, detail=status.ai_provider.detail
             ),
+            mutations=MutationsOut(enabled=policy.enabled, reason=policy.reason),
         )
 
 
@@ -214,6 +226,8 @@ def system_status_service(request: Request) -> SystemStatusService:
     summary="Monitor observability: clock, worker cycle, collection runs, AI provider.",
 )
 def system_status(
+    request: Request,
     service: Annotated[SystemStatusService, Depends(system_status_service)],
 ) -> SystemStatusOut:
-    return SystemStatusOut.of(service.status())
+    policy: MutationPolicy = request.app.state.mutation_policy
+    return SystemStatusOut.of(service.status(), policy)

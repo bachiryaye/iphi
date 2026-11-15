@@ -28,7 +28,7 @@ from app.simulation.domain.platform import SIMULATED_PLATFORM
 from app.simulation.service import build_simulation
 from app.topology.service import TopologyService
 
-API_VERSION = "0.5.0"
+API_VERSION = "0.6.0"
 
 log = structlog.get_logger(__name__)
 

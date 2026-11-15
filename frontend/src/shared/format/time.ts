@@ -33,3 +33,28 @@ export const formatUtcDateTime = (date: Date): string =>
   `${utcDate.format(date)} ${utcTime.format(date)} UTC`;
 
 export const formatSeconds = (value: number): string => `${seconds.format(value)}\u00a0s`;
+
+/** `2 min 15 s`, `14 min`, `3 h 05 min`: the largest two units, never a bare number. */
+export function formatDuration(totalSeconds: number): string {
+  const s = Math.max(0, Math.round(totalSeconds));
+  if (s < 60) return `${String(s)}\u00a0s`;
+  const minutes = Math.floor(s / 60);
+  if (minutes < 60) {
+    const rest = s % 60;
+    return rest === 0 || minutes >= 10
+      ? `${String(minutes)}\u00a0min`
+      : `${String(minutes)}\u00a0min ${String(rest)}\u00a0s`;
+  }
+  const hours = Math.floor(minutes / 60);
+  if (hours < 48)
+    return `${String(hours)}\u00a0h ${String(minutes % 60).padStart(2, "0")}\u00a0min`;
+  return `${String(Math.floor(hours / 24))}\u00a0d`;
+}
+
+/** `4 min ago`; always shown next to, or with a title holding, the absolute time (P6). */
+export const formatAge = (from: Date, now: Date): string =>
+  `${formatDuration((now.getTime() - from.getTime()) / 1000)} ago`;
+
+/** `2026-11-12 10:42:07 UTC (11:42:07 local)` for titles. */
+export const formatFullTimestamp = (date: Date): string =>
+  `${formatUtcDateTime(date)} (${formatLocalTime(date)} local)`;
