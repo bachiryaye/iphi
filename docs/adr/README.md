@@ -22,5 +22,7 @@ Format : contexte, décision, alternatives, conséquences. Statut de toutes les 
 | [0016](0016-moteur-sante-us04.md) | Moteur de santé US-04 : évaluation par créneau, hystérésis avec Unknown, versions de règles, lecture périmée |
 | [0017](0017-incidents-us05.md) | Incidents US-05 : déclenchement, famille disponibilité/connectivité, occurrences, preuves conservées, diagnostic déterministe |
 | [0018](0018-dashboard-us06.md) | Dashboard US-06 : métrique clé côté serveur, garde de mutation exposée, rafraîchissement, graphiques, primitives d'interface |
+| [0019](0019-demo-e2e-performance-us10.md) | Démonstration US-10 : environnement propre isolé, démo exécutable, e2e en temps de plateforme, mesure de performance |
+| [0020](0020-images-sans-compose.md) | Images exécutables sans Compose : entrypoint par rôle, migration au démarrage, healthchecks |
 
 Nouvelle ADR : copier le format, numéro suivant, statut *Proposée* jusqu'à validation.

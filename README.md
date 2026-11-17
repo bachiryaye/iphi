@@ -14,11 +14,51 @@ IPHI monitors the health of an **industrial data platform** — sources, gateway
 | US-04 | Versioned health rules, hysteresis, `Unknown`, component and platform health with justification | Delivered |
 | US-05 | Deduplicated incidents with evidence, lifecycle, downstream suppression, deterministic diagnosis | Delivered |
 | US-06 | Operator dashboard: Overview, Topology, Components, Incidents, Scenarios, Rules | Delivered |
-| US-07 → US-12 | Live updates, AI diagnosis, reports, security | Planned ([backlog](docs/03-backlog.md)) |
+| US-10 | One-command reproducible demo, end-to-end tests of the mandatory scenarios, performance check, case study | Delivered |
+| US-07, US-08, US-09, US-11, US-12 | Live updates, AI diagnosis, reports, authentication and roles, MQTT adapter | Planned ([backlog](docs/03-backlog.md)) |
 
 What runs today: PostgreSQL, a migration and seed job, the FastAPI API (`/health`, `/ready`, simulation, metrics, logs, health and system status endpoints, OpenAPI), a worker that holds the scheduler lock and, every cycle, collects the simulated observations, validates and stores them, evaluates the health rules, opens, updates and resolves incidents, purges data past retention and writes a heartbeat, and the operator dashboard described below.
 
-![Overview during the collector_down scenario, light theme](docs/design/screenshots/us-06-overview-light-1440.png)
+![Overview during the collector_down scenario, light theme](docs/design/screenshots/overview-light-1440.png)
+
+| Incident with its evidence chain and deterministic diagnosis | Same Overview, dark theme |
+|---|---|
+| ![Incident page: signal, evidence chain, diagnosis, timeline](docs/design/screenshots/incident-light-1440.png) | ![Overview, dark theme](docs/design/screenshots/overview-dark-1440.png) |
+
+Screenshots are taken from the running application by `make screenshots`; more in [`docs/design/screenshots/`](docs/design/screenshots/).
+
+## Demo in one command
+
+```sh
+make demo
+```
+
+Starts a clean, seeded stack in its own Compose project (fresh volume, http://127.0.0.1:8081), then injects five faults on an accelerated platform clock and **checks what IPHI concludes** for each: collector outage (one incident with evidence, downstream attached as impact, deterministic diagnosis), latency rise and stable recovery, stale data distinct from availability, telemetry blackout (`Unknown`, never `Healthy`), error burst without incident storm. It takes about two minutes after the build, needs no account or API key, and leaves a live incident to explore in the interface. The step-by-step guide with the expected output is in [docs/demo.md](docs/demo.md); the reasoning behind the design is in the [case study](docs/case-study.md).
+
+## Architecture
+
+```mermaid
+flowchart LR
+  subgraph sim["Simulated platform sim-plant-01 (no real system)"]
+    direction LR
+    plc[plc-sim-01] --> gw[edge-gateway-01] --> col[collector-01] --> hist[historian-01] --> dapi[data-api-01] --> ana[analytics-01]
+    hist -.- tsdb[(timeseries-db-01)]
+  end
+  subgraph worker["Worker: one cycle every 5 s, one transaction"]
+    direction LR
+    conn[Connectors] --> ing[Ingestion<br/>validate, deduplicate] --> health[Health rules<br/>hysteresis, Unknown] --> inc[Incidents<br/>fingerprint, evidence]
+  end
+  sim -- "metrics and logs<br/>source = simulation" --> conn
+  ing --> pg[(PostgreSQL)]
+  health --> pg
+  inc --> pg
+  pg --> api[FastAPI /api/v1<br/>OpenAPI, deterministic diagnosis]
+  api --> ui[React dashboard<br/>behind Nginx]
+  clock[Platform clock<br/>realtime, accelerated, manual] -.-> sim
+  clock -.-> worker
+```
+
+One PostgreSQL, one API process, one worker holding the scheduler lock: a modular monolith whose module boundaries (simulation, connectors, ingestion, health, incidents, diagnostics) are enforced by import contracts in CI. The worker alone collects and evaluates; the API serves the results and records operator actions (acknowledge, resolve, diagnose, scenarios, clock). Details in the [architecture document](docs/02-architecture-technique.md) and the [decision records](docs/adr/README.md).
 
 ## Requirements
 
@@ -49,6 +89,19 @@ curl -i http://127.0.0.1:8000/ready    # 200 once migrated and the worker has cy
 ```
 
 `/ready` reports four checks: database reachable, schema at the code's migration head, worker heartbeat younger than three cycles, AI provider (`disabled` until US-08). Stop the worker (`docker compose stop worker`) and the readiness turns `503`, and the top bar shows *Monitor stalled*: the monitor never looks healthy while blind.
+
+## Run without Compose
+
+The images start on their own entry point (ADR 0020): `iphi-backend` takes a role, `api` by default, `worker` or `migrate`; `iphi-frontend` proxies to `IPHI_API_UPSTREAM`. Both run as non-root on a read-only root filesystem with a writable `/tmp`, and carry a healthcheck (the worker's checks its last completed cycle).
+
+```sh
+docker run --rm -e IPHI_DATABASE_URL=… iphi-backend:local migrate     # once per release
+docker run -d -e IPHI_DATABASE_URL=… iphi-backend:local               # api, port 8000
+docker run -d -e IPHI_DATABASE_URL=… iphi-backend:local worker        # a single active worker
+docker run -d -e IPHI_API_UPSTREAM=http://<api-host>:8000 -p 8080:8080 iphi-frontend:local
+```
+
+`IPHI_MIGRATE_ON_START=true` runs the migration at the start of `api` or `worker` instead; concurrent starts migrate one after the other. Mutations stay refused unless `IPHI_DEV_MUTATIONS=true` on a loopback-only stack (ADR 0007), so an exposed deployment is read-only until authentication (US-11).
 
 ## Simulation
 
@@ -160,7 +213,9 @@ make help        # every target
 
 - Backend tests run against a real PostgreSQL (`make test-backend` starts the `db` service; each test gets a fresh database).
 - Frontend tests use Vitest, Testing Library and axe-core (every screen is checked for serious accessibility violations).
-- End-to-end: with the stack running, `make test-e2e` resets the simulation, starts `collector_down` and checks the Overview and the incident in Chromium (Playwright). It resets the simulation again when done.
+- End-to-end: `make test-e2e` runs Playwright (Chromium) against the demo stack (started clean when it is not running): the mandatory scenarios 1 to 6 and 8 of the backlog through the interface, and the first display of the Overview (once: `cd frontend && pnpm exec playwright install chromium`).
+- `make demo` is itself an executable acceptance test of the API path: it exits non-zero when an expected state, incident or diagnosis is not observed.
+- Performance: `make perf` measures API latency, worker cycle duration and detection delay against the targets of the architecture; results in [docs/performance.md](docs/performance.md).
 - The TypeScript API types are generated from the backend OpenAPI document (`make api-client`); CI fails if they drift.
 - Frontend dev server with hot reload: `cd frontend && pnpm dev` (http://127.0.0.1:5173, proxied to the API on port 8000).
 
@@ -173,6 +228,8 @@ docs/       Requirements, architecture, backlog, design system, ADRs (French)
 ```
 
 ## Documentation
+
+For an evaluator, in English: [demonstration guide](docs/demo.md), [case study](docs/case-study.md) (problem, decisions, trade-offs, limits), [measured performance](docs/performance.md), [three-minute video script](docs/video-script.md).
 
 The design dossier is in French: [requirements](docs/01-cahier-des-charges.md), [architecture](docs/02-architecture-technique.md), [backlog](docs/03-backlog.md), [design system](docs/04-design-system.md), [decision records](docs/adr/README.md). Engineering rules: [rules.md](rules.md).
 
@@ -188,4 +245,4 @@ The design dossier is in French: [requirements](docs/01-cahier-des-charges.md), 
 
 ## Résumé en français
 
-IPHI surveille la santé d'une plateforme de données industrielle **simulée** : collecte, règles de santé explicables, incidents dédupliqués et prouvés, diagnostic optionnel. `docker compose up --build` démarre PostgreSQL, les migrations et le seed, l'API, le worker et l'interface (http://127.0.0.1:8080). La plateforme simulée compte sept composants et neuf scénarios de panne reproductibles (seed, horloge de plateforme accélérable) ; ses mesures et logs sont validés, historisés dans PostgreSQL et consultables par l'API, et des règles versionnées avec hystérésis en déduisent l'état justifié de chaque composant et de la plateforme (jamais « sain » faute de données). Une panne ouvre un incident unique, dédoublonné par la base, rattaché aux évaluations et observations qui le prouvent, avec suppression des alertes en aval, résolution automatique au retour à la normale et diagnostic déterministe sans IA. Le tableau de bord (vue d'ensemble, topologie, composants, incidents, scénarios, règles) affiche ces états et leurs preuves, rafraîchis toutes les 10 s. Le dossier de conception (cahier des charges, architecture, backlog, design system, ADR) est dans `docs/`. Aucune connexion à une installation réelle n'existe ni n'est revendiquée.
+IPHI surveille la santé d'une plateforme de données industrielle **simulée** : collecte, règles de santé explicables, incidents dédupliqués et prouvés, diagnostic optionnel. `docker compose up --build` démarre PostgreSQL, les migrations et le seed, l'API, le worker et l'interface (http://127.0.0.1:8080). La plateforme simulée compte sept composants et neuf scénarios de panne reproductibles (seed, horloge de plateforme accélérable) ; ses mesures et logs sont validés, historisés dans PostgreSQL et consultables par l'API, et des règles versionnées avec hystérésis en déduisent l'état justifié de chaque composant et de la plateforme (jamais « sain » faute de données). Une panne ouvre un incident unique, dédoublonné par la base, rattaché aux évaluations et observations qui le prouvent, avec suppression des alertes en aval, résolution automatique au retour à la normale et diagnostic déterministe sans IA. Le tableau de bord (vue d'ensemble, topologie, composants, incidents, scénarios, règles) affiche ces états et leurs preuves, rafraîchis toutes les 10 s. `make demo` rejoue les pannes principales sur un environnement propre et vérifie chaque conclusion ([guide](docs/demo.md), [étude de cas](docs/case-study.md)). Le dossier de conception (cahier des charges, architecture, backlog, design system, ADR) est dans `docs/`. Aucune connexion à une installation réelle n'existe ni n'est revendiquée.
