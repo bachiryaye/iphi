@@ -158,11 +158,13 @@ def api_latency(api: Api, component_id: str, requests: int) -> list[Measure]:
     for label, path, query in targets:
         for _ in range(WARMUP_REQUESTS):
             api.timed_get(path, **query)
-        replies = [api.timed_get(path, **query) for _ in range(requests)]
-        durations = [reply.elapsed_ms for reply in replies]
+        durations = []
+        for _ in range(requests):
+            reply = api.timed_get(path, **query)
+            durations.append(reply.elapsed_ms)
         returned = ""
         if path == "/metrics":
-            last = replies[-1].body
+            last = reply.body
             returned = (
                 f"; {len(last['points']) + len(last['buckets'])} {last['mode']} points returned"
             )

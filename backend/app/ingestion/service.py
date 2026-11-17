@@ -284,7 +284,7 @@ def _raw_if_fits(
     if query.expects_raw:
         raw = tuple(observations.raw_points(query, query.max_points + 1))
         return raw if len(raw) <= query.max_points else None
-    if not observations.fits(query, query.max_points):
+    if not observations.fits(query):
         return None
     return tuple(observations.raw_points(query, query.max_points))
 
