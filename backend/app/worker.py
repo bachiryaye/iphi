@@ -9,6 +9,7 @@ from collections.abc import Callable, Sequence
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from pathlib import Path
 from types import FrameType
 from typing import Protocol
 
@@ -20,6 +21,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.connectors.registry import build_connectors
 from app.core.clock import Clock, WallClock
 from app.core.db import create_db_engine, create_session_factory
+from app.core.liveness import LivenessFile
 from app.core.logging import configure_logging
 from app.core.retention import RetentionJob
 from app.core.settings import Settings
@@ -164,7 +166,12 @@ class Worker:
             purged=purged,
         )
 
-    def run(self, stop: threading.Event, lock_held: Callable[[], bool]) -> bool:
+    def run(
+        self,
+        stop: threading.Event,
+        lock_held: Callable[[], bool],
+        alive: Callable[[], None] = lambda: None,
+    ) -> bool:
         """Cycles until stopped. Returns False if the scheduler lock was lost meanwhile."""
         due = time.monotonic()
         while not stop.is_set():
@@ -175,6 +182,7 @@ class Worker:
             with _cycle_logs():
                 try:
                     self._run_cycle(lag_ms)
+                    alive()
                 except Exception:
                     # Process boundary (C-14): a failed cycle is logged; the stale heartbeat
                     # makes /ready fail, so the failure is visible instead of silent.
@@ -229,6 +237,7 @@ def main() -> int:
     engine = create_db_engine(settings)
     session_factory = create_session_factory(engine)
     wall = WallClock()
+    liveness = LivenessFile(Path(settings.liveness_file))
     worker = Worker(
         session_factory,
         HeartbeatService(session_factory),
@@ -239,12 +248,14 @@ def main() -> int:
     # The advisory lock lives as long as this connection: a second worker waits (ADR 0001).
     with engine.connect() as lock_connection:
         while not try_acquire_worker_lock(lock_connection):
+            # A standby worker is alive too.
+            liveness.touch()
             log.info("worker.lock_wait", lock_id=WORKER_LOCK_ID)
             if stop.wait(settings.cycle_interval_s):
                 return 0
         log.info("worker.started", cycle_interval_s=settings.cycle_interval_s)
         try:
-            completed = worker.run(stop, lambda: holds_worker_lock(lock_connection))
+            completed = worker.run(stop, lambda: holds_worker_lock(lock_connection), liveness.touch)
         finally:
             release_worker_lock(lock_connection)
     log.info("worker.stopped")

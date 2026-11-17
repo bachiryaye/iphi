@@ -105,3 +105,15 @@ def test_future_part_of_the_window_is_not_a_gap() -> None:
 
 def test_window_entirely_in_the_future_has_no_gap() -> None:
     assert find_gaps([], HOUR, 5, START - timedelta(seconds=1)) == ()
+
+
+@pytest.mark.parametrize(
+    ("window_s", "max_points", "expected"),
+    [(3600, 1440, True), (3600, 1439, False), (7 * 86_400, 2000, False), (5, 1, False)],
+)
+def test_expects_raw_counts_one_sample_per_slot_and_source(
+    window_s: int, max_points: int, expected: bool
+) -> None:
+    query = SeriesQuery(uuid.uuid4(), "up", TimeWindow(START, at(window_s)), max_points)
+
+    assert query.expects_raw is expected

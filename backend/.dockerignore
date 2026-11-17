@@ -5,5 +5,4 @@
 .coverage
 htmlcov
 tests
-scripts
 **/__pycache__

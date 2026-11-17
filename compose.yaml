@@ -35,6 +35,8 @@ services:
       - "127.0.0.1:${IPHI_DB_PORT:-5433}:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
+    # Parallel workers use /dev/shm, 64 MB by default in a container.
+    shm_size: 256mb
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 2s
@@ -45,8 +47,7 @@ services:
     <<: *backend
     build:
       context: ./backend
-    # Schema to head, then the idempotent seed (topology, clock, baseline run).
-    command: ["python", "-m", "app.bootstrap"]
+    command: ["migrate"]
     depends_on:
       db:
         condition: service_healthy
@@ -63,9 +64,7 @@ services:
 
   worker:
     <<: *backend
-    command: ["python", "-m", "app.worker"]
-    healthcheck:
-      disable: true
+    command: ["worker"]
     depends_on:
       migrate:
         condition: service_completed_successfully

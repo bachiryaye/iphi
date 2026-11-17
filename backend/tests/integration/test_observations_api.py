@@ -89,6 +89,16 @@ def test_series_beyond_max_points_is_aggregated_without_filling_gaps(
     assert body["gaps"] == [{"start": "2026-01-01T00:04:00Z", "end": "2026-01-01T00:06:00Z"}]
 
 
+# The fixture stores 80 samples in the window.
+@pytest.mark.parametrize(("max_points", "mode", "points"), [(80, "raw", 80), (79, "aggregated", 0)])
+def test_series_stays_raw_up_to_exactly_max_points(
+    client: TestClient, collector: str, max_points: int, mode: str, points: int
+) -> None:
+    body = series(client, collector, max_points=max_points)
+
+    assert (body["mode"], len(body["points"])) == (mode, points)
+
+
 @pytest.mark.parametrize(
     ("params", "status", "code"),
     [

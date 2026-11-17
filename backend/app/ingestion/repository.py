@@ -113,8 +113,14 @@ class MetricSampleRecord(Base):
     __tablename__ = "metric_sample"
     __table_args__ = (
         # Re-delivered samples are ignored and counted (ADR 0003). The unique index also serves
-        # series reads (component, metric, time range), so no second composite index is kept.
-        UniqueConstraint("component_id", "metric_name", "observed_at", "source"),
+        # series reads, so no second composite index is kept; it covers bucketed reads (ADR 0019).
+        UniqueConstraint(
+            "component_id",
+            "metric_name",
+            "observed_at",
+            "source",
+            postgresql_include=["value", "quality"],
+        ),
         CheckConstraint(check_in("quality", Quality), name="quality"),
         CheckConstraint(check_in("source", ObservationSource), name="source"),
         CheckConstraint("value = value", name="value_not_nan"),
@@ -376,6 +382,16 @@ class ObservationRepository:
         # RETURNING lists only the rows actually inserted; through the ORM session, rowcount
         # is not reported (-1) for this statement.
         return len(self._session.scalars(statement).all())
+
+    def fits(self, query: SeriesQuery, limit: int) -> bool:
+        """Bounded count on the covering index only (ADR 0019)."""
+        probe = (
+            select(MetricSampleRecord.observed_at)
+            .where(*_series_filter(query.component_id, query.metric_name, query.window))
+            .limit(limit + 1)
+            .subquery()
+        )
+        return self._session.execute(select(func.count()).select_from(probe)).scalar_one() <= limit
 
     def raw_points(self, query: SeriesQuery, limit: int) -> list[RawPoint]:
         statement = (
