@@ -383,15 +383,16 @@ class ObservationRepository:
         # is not reported (-1) for this statement.
         return len(self._session.scalars(statement).all())
 
-    def fits(self, query: SeriesQuery, limit: int) -> bool:
+    def fits(self, query: SeriesQuery) -> bool:
         """Bounded count on the covering index only (ADR 0019)."""
         probe = (
             select(MetricSampleRecord.observed_at)
             .where(*_series_filter(query.component_id, query.metric_name, query.window))
-            .limit(limit + 1)
+            .limit(query.max_points + 1)
             .subquery()
         )
-        return self._session.execute(select(func.count()).select_from(probe)).scalar_one() <= limit
+        count = self._session.execute(select(func.count()).select_from(probe)).scalar_one()
+        return count <= query.max_points
 
     def raw_points(self, query: SeriesQuery, limit: int) -> list[RawPoint]:
         statement = (
