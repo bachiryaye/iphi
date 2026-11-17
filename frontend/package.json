@@ -16,7 +16,8 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "gen:api": "openapi-typescript openapi.json -o src/shared/api/schema.d.ts && prettier --write src/shared/api/schema.d.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test --project=chromium",
+    "screenshots": "playwright test --project=screenshots"
   },
   "dependencies": {
     "@carbon/icons-react": "^11.92.0",

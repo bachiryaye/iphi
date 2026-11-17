@@ -1,9 +1,12 @@
-"""`migrate` service entry point: schema to head, then the idempotent seed (architecture §02.1)."""
+"""`migrate` role: schema to head, then the idempotent seed (architecture §02.1, ADR 0020)."""
 
 import sys
+import time
 
 import structlog
 from alembic import command
+from sqlalchemy import Connection, Engine, text
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.clock import Clock, WallClock
@@ -21,6 +24,10 @@ from app.topology.service import TopologyService
 
 log = structlog.get_logger(__name__)
 
+# Serializes the migration of containers started together.
+BOOTSTRAP_LOCK_ID = 0x1F4E_0002
+CONNECT_RETRY_S = 1.0
+
 
 def seed(session_factory: sessionmaker[Session], wall: Clock, sim_seed: int) -> SimulationService:
     """Idempotent seed: topology, metric catalog, health rules, platform clock, baseline run."""
@@ -33,11 +40,30 @@ def seed(session_factory: sessionmaker[Session], wall: Clock, sim_seed: int) -> 
     return simulation
 
 
+def connect_when_ready(engine: Engine, wait_s: float) -> Connection:
+    deadline = time.monotonic() + wait_s
+    while True:
+        try:
+            return engine.connect()
+        except OperationalError:
+            if time.monotonic() >= deadline:
+                raise
+            log.info("bootstrap.database_wait", wait_s=wait_s)
+            time.sleep(CONNECT_RETRY_S)
+
+
 def bootstrap(settings: Settings) -> None:
-    command.upgrade(alembic_config(settings.database_url.get_secret_value()), "head")
     engine = create_db_engine(settings)
     try:
-        seed(create_session_factory(engine), WallClock(), settings.sim_seed)
+        with connect_when_ready(engine, settings.db_wait_s) as lock:
+            lock.execute(text("SELECT pg_advisory_lock(:id)"), {"id": BOOTSTRAP_LOCK_ID})
+            lock.commit()
+            try:
+                command.upgrade(alembic_config(settings.database_url.get_secret_value()), "head")
+                seed(create_session_factory(engine), WallClock(), settings.sim_seed)
+            finally:
+                lock.execute(text("SELECT pg_advisory_unlock(:id)"), {"id": BOOTSTRAP_LOCK_ID})
+                lock.commit()
     finally:
         engine.dispose()
 

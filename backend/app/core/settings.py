@@ -39,6 +39,23 @@ class Settings(BaseSettings):
     retention_days: int = Field(
         default=7, ge=1, le=90, description="Observation retention in platform days (ADR 0008)."
     )
+    port: int = Field(default=8000, ge=1, le=65535, description="Port the API listens on.")
+    liveness_file: str = Field(
+        default="/tmp/iphi-worker.alive",  # noqa: S108 - per-container tmpfs, not shared
+        max_length=4096,
+        description="File the worker touches every cycle for the container healthcheck.",
+    )
+    liveness_max_age_s: float = Field(
+        default=300.0,
+        gt=0,
+        description="Liveness file age beyond which the worker is stuck; above a slow cycle.",
+    )
+    db_wait_s: float = Field(
+        default=60.0,
+        ge=0,
+        le=600,
+        description="How long the bootstrap waits for the database to accept connections.",
+    )
 
     @property
     def allowed_host_list(self) -> list[str]:

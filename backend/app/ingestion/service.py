@@ -20,6 +20,7 @@ from app.ingestion.domain.errors import MetricNotFoundError, PlatformNotSeededEr
 from app.ingestion.domain.logs import LogQuery, StoredLog
 from app.ingestion.domain.observations import ObservationMark, SampleDetail, StoredSample
 from app.ingestion.domain.series import (
+    RawPoint,
     Series,
     SeriesQuery,
     find_gaps,
@@ -276,6 +277,18 @@ class ObservationHistory:
         return self._repository.purge_source(source, holds)
 
 
+def _raw_if_fits(
+    observations: ObservationRepository, query: SeriesQuery
+) -> tuple[RawPoint, ...] | None:
+    """Raw samples if they fit in max_points, else None; long windows count on the index first."""
+    if query.expects_raw:
+        raw = tuple(observations.raw_points(query, query.max_points + 1))
+        return raw if len(raw) <= query.max_points else None
+    if not observations.fits(query, query.max_points):
+        return None
+    return tuple(observations.raw_points(query, query.max_points))
+
+
 class ObservationQueryService:
     def __init__(
         self,
@@ -297,9 +310,8 @@ class ObservationQueryService:
             if definition is None:
                 raise MetricNotFoundError(f"No metric {query.metric_name!r} in the catalog.")
             observations = ObservationRepository(session)
-            # One row beyond max_points tells the window needs downsampling, without a count.
-            raw = tuple(observations.raw_points(query, query.max_points + 1))
-            if len(raw) <= query.max_points:
+            raw = _raw_if_fits(observations, query)
+            if raw is not None:
                 gaps = find_gaps([p.observed_at for p in raw], query.window, SAMPLE_INTERVAL_S, now)
                 return Series(query, component_key, definition.unit, None, raw, (), gaps)
             bucket_s = query.bucket_seconds()

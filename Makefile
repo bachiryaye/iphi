@@ -9,15 +9,26 @@ IPHI_FRONTEND_PORT ?= 8080
 IPHI_TEST_DATABASE_URL ?= postgresql+psycopg://$(IPHI_DB_USER):$(IPHI_DB_PASSWORD)@127.0.0.1:$(IPHI_DB_PORT)/postgres
 export IPHI_TEST_DATABASE_URL
 
+# Separate Compose project: own volume and ports, the development stack is never touched.
+IPHI_DEMO_FRONTEND_PORT ?= 8081
+IPHI_DEMO_API_PORT ?= 8001
+IPHI_DEMO_DB_PORT ?= 5434
+DEMO_URL := http://127.0.0.1:$(IPHI_DEMO_FRONTEND_PORT)
+READY_URL ?= $(DEMO_URL)
+# Extra arguments of scripts.demo, e.g. DEMO_ARGS=--no-live-incident
+DEMO_ARGS ?=
+DEMO_COMPOSE := IPHI_FRONTEND_PORT=$(IPHI_DEMO_FRONTEND_PORT) IPHI_API_PORT=$(IPHI_DEMO_API_PORT) \
+	IPHI_DB_PORT=$(IPHI_DEMO_DB_PORT) docker compose -p iphi-demo
+
 BACKEND := cd backend &&
 FRONTEND := cd frontend &&
 
 .DEFAULT_GOAL := help
 .PHONY: help up down logs db install lint typecheck test test-backend test-frontend test-e2e \
-	api-client api-drift check demo
+	api-client api-drift check demo demo-up demo-running demo-down perf screenshots wait-ready
 
 help: ## List targets
-	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
+	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
 
 up: ## Build and start the whole stack (db, migrate, api, worker, frontend)
 	docker compose up --build -d
@@ -52,8 +63,8 @@ test-frontend: ## Vitest (components, accessibility)
 
 test: test-backend test-frontend ## All automated tests
 
-test-e2e: ## Playwright against the running stack (make up first); resets the simulation
-	$(FRONTEND) pnpm test:e2e
+test-e2e: demo-running ## Playwright on the demo stack (started clean if not running): mandatory scenarios
+	$(FRONTEND) IPHI_E2E_URL=$(DEMO_URL) pnpm test:e2e
 
 api-client: ## Regenerate openapi.json and the typed frontend client
 	$(BACKEND) uv run python -m scripts.export_openapi ../frontend/openapi.json
@@ -68,6 +79,28 @@ api-drift: api-client ## Fail if the committed API client differs from the backe
 
 check: lint typecheck test api-drift ## Everything CI runs, locally
 
-demo: ## Stub until US-10: starts the stack; scripted scenarios arrive with US-02 and US-10
-	@echo "make demo is a stub until US-10 (docs/03-backlog.md); starting the stack instead."
-	@$(MAKE) --no-print-directory up
+wait-ready: ## Wait up to 3 min for READY_URL/ready (default: the demo stack)
+	@for attempt in $$(seq 1 90); do \
+		curl -fs -o /dev/null $(READY_URL)/ready && exit 0; sleep 2; \
+	done; echo "$(READY_URL)/ready not ready after 180 s"; exit 1
+
+demo-up: demo-down ## Start a clean, seeded demo stack (fresh volume) and wait until it is ready
+	$(DEMO_COMPOSE) up --build -d
+	@$(MAKE) --no-print-directory wait-ready || \
+		{ $(DEMO_COMPOSE) ps --all; $(DEMO_COMPOSE) logs --tail 50; exit 1; }
+
+demo-running: # Reuse a ready demo stack; every tool resets the simulation it needs
+	@curl -fs -o /dev/null $(DEMO_URL)/ready || $(MAKE) --no-print-directory demo-up
+
+demo: demo-up ## Scripted demonstration on a clean stack (docs/demo.md); leaves it running
+	$(DEMO_COMPOSE) exec -T api python -m scripts.demo $(DEMO_ARGS)
+	@echo "Interface $(DEMO_URL)  -  stop and remove with: make demo-down"
+
+perf: demo-running ## Load test of the performance targets on the demo stack (PERF_ARGS="--history-days 7")
+	$(DEMO_COMPOSE) exec -T api python -m scripts.perf $(PERF_ARGS)
+
+screenshots: demo-running ## Regenerate the README screenshots from the demo stack (light and dark)
+	$(FRONTEND) IPHI_E2E_URL=$(DEMO_URL) pnpm screenshots
+
+demo-down: ## Stop the demo stack and delete its volume
+	$(DEMO_COMPOSE) down --volumes --remove-orphans

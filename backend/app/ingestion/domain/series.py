@@ -9,7 +9,7 @@ from enum import StrEnum
 from http import HTTPStatus
 
 from app.core.exceptions import IphiError
-from app.core.observation import ObservationSource, Quality
+from app.core.observation import SAMPLE_INTERVAL, ObservationSource, Quality
 
 MAX_WINDOW = timedelta(days=7)
 MAX_POINTS = 2000
@@ -55,6 +55,12 @@ class SeriesQuery:
     def __post_init__(self) -> None:
         if not 1 <= self.max_points <= MAX_POINTS:
             raise InvalidTimeWindowError(f"max_points must be between 1 and {MAX_POINTS}.")
+
+    @property
+    def expects_raw(self) -> bool:
+        """Estimate that picks the first query; the stored count decides the mode."""
+        slots = math.ceil(self.window.duration / SAMPLE_INTERVAL)
+        return slots * len(ObservationSource) <= self.max_points
 
     def bucket_seconds(self) -> int:
         """Smallest whole-second bucket that keeps the window within max_points buckets."""
