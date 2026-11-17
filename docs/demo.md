@@ -132,3 +132,29 @@ make demo-down    # stops the demo stack and deletes its volume
 - **`DEMO FAILED: not observed within N s`**: the line names the expectation that was not met. `docker compose -p iphi-demo logs worker` shows the rule and incident transitions; `curl -s http://127.0.0.1:8081/api/v1/system/status` shows the collection state. On a heavily loaded machine, lower the clock factor: `docker compose -p iphi-demo exec api python -m scripts.demo --speed 10`.
 - **An e2e test times out in `reset` or before the first row appears**: PostgreSQL commits wait on `fsync`. On a spinning disk shared with other databases, a single commit was measured at 126 s, which stalls the worker and every request behind the clock lock. Stop other database containers while the suite runs (`docker compose -p iphi stop` for the development stack); `cat /proc/pressure/io` shows the I/O pressure.
 - **Mutations answer `403 MUTATIONS_DISABLED`**: the stack was published on a non-loopback address (`IPHI_BIND_HOST`); unauthenticated mutations are refused there by design (ADR 0007).
+
+
+## Optional diagnosis with the local fake provider (US-08)
+
+After the standard demo/e2e run, recreate only the demo API with its fake provider:
+
+```sh
+IPHI_LLM_PROVIDER=fake IPHI_FRONTEND_PORT=8081 IPHI_API_PORT=8001 IPHI_DB_PORT=5434 \
+  docker compose -p iphi-demo up -d --no-deps --force-recreate api
+make wait-ready
+cd frontend
+IPHI_E2E_URL=http://127.0.0.1:8081 IPHI_E2E_LLM=fake \
+  pnpm exec playwright test --project chromium --grep 'US-08'
+```
+
+The opt-in test confirms that the stack reports the fake provider before any diagnosis,
+then resets/warms the simulation, starts `collector_down`, opens its incident, requests an
+AI diagnosis, follows an evidence chip and opens the deterministic comparison. Both readings
+come from the stored evidence; the fake result explicitly identifies itself as test output.
+This test is skipped in the standard P0 suite unless `IPHI_E2E_LLM=fake` is set. Never run it
+against a paid-provider configuration. CI uses the same two-stage none/fake procedure.
+
+To restore the ordinary demo configuration, run the same API recreation command with
+`IPHI_LLM_PROVIDER=none`. No model key is needed for either stage. Invalid output, invented
+citations, provider failure/timeout, quota and concurrent requests are exercised by the
+backend tests, using local fakes and an HTTP test transport.

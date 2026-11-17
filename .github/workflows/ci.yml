@@ -159,6 +159,12 @@ jobs:
         run: make demo DEMO_ARGS=--no-live-incident
       - name: End-to-end tests (make test-e2e)
         run: make test-e2e
+      - name: Optional AI diagnosis with the local fake provider
+        run: |
+          IPHI_LLM_PROVIDER=fake IPHI_FRONTEND_PORT=8081 IPHI_API_PORT=8001 IPHI_DB_PORT=5434 \
+            docker compose -p iphi-demo up -d --no-deps --force-recreate api
+          make wait-ready
+          cd frontend && IPHI_E2E_URL=http://127.0.0.1:8081 IPHI_E2E_LLM=fake pnpm exec playwright test --project chromium --grep 'US-08'
       - name: Stack logs
         if: failure()
         run: docker compose -p iphi-demo logs --tail 300

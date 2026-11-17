@@ -182,7 +182,25 @@ export function useDiagnostics(id: string) {
           params: { path: { incident_id: id } },
         }),
       ),
-    // Diagnoses are added only through Diagnose, which invalidates every query.
+    // Poll stored results only; a refresh never calls a language model.
+    ...polled,
+  });
+}
+
+export function useCitedEvidence(incidentId: string, evidenceId: number | null) {
+  return useQuery({
+    queryKey: ["cited-evidence", incidentId, evidenceId],
+    enabled: evidenceId !== null,
+    staleTime: Infinity,
+    queryFn: () =>
+      call(
+        api.GET("/api/v1/incidents/{incident_id}/evidence", {
+          params: {
+            path: { incident_id: incidentId },
+            query: { evidence_id: evidenceId },
+          },
+        }),
+      ),
   });
 }
 
@@ -258,7 +276,7 @@ export function useResolve(id: string) {
   });
 }
 
-export function useDiagnose(id: string) {
+export function useDiagnose(id: string, mode: "deterministic" | "llm" = "deterministic") {
   const onSuccess = useRefreshAll();
   return useMutation({
     // One key per click: a retried request returns the same diagnostic instead of a second one.
@@ -267,7 +285,7 @@ export function useDiagnose(id: string) {
         api.POST("/api/v1/incidents/{incident_id}/diagnose", {
           params: {
             path: { incident_id: id },
-            query: { mode: "deterministic" },
+            query: { mode },
             header: { "Idempotency-Key": idempotencyKey },
           },
           headers: JSON_HEADERS,

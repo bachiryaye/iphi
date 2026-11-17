@@ -124,7 +124,7 @@ export function DiagnosisBody({
   focus: EvidenceFocus;
 }) {
   return (
-    <div>
+    <div className="min-w-0 [overflow-wrap:anywhere]">
       <Section title="Facts">{claims(diagnostic.observed_facts, focus)}</Section>
       <Section title="Hypotheses">
         {diagnostic.hypotheses.map((h, index) => (

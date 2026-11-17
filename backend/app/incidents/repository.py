@@ -367,13 +367,15 @@ class IncidentRepository:
         return {row.incident_id: row.total for row in self._session.execute(statement)}
 
     def evidence(
-        self, incident_id: uuid.UUID, after: int | None, limit: int
+        self, incident_id: uuid.UUID, after: int | None, limit: int, evidence_id: int | None = None
     ) -> list[StoredEvidence]:
         """In insertion order, with each row's ordinal within the incident."""
         numbered = _numbered_evidence(incident_id)
         statement = select(numbered).order_by(numbered.c.id).limit(limit)
         if after is not None:
             statement = statement.where(numbered.c.id > after)
+        if evidence_id is not None:
+            statement = statement.where(numbered.c.id == evidence_id)
         return _evidence_rows(self._session, statement)
 
     def key_evaluations(self, incident_id: uuid.UUID, limit: int) -> list[StoredEvidence]:

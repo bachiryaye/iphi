@@ -17,6 +17,7 @@ class CheckStatus(StrEnum):
     OK = "ok"
     FAILED = "failed"
     DISABLED = "disabled"
+    UNKNOWN = "unknown"
 
 
 class CheckName(StrEnum):
@@ -57,7 +58,11 @@ class ReadinessReport:
 
     @property
     def ready(self) -> bool:
-        return all(check.status is not CheckStatus.FAILED for check in self.checks)
+        return all(
+            check.status is not CheckStatus.FAILED
+            for check in self.checks
+            if check.name is not CheckName.AI_PROVIDER
+        )
 
 
 def assess_worker(

@@ -128,10 +128,13 @@ export class Simulation {
     );
   }
 
-  async diagnose(incidentId: string): Promise<void> {
-    body(
+  async diagnose(
+    incidentId: string,
+    mode: "deterministic" | "llm" = "deterministic",
+  ): Promise<Schemas["DiagnosticOut"]> {
+    return body(
       await this.api.POST("/api/v1/incidents/{incident_id}/diagnose", {
-        params: { path: { incident_id: incidentId }, query: { mode: "deterministic" } },
+        params: { path: { incident_id: incidentId }, query: { mode } },
         headers: { "content-type": "application/json" },
       }),
     );
@@ -153,6 +156,10 @@ export class Simulation {
 
   async readiness(): Promise<Schemas["ReadinessOut"]> {
     return body(await this.api.GET("/ready"));
+  }
+
+  async systemStatus(): Promise<Schemas["SystemStatusOut"]> {
+    return body(await this.api.GET("/api/v1/system/status"));
   }
 }
 

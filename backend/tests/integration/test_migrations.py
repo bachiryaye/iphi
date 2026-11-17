@@ -18,6 +18,7 @@ APPLICATION_TABLES = {
     "component_health",
     "dependency",
     "diagnostic",
+    "diagnostic_budget",
     "health_rule",
     "incident",
     "incident_event",

@@ -17,7 +17,8 @@ from app.core.middleware import (
 )
 from app.core.migrations import expected_head
 from app.core.settings import Settings
-from app.diagnostics.service import DiagnosticsService
+from app.diagnostics.providers import build_provider
+from app.diagnostics.service import DiagnosticRuntime, DiagnosticsService
 from app.health.service import HealthQueries
 from app.identity.domain import MutationPolicy
 from app.identity.service import AuditService
@@ -28,7 +29,7 @@ from app.simulation.domain.platform import SIMULATED_PLATFORM
 from app.simulation.service import build_simulation
 from app.topology.service import TopologyService
 
-API_VERSION = "0.6.0"
+API_VERSION = "0.8.0"
 
 log = structlog.get_logger(__name__)
 
@@ -43,26 +44,12 @@ def create_app(settings: Settings) -> FastAPI:
         responses={"default": {"model": Problem, "description": "RFC 9457 problem details."}},
     )
     wall = WallClock()
-    app.state.readiness = ReadinessService(
-        session_factory,
-        wall,
-        expected_revision=expected_head(),
-        cycle_interval_s=settings.cycle_interval_s,
-        llm_provider=settings.llm_provider,
-    )
     simulation = build_simulation(session_factory, wall)
     topology = TopologyService(session_factory)
     observation_queries = ObservationQueryService(session_factory, topology, SIMULATED_PLATFORM.key)
     app.state.simulation = simulation
     app.state.observations = observation_queries
     app.state.metric_catalog = MetricCatalogService(session_factory)
-    app.state.system_status = SystemStatusService(
-        session_factory,
-        wall,
-        settings.cycle_interval_s,
-        settings.llm_provider,
-        MonitoredParts(simulation, observation_queries, ENABLED_CONNECTOR_KEYS),
-    )
     app.state.health = HealthQueries(session_factory, topology)
 
     def platform_now() -> datetime:
@@ -70,7 +57,27 @@ def create_app(settings: Settings) -> FastAPI:
 
     app.state.incident_queries = IncidentQueries(session_factory)
     app.state.incident_commands = IncidentCommands(session_factory, wall, platform_now)
-    app.state.diagnostics = DiagnosticsService(session_factory, wall, platform_now, topology)
+    app.state.diagnostics = DiagnosticsService(
+        session_factory,
+        wall,
+        platform_now,
+        topology,
+        DiagnosticRuntime(settings, build_provider(settings)),
+    )
+    app.state.readiness = ReadinessService(
+        session_factory,
+        wall,
+        expected_revision=expected_head(),
+        cycle_interval_s=settings.cycle_interval_s,
+        llm_provider=app.state.diagnostics.provider_status,
+    )
+    app.state.system_status = SystemStatusService(
+        session_factory,
+        wall,
+        settings.cycle_interval_s,
+        app.state.diagnostics.provider_status,
+        MonitoredParts(simulation, observation_queries, ENABLED_CONNECTOR_KEYS),
+    )
     app.state.cycle_interval_s = settings.cycle_interval_s
     app.state.audit = AuditService(session_factory, wall)
     app.state.sim_seed = settings.sim_seed

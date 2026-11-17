@@ -17,7 +17,9 @@ function Item({ children }: { children: ReactNode }) {
 }
 
 function MonitorState({ readiness }: { readiness: Readiness }) {
-  const failed = readiness.checks.find((check) => check.status === "failed");
+  const failed = readiness.checks.find(
+    (check) => check.status === "failed" && check.name !== "ai_provider",
+  );
   if (failed) return <StatusBadge state="critical" label={FAILURE_LABEL[failed.name]} />;
   return (
     <Item>
@@ -42,6 +44,9 @@ function CycleDetails({ readiness }: { readiness: Readiness }) {
         )}
       </Item>
       {ai?.status === "disabled" && <Item>AI diagnosis off</Item>}
+      {ai?.status === "failed" && <Item>AI unavailable · deterministic available</Item>}
+      {ai?.status === "unknown" && <Item>AI provider unverified</Item>}
+      {ai?.status === "ok" && <Item>AI provider: last attempt succeeded</Item>}
     </>
   );
 }

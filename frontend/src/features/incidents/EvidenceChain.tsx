@@ -117,7 +117,8 @@ export function EvidenceChain({ incident, active }: EvidenceChainProps) {
       )}
       {incident.evidence_next_cursor !== null && (
         <p className="border-t border-border px-4 py-2.5 text-small text-text-muted">
-          The first {all.length} of {incident.evidence_count} items are loaded.
+          Loaded {all.length} of {incident.evidence_count} items. Choose a citation to load its
+          evidence.
         </p>
       )}
     </Card>

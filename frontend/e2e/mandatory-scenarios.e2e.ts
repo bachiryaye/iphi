@@ -170,6 +170,14 @@ test("6. no AI provider: monitoring, incidents and the dashboard keep working", 
   await expect(componentRow(page, "collector-01")).toContainText("Critical", { timeout: SEEN });
   await expect(incidentLink(page, /collector-01 unreachable/)).toHaveCount(1, { timeout: SEEN });
   await expect(page.getByRole("group", { name: "Monitor status" })).not.toContainText("stalled");
+  const [incident] = await simulation.activeIncidents();
+  if (incident === undefined) throw new Error("No incident detected.");
+  const attempt = await simulation.diagnose(incident.id, "llm");
+  expect(attempt.error_code).toBe("LLM_DISABLED");
+  expect(attempt.deterministic_id).not.toBeNull();
+  await page.goto(`/incidents/${incident.id}`);
+  await expect(page.getByRole("region", { name: "Diagnosis: deterministic" })).toBeVisible();
+  await expect(page.getByText("Monitor running", { exact: true })).toBeVisible();
 });
 
 /** Conclusions without the identifiers and timestamps of one run. */

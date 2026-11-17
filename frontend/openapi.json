@@ -116,7 +116,8 @@
         "enum": [
           "ok",
           "failed",
-          "disabled"
+          "disabled",
+          "unknown"
         ],
         "title": "CheckStatus",
         "type": "string"
@@ -820,11 +821,35 @@
             "title": "Created By",
             "type": "string"
           },
+          "deterministic_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Same-snapshot comparison or fallback.",
+            "title": "Deterministic Id"
+          },
           "environment": {
             "const": "simulation",
             "default": "simulation",
             "title": "Environment",
             "type": "string"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
           },
           "evidence_set_hash": {
             "title": "Evidence Set Hash",
@@ -848,8 +873,30 @@
             "title": "Incident Id",
             "type": "string"
           },
+          "input_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Tokens"
+          },
           "kind": {
             "$ref": "#/components/schemas/DiagnosticKind"
+          },
+          "latency_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latency Ms"
           },
           "limitations": {
             "items": {
@@ -868,6 +915,17 @@
             },
             "title": "Observed Facts",
             "type": "array"
+          },
+          "output_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Tokens"
           },
           "provider": {
             "title": "Provider",
@@ -3926,7 +3984,7 @@
   "info": {
     "summary": "Health intelligence for a simulated industrial data platform.",
     "title": "IPHI API",
-    "version": "0.6.0"
+    "version": "0.8.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -4442,14 +4500,17 @@
             }
           },
           {
-            "description": "`llm` arrives with US-08; deterministic is always available.",
+            "description": "Optional evidence-grounded AI, or the always available deterministic mode.",
             "in": "query",
             "name": "mode",
             "required": false,
             "schema": {
-              "const": "deterministic",
               "default": "deterministic",
-              "description": "`llm` arrives with US-08; deterministic is always available.",
+              "description": "Optional evidence-grounded AI, or the always available deterministic mode.",
+              "enum": [
+                "deterministic",
+                "llm"
+              ],
               "title": "Mode",
               "type": "string"
             }
@@ -4481,7 +4542,7 @@
                 }
               }
             },
-            "description": "Same key or unchanged evidence."
+            "description": "Same key or unchanged deterministic evidence."
           },
           "201": {
             "content": {
@@ -4492,6 +4553,12 @@
               }
             },
             "description": "Successful Response"
+          },
+          "409": {
+            "description": "DIAGNOSIS_IN_PROGRESS or DIAGNOSIS_KEY_CONFLICT"
+          },
+          "429": {
+            "description": "DIAGNOSIS_RATE_LIMITED"
           },
           "default": {
             "content": {
@@ -4666,6 +4733,26 @@
               "minimum": 1,
               "title": "Limit",
               "type": "integer"
+            }
+          },
+          {
+            "description": "Load one cited proof, preserving its stable label.",
+            "in": "query",
+            "name": "evidence_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 9223372036854775807,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Load one cited proof, preserving its stable label.",
+              "title": "Evidence Id"
             }
           }
         ],

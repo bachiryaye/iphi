@@ -75,3 +75,9 @@ class StoredDiagnostic:
     validation: ValidationReport
     created_by: str
     created_at: datetime
+    prompt_redacted: str | None = None
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    latency_ms: int | None = None
+    error_code: str | None = None
+    deterministic_id: uuid.UUID | None = None

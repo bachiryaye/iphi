@@ -505,7 +505,7 @@ export interface components {
      * CheckStatus
      * @enum {string}
      */
-    CheckStatus: "ok" | "failed" | "disabled";
+    CheckStatus: "ok" | "failed" | "disabled" | "unknown";
     /** CitationOut */
     CitationOut: {
       /** Evidence Id */
@@ -813,11 +813,18 @@ export interface components {
       /** Created By */
       created_by: string;
       /**
+       * Deterministic Id
+       * @description Same-snapshot comparison or fallback.
+       */
+      deterministic_id?: string | null;
+      /**
        * Environment
        * @default simulation
        * @constant
        */
       environment: "simulation";
+      /** Error Code */
+      error_code?: string | null;
       /** Evidence Set Hash */
       evidence_set_hash: string;
       /**
@@ -835,13 +842,19 @@ export interface components {
        * Format: uuid
        */
       incident_id: string;
+      /** Input Tokens */
+      input_tokens?: number | null;
       kind: components["schemas"]["DiagnosticKind"];
+      /** Latency Ms */
+      latency_ms?: number | null;
       /** Limitations */
       limitations: string[];
       /** Model */
       model: string;
       /** Observed Facts */
       observed_facts: components["schemas"]["ClaimOut"][];
+      /** Output Tokens */
+      output_tokens?: number | null;
       /** Provider */
       provider: string;
       /** Recommended Checks */
@@ -2357,8 +2370,8 @@ export interface operations {
   diagnose_incident_api_v1_incidents__incident_id__diagnose_post: {
     parameters: {
       query?: {
-        /** @description `llm` arrives with US-08; deterministic is always available. */
-        mode?: "deterministic";
+        /** @description Optional evidence-grounded AI, or the always available deterministic mode. */
+        mode?: "deterministic" | "llm";
       };
       header?: {
         "Idempotency-Key"?: string | null;
@@ -2370,7 +2383,7 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Same key or unchanged evidence. */
+      /** @description Same key or unchanged deterministic evidence. */
       200: {
         headers: {
           [name: string]: unknown;
@@ -2387,6 +2400,20 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["DiagnosticOut"];
         };
+      };
+      /** @description DIAGNOSIS_IN_PROGRESS or DIAGNOSIS_KEY_CONFLICT */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description DIAGNOSIS_RATE_LIMITED */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description RFC 9457 problem details. */
       default: {
@@ -2469,6 +2496,8 @@ export interface operations {
       query?: {
         cursor?: string | null;
         limit?: number;
+        /** @description Load one cited proof, preserving its stable label. */
+        evidence_id?: number | null;
       };
       header?: never;
       path: {

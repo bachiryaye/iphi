@@ -24,5 +24,6 @@ Format : contexte, décision, alternatives, conséquences. Statut de toutes les 
 | [0018](0018-dashboard-us06.md) | Dashboard US-06 : métrique clé côté serveur, garde de mutation exposée, rafraîchissement, graphiques, primitives d'interface |
 | [0019](0019-demo-e2e-performance-us10.md) | Démonstration US-10 : environnement propre isolé, démo exécutable, e2e en temps de plateforme, mesure de performance |
 | [0020](0020-images-sans-compose.md) | Images exécutables sans Compose : entrypoint par rôle, migration au démarrage, healthchecks |
+| [0021](0021-diagnostic-llm-us08.md) | US-08 : diagnostic LLM borné, quota persistant, comparaison déterministe et repli |
 
 Nouvelle ADR : copier le format, numéro suivant, statut *Proposée* jusqu'à validation.

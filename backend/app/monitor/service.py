@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import datetime
 
@@ -38,7 +39,7 @@ class ReadinessService:
         clock: Clock,
         expected_revision: str,
         cycle_interval_s: float,
-        llm_provider: LlmProvider,
+        llm_provider: LlmProvider | Callable[[], ReadinessCheck],
     ) -> None:
         self._session_factory = session_factory
         self._clock = clock
@@ -78,7 +79,9 @@ class ReadinessService:
         return (database, migrations, worker)
 
 
-def ai_provider_check(provider: LlmProvider) -> ReadinessCheck:
+def ai_provider_check(provider: LlmProvider | Callable[[], ReadinessCheck]) -> ReadinessCheck:
+    if callable(provider):
+        return provider()
     # US-08 adds real providers; "none" is a supported state, never a readiness failure.
     return ReadinessCheck(
         CheckName.AI_PROVIDER,
@@ -143,7 +146,7 @@ class SystemStatusService:
         session_factory: sessionmaker[Session],
         wall: Clock,
         cycle_interval_s: float,
-        llm_provider: LlmProvider,
+        llm_provider: LlmProvider | Callable[[], ReadinessCheck],
         parts: MonitoredParts,
     ) -> None:
         self._session_factory = session_factory

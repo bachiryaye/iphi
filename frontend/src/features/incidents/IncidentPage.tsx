@@ -1,8 +1,8 @@
 import { ChevronRight } from "@carbon/icons-react";
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 
-import { useDiagnostics, useIncident } from "@/shared/api/queries";
+import { useCitedEvidence, useIncident } from "@/shared/api/queries";
 import type { IncidentDetail } from "@/shared/api/types";
 import { IncidentStatusLabel } from "@/shared/status/IncidentStatus";
 import { SimTag } from "@/shared/status/SimTag";
@@ -10,10 +10,11 @@ import { StatusBadge } from "@/shared/status/StatusBadge";
 import { Timestamp } from "@/shared/status/Timestamp";
 import { Card } from "@/shared/ui/Card";
 import { CopyButton } from "@/shared/ui/CopyButton";
-import { EmptyState, LoadError, RefreshMeta, SkeletonRows } from "@/shared/ui/QueryStates";
+import { LoadError, RefreshMeta, SkeletonRows } from "@/shared/ui/QueryStates";
 import { staleClass } from "@/shared/ui/stale";
 
-import { DiagnosisBody, type EvidenceFocus } from "./DiagnosisCard";
+import { type EvidenceFocus } from "./DiagnosisCard";
+import { DiagnosisPanel } from "./DiagnosisPanel";
 import { EvidenceChain } from "./EvidenceChain";
 import { IncidentActions } from "./IncidentActions";
 import { IncidentSignal } from "./IncidentSignal";
@@ -145,49 +146,33 @@ function Details({ incident }: { incident: IncidentDetail }) {
   );
 }
 
-function Diagnosis({ incident, focus }: { incident: IncidentDetail; focus: EvidenceFocus }) {
-  const diagnostics = useDiagnostics(incident.id);
-  const latest = diagnostics.data?.items[0];
-  return (
-    <Card
-      title={latest === undefined ? "Diagnosis" : `Diagnosis: ${latest.kind}`}
-      titleId="diagnosis-title"
-      busy={diagnostics.isPending}
-      meta={
-        latest !== undefined && (
-          <span>
-            Generated <Timestamp iso={latest.created_at} /> by {latest.created_by}
-          </span>
-        )
-      }
-    >
-      {diagnostics.isPending && <SkeletonRows rows={4} />}
-      {diagnostics.isError && diagnostics.data === undefined && (
-        <LoadError what="the diagnosis" query={diagnostics} />
-      )}
-      {diagnostics.data !== undefined && latest === undefined && (
-        <EmptyState title="No diagnosis yet.">
-          Diagnose builds a deterministic reading of the stored evidence: facts, hypotheses with
-          their uncertainty, checks to run. It needs no AI provider.
-        </EmptyState>
-      )}
-      {latest !== undefined && <DiagnosisBody diagnostic={latest} focus={focus} />}
-    </Card>
-  );
-}
-
 export function IncidentPage() {
   const { incidentId = "" } = useParams();
   const query = useIncident(incidentId);
   const incident = query.data;
   const [active, setActive] = useState<number | null>(null);
-  const byId = useMemo(() => new Map((incident?.evidence ?? []).map((e) => [e.id, e])), [incident]);
+  const missing = active !== null && !incident?.evidence.some((item) => item.id === active);
+  const selected = useCitedEvidence(incidentId, missing ? active : null);
+  const byId = useMemo(
+    () =>
+      new Map(
+        [...(incident?.evidence ?? []), ...(selected.data?.items ?? [])].map((item) => [
+          item.id,
+          item,
+        ]),
+      ),
+    [incident, selected.data],
+  );
+  useEffect(() => {
+    if (active !== null && byId.has(active)) {
+      document.getElementById(`evidence-${String(active)}`)?.scrollIntoView({ block: "nearest" });
+    }
+  }, [active, byId]);
   const focus: EvidenceFocus = {
     active,
     byId,
     toggle: (id) => {
       setActive((current) => (current === id ? null : id));
-      document.getElementById(`evidence-${String(id)}`)?.scrollIntoView({ block: "nearest" });
     },
   };
   const activeSample = active === null ? null : (byId.get(active)?.sample?.id ?? null);
@@ -217,8 +202,13 @@ export function IncidentPage() {
       <div className="grid grid-cols-[minmax(0,1fr)_336px] items-start gap-4 max-xl:grid-cols-1">
         <div className="flex min-w-0 flex-col gap-4">
           <IncidentSignal incident={incident} activeSample={activeSample} />
-          <EvidenceChain incident={incident} active={active} />
-          <Diagnosis incident={incident} focus={focus} />
+          {missing && selected.isPending && <p role="status">Loading cited evidence…</p>}
+          {missing && selected.isError && <LoadError what="the cited evidence" query={selected} />}
+          {missing && selected.data?.items.length === 0 && (
+            <p role="status">This citation is not attached to the incident.</p>
+          )}
+          <EvidenceChain incident={{ ...incident, evidence: [...byId.values()] }} active={active} />
+          <DiagnosisPanel incidentId={incident.id} focus={focus} />
         </div>
         <aside className="flex flex-col gap-4 xl:sticky xl:top-4" aria-label="Incident context">
           <Card

@@ -204,6 +204,15 @@ class PageParams(BaseModel):
     limit: int = Field(default=DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE)
 
 
+class EvidencePageParams(PageParams):
+    evidence_id: int | None = Field(
+        default=None,
+        ge=1,
+        le=2**63 - 1,
+        description="Load one cited proof, preserving its stable label.",
+    )
+
+
 class ResolveIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -245,6 +254,13 @@ class DiagnosticOut(BaseModel):
     validation: ValidationOut
     created_by: str
     created_at: datetime = Field(description="Platform time.")
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    latency_ms: int | None = None
+    error_code: str | None = None
+    deterministic_id: uuid.UUID | None = Field(
+        default=None, description="Same-snapshot comparison or fallback."
+    )
     environment: Simulation = "simulation"
 
 
@@ -313,10 +329,13 @@ def incident_detail(incident_id: uuid.UUID, service: Queries, keys: Keys) -> Inc
 
 @router.get("/{incident_id}/evidence", summary="Evidence of an incident, oldest first.")
 def incident_evidence(
-    incident_id: uuid.UUID, service: Queries, keys: Keys, params: Annotated[PageParams, Query()]
+    incident_id: uuid.UUID,
+    service: Queries,
+    keys: Keys,
+    params: Annotated[EvidencePageParams, Query()],
 ) -> EvidencePageOut:
     after = None if params.cursor is None else _decode_evidence_cursor(params.cursor)
-    page = service.evidence(incident_id, after, params.limit)
+    page = service.evidence(incident_id, after, params.limit, params.evidence_id)
     last = page.items[-1].stored.id if page.items else None
     return EvidencePageOut(
         items=[_evidence_out(i, keys) for i in page.items],
@@ -360,8 +379,10 @@ class DiagnoseOptions:
 
 def diagnose_options(
     mode: Annotated[
-        Literal["deterministic"],
-        Query(description="`llm` arrives with US-08; deterministic is always available."),
+        Literal["deterministic", "llm"],
+        Query(
+            description="Optional evidence-grounded AI, or the always available deterministic mode."
+        ),
     ] = "deterministic",
     idempotency_key: Annotated[IdempotencyKey | None, Header(alias="Idempotency-Key")] = None,
 ) -> DiagnoseOptions:
@@ -400,7 +421,14 @@ def resolve_incident(
     "/{incident_id}/diagnose",
     status_code=status.HTTP_201_CREATED,
     summary="Diagnose an incident from its stored evidence.",
-    responses={200: {"model": DiagnosticOut, "description": "Same key or unchanged evidence."}},
+    responses={
+        200: {
+            "model": DiagnosticOut,
+            "description": "Same key or unchanged deterministic evidence.",
+        },
+        409: {"description": "DIAGNOSIS_IN_PROGRESS or DIAGNOSIS_KEY_CONFLICT"},
+        429: {"description": "DIAGNOSIS_RATE_LIMITED"},
+    },
 )
 def diagnose_incident(
     incident_id: uuid.UUID,
@@ -568,6 +596,11 @@ def _diagnostic_out(d: StoredDiagnostic) -> DiagnosticOut:
         ),
         created_by=d.created_by,
         created_at=d.created_at,
+        input_tokens=d.input_tokens,
+        output_tokens=d.output_tokens,
+        latency_ms=d.latency_ms,
+        error_code=d.error_code,
+        deterministic_id=d.deterministic_id,
     )
 
 
