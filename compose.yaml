@@ -5,7 +5,7 @@ name: iphi
 x-backend: &backend
   image: iphi-backend:local
   pull_policy: never
-  environment:
+  environment: &backend-env
     IPHI_DATABASE_URL: postgresql+psycopg://${IPHI_DB_USER:-iphi}:${IPHI_DB_PASSWORD:-iphi_local_dev}@db:5432/${IPHI_DB_NAME:-iphi}
     IPHI_LOG_LEVEL: ${IPHI_LOG_LEVEL:-info}
     IPHI_LOG_FORMAT: ${IPHI_LOG_FORMAT:-json}
@@ -55,6 +55,13 @@ services:
 
   api:
     <<: *backend
+    environment:
+      <<: *backend-env
+      IPHI_LLM_MODEL: ${IPHI_LLM_MODEL:-}
+      IPHI_LLM_API_KEY: ${IPHI_LLM_API_KEY:-}
+      IPHI_LLM_TIMEOUT_S: ${IPHI_LLM_TIMEOUT_S:-20}
+      IPHI_LLM_INPUT_TOKENS: ${IPHI_LLM_INPUT_TOKENS:-8192}
+      IPHI_LLM_OUTPUT_TOKENS: ${IPHI_LLM_OUTPUT_TOKENS:-1600}
     ports:
       - "${IPHI_BIND_HOST:-127.0.0.1}:${IPHI_API_PORT:-8000}:8000"
     depends_on:

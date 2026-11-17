@@ -17,6 +17,21 @@ NOW = datetime(2026, 11, 12, 10, 42, 7, tzinfo=UTC)
 INTERVAL_S = 5.0
 
 
+@pytest.mark.parametrize(
+    "ai_status", [CheckStatus.UNKNOWN, CheckStatus.FAILED, CheckStatus.DISABLED]
+)
+def test_optional_ai_status_does_not_block_a_healthy_monitor(ai_status: CheckStatus) -> None:
+    report = ReadinessReport(
+        NOW,
+        INTERVAL_S,
+        (
+            ReadinessCheck(CheckName.WORKER, CheckStatus.OK, "Worker running."),
+            ReadinessCheck(CheckName.AI_PROVIDER, ai_status, "Optional AI unavailable."),
+        ),
+    )
+    assert report.ready
+
+
 def heartbeat(age_s: float, status: ProcessStatus = ProcessStatus.RUNNING) -> Heartbeat:
     return Heartbeat("worker", NOW - timedelta(seconds=age_s), 12, 0, status)
 

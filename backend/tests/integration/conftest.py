@@ -1,6 +1,7 @@
 import os
 import uuid
 from collections.abc import Callable, Iterator
+from datetime import UTC, datetime
 
 import pytest
 from alembic import command
@@ -13,6 +14,9 @@ from app.bootstrap import bootstrap
 from app.core.db import create_session_factory
 from app.core.migrations import alembic_config
 from app.core.settings import Settings
+from app.simulation.domain.catalog import ScenarioKey
+from tests.fakes import FixedClock
+from tests.health_runs import Platform, manual_platform
 
 pytestmark = pytest.mark.integration
 
@@ -78,3 +82,16 @@ def engine(database_url: str) -> Iterator[Engine]:
 @pytest.fixture
 def session_factory(engine: Engine) -> sessionmaker[Session]:
     return create_session_factory(engine)
+
+
+@pytest.fixture
+def platform(seeded_url: str) -> Iterator[Platform]:
+    """collector_down for two minutes on a manual clock: stored states never go stale."""
+    engine = create_engine(seeded_url)
+    platform = manual_platform(
+        create_session_factory(engine), engine, FixedClock(datetime.now(UTC))
+    )
+    platform.start(ScenarioKey.COLLECTOR_DOWN)
+    platform.advance(120)
+    yield platform
+    engine.dispose()

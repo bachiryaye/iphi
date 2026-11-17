@@ -21,7 +21,15 @@ const CHECK_LABEL: Record<CheckName, string> = {
 
 const REFRESH_S = READINESS_REFRESH_MS / 1000;
 
-function CheckStatusCell({ status }: { status: ReadinessCheck["status"] }) {
+function CheckStatusCell({
+  status,
+  optional,
+}: {
+  status: ReadinessCheck["status"];
+  optional: boolean;
+}) {
+  if (status === "unknown") return <StatusBadge state="unknown" label="Unverified" />;
+  if (status === "failed" && optional) return <span className="text-text-muted">Unavailable</span>;
   if (status === "ok") return <StatusBadge state="healthy" label="OK" />;
   if (status === "failed") return <StatusBadge state="critical" label="Failed" />;
   return (
@@ -34,7 +42,9 @@ function CheckStatusCell({ status }: { status: ReadinessCheck["status"] }) {
 
 function Verdict({ readiness }: { readiness: Readiness }) {
   const ready = readiness.status === "ready";
-  const failed = readiness.checks.filter((check) => check.status === "failed").length;
+  const failed = readiness.checks.filter(
+    (check) => check.status === "failed" && check.name !== "ai_provider",
+  ).length;
   return (
     <div className="flex items-center gap-2 px-4 py-4">
       <StatusBadge
@@ -76,7 +86,7 @@ function ChecksTable({ checks }: { checks: readonly ReadinessCheck[] }) {
             <tr
               key={check.name}
               className={
-                check.status === "failed"
+                check.status === "failed" && check.name !== "ai_provider"
                   ? "[&>*:first-child]:shadow-[inset_3px_0_0_var(--status-critical)]"
                   : undefined
               }
@@ -88,7 +98,7 @@ function ChecksTable({ checks }: { checks: readonly ReadinessCheck[] }) {
                 {CHECK_LABEL[check.name]}
               </th>
               <td className="border-b border-border px-3 whitespace-nowrap">
-                <CheckStatusCell status={check.status} />
+                <CheckStatusCell status={check.status} optional={check.name === "ai_provider"} />
               </td>
               <td className="border-b border-border px-3">{check.detail}</td>
               <td className="border-b border-border pr-4 pl-3 whitespace-nowrap">

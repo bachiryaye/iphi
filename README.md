@@ -15,7 +15,8 @@ IPHI monitors the health of an **industrial data platform** — sources, gateway
 | US-05 | Deduplicated incidents with evidence, lifecycle, downstream suppression, deterministic diagnosis | Delivered |
 | US-06 | Operator dashboard: Overview, Topology, Components, Incidents, Scenarios, Rules | Delivered |
 | US-10 | One-command reproducible demo, end-to-end tests of the mandatory scenarios, performance check, case study | Delivered |
-| US-07, US-08, US-09, US-11, US-12 | Live updates, AI diagnosis, reports, authentication and roles, MQTT adapter | Planned ([backlog](docs/03-backlog.md)) |
+| US-08 | Optional structured diagnosis, evidence validation, deterministic comparison and fallback | Implemented and verified locally; CI pending |
+| US-07, US-09, US-11, US-12 | Live updates, reports, authentication and roles, MQTT adapter | Planned ([backlog](docs/03-backlog.md)) |
 
 What runs today: PostgreSQL, a migration and seed job, the FastAPI API (`/health`, `/ready`, simulation, metrics, logs, health and system status endpoints, OpenAPI), a worker that holds the scheduler lock and, every cycle, collects the simulated observations, validates and stores them, evaluates the health rules, opens, updates and resolves incidents, purges data past retention and writes a heartbeat, and the operator dashboard described below.
 
@@ -88,7 +89,7 @@ curl -i http://127.0.0.1:8000/health   # 200 {"status":"ok"}
 curl -i http://127.0.0.1:8000/ready    # 200 once migrated and the worker has cycled, 503 otherwise
 ```
 
-`/ready` reports four checks: database reachable, schema at the code's migration head, worker heartbeat younger than three cycles, AI provider (`disabled` until US-08). Stop the worker (`docker compose stop worker`) and the readiness turns `503`, and the top bar shows *Monitor stalled*: the monitor never looks healthy while blind.
+`/ready` reports four checks: database reachable, schema at the code's migration head, worker heartbeat younger than three cycles, optional AI provider (off by default; last persisted attempt when configured). Only the database, schema and worker checks determine readiness. Stop the worker (`docker compose stop worker`) and the readiness turns `503`, and the top bar shows *Monitor stalled*: the monitor never looks healthy while blind.
 
 ## Run without Compose
 
@@ -188,6 +189,46 @@ curl -s -X POST $A/incidents/$I/resolve -H 'content-type: application/json' \
 
 The deterministic diagnosis lists observed facts, a hypothesis (the most upstream component in fault, always worded as a correlation) and the checks recommended by the rules involved, each citing its evidence; it needs no AI provider. Acknowledgement, resolution and diagnosis follow the same mutation guard as the simulation and are audited.
 
+### Optional AI diagnosis (US-08)
+
+`IPHI_LLM_PROVIDER=none` remains the default. The **Diagnose** action always builds a
+reading from stored evidence without a model. **AI diagnosis** adds a separately labeled
+result, clickable evidence, uncertainty, removed claims and a deterministic comparison from
+the same evidence snapshot. A rejected response or provider failure shows that deterministic
+fallback immediately; collection, health, incidents and `/ready` keep working independently.
+
+To try the local **fake provider**, with no account, network request or cost:
+
+```sh
+IPHI_LLM_PROVIDER=fake docker compose up --build -d
+```
+
+Open an incident and choose **AI diagnosis**. The panel explicitly says that it is local test
+output and no language model was called. Use **Compare with deterministic diagnosis** to
+inspect the same observations through the deterministic reading.
+
+| Local fake diagnosis, light theme | Same panel, dark theme |
+|---|---|
+| ![Fake-provider diagnosis with citations and explicit simulation limitations](docs/design/screenshots/us-08-diagnosis-light-1440.png) | ![The same diagnosis in the dark theme](docs/design/screenshots/us-08-diagnosis-dark-1440.png) |
+
+For an actual provider, explicitly configure `IPHI_LLM_PROVIDER=openai`,
+`IPHI_LLM_MODEL` (a model supporting structured output), and `IPHI_LLM_API_KEY` in your
+untracked environment. No paid model or key is provided by default; this path is optional
+and is **not tested by live paid calls**. The credential is passed only to the API container.
+The server uses a fixed HTTPS endpoint, exposes no tools, and applies a shared deadline
+(maximum 20 s, at most one retry), input/output caps and a persisted six-attempt/60 s actor
+budget. Retried requests with the same `Idempotency-Key` reuse the stored result; conflicting
+modes return 409, concurrent AI requests 409, and exhausted budget 429.
+
+All provider input is bounded and redacted; rejected raw text and provider exception bodies
+are not logged. The API exposes status, error code, token usage when available, latency and
+`deterministic_id`, rather than the persisted prompt. Provider status describes its last
+attempt, not a live availability probe. Citation validation establishes a reference, **not
+factual truth or causation**. Pattern-based redaction cannot recognize every possible secret;
+keep this demonstrator on simulated data. Configuration and limits:
+[ADR 0021](docs/adr/0021-diagnostic-llm-us08.md),
+[diagnosis threat model](docs/security/diagnostics-threat-model.md).
+
 ## Dashboard
 
 Open http://127.0.0.1:8080. Every view polls the API every 10 s, shows when it was last updated, and keeps the last data visible but marked stale if a refresh fails; the top bar always carries the platform state and the monitor's own state.
@@ -235,7 +276,7 @@ The design dossier is in French: [requirements](docs/01-cahier-des-charges.md), 
 
 ## Limitations
 
-- Views poll every 10 s; live updates (SSE), the interactive dependency graph, the state history band and incident comments arrive with US-07, the AI diagnosis with US-08.
+- Views poll every 10 s. Live updates (SSE), the interactive dependency graph, the state history band and incident comments arrive with US-07. Optional AI diagnosis is available through US-08.
 - Downstream suppression can hide a second, independent fault downstream: its evidence stays attached to the upstream incident as impact.
 - An observation arriving late, after its sample slot was evaluated, does not trigger a re-evaluation of that slot.
 - After the worker has been stopped for more than 10 minutes of platform time, the missed sample slots are not backfilled: they remain a visible gap.

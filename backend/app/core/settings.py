@@ -9,6 +9,8 @@ MAX_SEED = 2**31 - 1
 
 class LlmProvider(StrEnum):
     NONE = "none"
+    FAKE = "fake"
+    OPENAI = "openai"
 
 
 class Settings(BaseSettings):
@@ -21,6 +23,11 @@ class Settings(BaseSettings):
     log_format: Literal["json", "console"] = "json"
     cycle_interval_s: float = Field(default=5.0, gt=0, le=60)
     llm_provider: LlmProvider = LlmProvider.NONE
+    llm_model: str = Field(default="", max_length=56, pattern=r"^[a-zA-Z0-9._/-]*$")
+    llm_api_key: SecretStr = SecretStr("")
+    llm_timeout_s: float = Field(default=20, gt=0, le=20)
+    llm_input_tokens: int = Field(default=8192, ge=2048, le=24_000)
+    llm_output_tokens: int = Field(default=1600, ge=256, le=2048)
     dev_mutations: bool = Field(
         default=False,
         description="Enables unauthenticated mutations before US-11; honoured on loopback only.",

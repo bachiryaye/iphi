@@ -374,10 +374,12 @@ class IncidentQueries:
                 event_count=incidents.event_count(incident_id),
             )
 
-    def evidence(self, incident_id: uuid.UUID, after: int | None, limit: int) -> EvidencePage:
+    def evidence(
+        self, incident_id: uuid.UUID, after: int | None, limit: int, evidence_id: int | None = None
+    ) -> EvidencePage:
         with self._session_factory() as session:
             incidents = self._existing(session, incident_id)
-            stored = incidents.evidence(incident_id, after, limit + 1)
+            stored = incidents.evidence(incident_id, after, limit + 1, evidence_id)
             items = resolve_evidence(session, stored[:limit])
         return EvidencePage(items, len(stored) > limit)
 

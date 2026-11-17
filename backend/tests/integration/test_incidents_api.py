@@ -1,33 +1,16 @@
 from collections.abc import Iterator
-from datetime import UTC, datetime
 from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
 
-from app.core.db import create_session_factory
 from app.simulation.domain.catalog import ScenarioKey
 from tests.api_client import client_for
-from tests.fakes import FixedClock
-from tests.health_runs import CONTEXT, Platform, manual_platform
+from tests.health_runs import CONTEXT, Platform
 
 pytestmark = pytest.mark.integration
 
 BASE = "/api/v1/incidents"
-
-
-@pytest.fixture
-def platform(seeded_url: str) -> Iterator[Platform]:
-    """collector_down for two minutes on a manual clock: stored states never go stale."""
-    engine = create_engine(seeded_url)
-    platform = manual_platform(
-        create_session_factory(engine), engine, FixedClock(datetime.now(UTC))
-    )
-    platform.start(ScenarioKey.COLLECTOR_DOWN)
-    platform.advance(120)
-    yield platform
-    engine.dispose()
 
 
 @pytest.fixture

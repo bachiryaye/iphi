@@ -5,6 +5,7 @@ import { useAcknowledge, useDiagnose, useMutationGuard, useResolve } from "@/sha
 import type { IncidentDetail } from "@/shared/api/types";
 import { Button } from "@/shared/ui/Button";
 import { RefusedAlert } from "@/shared/ui/QueryStates";
+import { AiDiagnosisAction } from "./AiDiagnosisAction";
 
 function newKey(): string {
   return globalThis.crypto.randomUUID();
@@ -75,6 +76,7 @@ export function IncidentActions({ incident }: { incident: IncidentDetail }) {
           {diagnose.isPending ? "Diagnosing…" : "Diagnose"}
         </Button>
       </div>
+      <AiDiagnosisAction incidentId={incident.id} />
       {reason !== undefined && !allowed && (
         <p className="max-w-[60ch] text-right text-small text-text-muted max-xl:text-left">
           Actions are disabled: {reason}

@@ -190,7 +190,8 @@ Observations tardives : acceptées si `observed_at` ≥ `now − late_tolerance`
 
 | Table | Champs | Contraintes / index |
 |---|---|---|
-| `diagnostic` | id, incident_id, kind (`deterministic` \| `llm`), provider, model, status (`succeeded` \| `failed` \| `rejected`), observed_facts, hypotheses, recommended_checks, limitations (jsonb, schéma §06 ; chaque citation porte l'ID de preuve et son libellé `E<n>`), evidence_set_hash, validation_report (jsonb), prompt_redacted (llm, ≤ 32 Ko), input_tokens, output_tokens, latency_ms, error_code, idempotency_key, created_by, created_at | index (incident_id, created_at desc) ; unique (incident_id, idempotency_key) ; append-only. Remplace `facts/recommendations/confidence_label` (v1.0) par le schéma de §06.1. |
+| `diagnostic` | id, incident_id, kind (`deterministic` \| `llm`), provider, model, status (`succeeded` \| `failed` \| `rejected`), observed_facts, hypotheses, recommended_checks, limitations (jsonb, schéma §06 ; chaque citation porte l'ID de preuve et son libellé `E<n>`), evidence_set_hash, validation_report (jsonb), prompt_redacted (llm, ≤ 32 Ko), input_tokens, output_tokens, latency_ms, error_code, idempotency_key, deterministic_id (FK diagnostic), created_by, created_at | index (incident_id, created_at desc) ; unique (incident_id, idempotency_key) ; append-only. Remplace `facts/recommendations/confidence_label` (v1.0) par le schéma de §06.1. |
+| `diagnostic_budget` (US-08) | actor (PK), window_start (heure murale), attempts | Six demandes LLM admises par fenêtre fixe de 60 s ; conservé au redémarrage (ADR 0021). |
 | `app_user` (US-11) | id, username, display_name, role (`viewer` \| `engineer` \| `admin`), password_hash (Argon2id), is_active, created_at | unique (username). |
 | `user_session` (US-11) | id, token_hash, user_id, created_at, expires_at, revoked_at | index (token_hash). |
 | `audit_event` | id, occurred_at, platform_time, actor_id, actor_label, action, target_type, target_id, outcome (`allowed` \| `denied` \| `failed`), correlation_id, details (jsonb) | index (occurred_at desc), (action). Append-only ; les tentatives **refusées** sont enregistrées. |
@@ -454,6 +455,20 @@ La formulation v1.0 (`uncertainty` et `evidence_ids` globaux) est remplacée par
 4. **Validation** : schéma Pydantic strict ; chaque `evidence_id` doit appartenir au paquet ; affirmation sans preuve valide ⇒ retirée et signalée dans `validation_report` ; sortie invalide ⇒ `status = rejected` et fallback déterministe.
 5. **Persistance** : diagnostic, prompt **masqué**, rapport de validation, consommation ; jamais de secret ni de prompt brut dans les logs.
 6. **Limitation** : `POST /diagnose` en mode `llm` limité (ex. 6/min/utilisateur) ; fournisseur désactivé par défaut (`LLM_PROVIDER=none`) : la démo P0 n'exige ni clé ni coût.
+
+*Précision US-08 (ADR 0021).* Adaptateurs `none` / `fake` / `openai` (modèle explicitement
+configuré, aucun appel externe en CI). Une échéance globale couvre les deux tentatives et la
+lecture de réponse. Instantané de preuves et budget validés avant le réseau, sans verrou de
+ligne d'incident pendant l'attente. Quota persistant : six demandes LLM par acteur/fenêtre fixe
+de 60 s ; concurrence refusée (409), budget épuisé (429). Chaque tentative référence un
+`deterministic_id` produit sur le même instantané. Une sortie rejetée ou un fournisseur en
+échec conserve ce repli séparément. Le statut IA est celui du dernier résultat stocké ; il est
+Unknown avant toute tentative et ne conditionne pas la disponibilité `/ready` de la
+supervision. La liste des diagnostics inclut au plus 50 résultats récents et la comparaison du
+plus récent si elle est plus ancienne. `GET /incidents/{id}/evidence?evidence_id=N` permet de
+charger une preuve citée hors de la première page, en conservant son label stable et le filtre
+d'appartenance à l'incident. La validation des références ne certifie pas la vérité sémantique
+des affirmations ; cette limite reste visible dans l'interface.
 
 ## 07 — Sécurité, qualité et exploitation
 
