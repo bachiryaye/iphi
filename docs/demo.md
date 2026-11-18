@@ -179,3 +179,43 @@ Reports are read-only and work when mutations are disabled. Exports over 1,000 p
 events return `REPORT_TOO_LARGE`; use the paginated evidence/events APIs. A PDF over 100
 pages can be exported as CSV if the other bounds permit. `REPORT_BUSY` means another PDF
 is rendering; retry shortly. The incident and monitoring continue to work.
+
+## Live investigation (US-07)
+
+Use the same local demo stack. Updates arrive through SSE from committed PostgreSQL
+notices; the UI refetches stored facts rather than computing health in the browser.
+The two-second display target starts at a committed health transition, after the
+worker's collection and hysteresis. Fault detection retains its separate latency budget.
+
+1. Open **Topology**. Select a node with the pointer or focus it and press Enter/Space.
+   Its details appear beside the graph; the URL preserves the component selection.
+   Zoom/fit controls and the dependency table provide alternatives to panning.
+2. Follow **Investigate**. The recorded state lanes and metric share one time window.
+   Unknown is hatched; Healthy is neutral. Use the time inspector's arrows (15 s),
+   Shift+arrows (60 s), Home/End and Escape. Inspect the text at the cursor, or choose
+   **View states as table** and an evaluation interval. The evaluation filter is also
+   stored in the URL and restored after reloading or sharing that link. Peak bins retain short Critical
+   states and identify included Unknown coverage; they do not redefine current health.
+3. Incident opening/resolution markers appear on the metric and below the state lanes.
+   Scenario brackets use persisted run times; expand their list to read short labels.
+   Annotation queries expose their latest-100 limit. The header clock is explicitly
+   platform time; the monitor's cycle timestamps use wall-clock UTC.
+4. Open an incident, add an **Investigation comment**, then reload to verify persistence.
+   Comments also work after resolution and preserve status. More than 200 events can be
+   loaded incrementally. Mutations still follow ADR 0007 before US-11.
+5. Temporarily interrupt the browser connection. **Live updates paused** announces the
+   30-second polling fallback. Restore connectivity, or choose **Retry live updates**:
+   the initial `sync` revalidates active views, including changes missed offline.
+
+Automated browser coverage (against the running Compose stack):
+
+```sh
+pnpm --dir frontend exec playwright test --project=chromium e2e/investigation.e2e.ts
+```
+
+`GET /api/v1/events/stream` sends bounded notices, not a replayable event archive.
+There are at most 32 streams per API process; overload returns 503 and the interface
+keeps polling. `GET /api/v1/components/{id}/state-history?from&to&max_segments` supports
+up to seven days and 2,000 display segments per lane. More than 100,000 source evaluations
+returns `413 HISTORY_TOO_DENSE`: narrow the window. A reset or missing recorded coverage
+remains Unknown. See [ADR 0023](adr/0023-investigation-stream-history.md).

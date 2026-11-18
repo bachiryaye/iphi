@@ -55,6 +55,40 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/components/{component_id}/state-history": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Recorded rule and component intervals; gaps are Unknown. */
+    get: operations["component_state_history_api_v1_components__component_id__state_history_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/events/stream": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Live change notices; always resynchronize on connection. */
+    get: operations["events_stream_api_v1_events_stream_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/health-rules": {
     parameters: {
       query?: never;
@@ -117,6 +151,23 @@ export interface paths {
     put?: never;
     /** Acknowledge an incident; idempotent. */
     post: operations["acknowledge_incident_api_v1_incidents__incident_id__ack_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/incidents/{incident_id}/comments": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Append an audited investigation note; one event per accepted request. */
+    post: operations["comment_incident_api_v1_incidents__incident_id__comments_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -642,6 +693,14 @@ export interface components {
       /** @description Worst state among enabled connectors. */
       state: components["schemas"]["CollectionState"];
     };
+    /** CommentIn */
+    CommentIn: {
+      /**
+       * Comment
+       * @description Investigation note, stored verbatim as text in the timeline.
+       */
+      comment: string;
+    };
     /** ComponentDetailOut */
     ComponentDetailOut: {
       criticality: components["schemas"]["Criticality"];
@@ -1139,6 +1198,41 @@ export interface components {
       last_cycle_duration_ms: number;
       status: components["schemas"]["ProcessStatus"];
     };
+    /** HistoryLaneOut */
+    HistoryLaneOut: {
+      /**
+       * Aggregated
+       * @description Peak-preserving display bins rather than exact transitions.
+       */
+      aggregated: boolean;
+      /** Key */
+      key: string;
+      /** Segments */
+      segments: components["schemas"]["HistorySegmentOut"][];
+      /** Versions */
+      versions: number[];
+    };
+    /** HistorySegmentOut */
+    HistorySegmentOut: {
+      /** Contains Unknown */
+      contains_unknown: boolean;
+      /**
+       * Evaluation Ids
+       * @description At most 20 representative evaluations; not an exhaustive set.
+       */
+      evaluation_ids: number[];
+      /**
+       * From
+       * Format: date-time
+       */
+      from: string;
+      state: components["schemas"]["HealthState"];
+      /**
+       * To
+       * Format: date-time
+       */
+      to: string;
+    };
     /** HypothesisOut */
     HypothesisOut: {
       /** Evidence */
@@ -1589,6 +1683,20 @@ export interface components {
       reason: string;
     };
     /**
+     * NoticeType
+     * @enum {string}
+     */
+    NoticeType:
+      | "platform.health_changed"
+      | "component.health_changed"
+      | "incident.opened"
+      | "incident.updated"
+      | "incident.resolved"
+      | "scenario.changed"
+      | "monitor.status"
+      | "heartbeat"
+      | "sync";
+    /**
      * ObservationSource
      * @description Stored on every observation so synthetic data is never mistaken for real (D-17).
      * @enum {string}
@@ -2011,6 +2119,54 @@ export interface components {
       /** Warning */
       warning: number;
     };
+    /** StateHistoryOut */
+    StateHistoryOut: {
+      component: components["schemas"]["ComponentRefOut"];
+      component_lane: components["schemas"]["HistoryLaneOut"];
+      /**
+       * Environment
+       * @default simulation
+       * @constant
+       */
+      environment: "simulation";
+      /**
+       * From
+       * Format: date-time
+       */
+      from: string;
+      /** Reset At */
+      reset_at: string | null;
+      /** Rules */
+      rules: components["schemas"]["HistoryLaneOut"][];
+      /**
+       * Source
+       * @default rule_evaluations
+       * @constant
+       */
+      source: "rule_evaluations";
+      /**
+       * To
+       * Format: date-time
+       */
+      to: string;
+    };
+    /** StreamEventOut */
+    StreamEventOut: {
+      /**
+       * Environment
+       * @default simulation
+       * @constant
+       */
+      environment: "simulation";
+      /** Id */
+      id: string;
+      /**
+       * Platform Time
+       * Format: date-time
+       */
+      platform_time: string;
+      type: components["schemas"]["NoticeType"];
+    };
     /** SystemStatusOut */
     SystemStatusOut: {
       ai_provider: components["schemas"]["AiProviderStatusOut"];
@@ -2253,6 +2409,81 @@ export interface operations {
       };
     };
   };
+  component_state_history_api_v1_components__component_id__state_history_get: {
+    parameters: {
+      query?: {
+        /** @description Inclusive start; defaults to one hour before `to`. */
+        from?: string | null;
+        /** @description Exclusive end; defaults to platform time. */
+        to?: string | null;
+        max_segments?: number;
+      };
+      header?: never;
+      path: {
+        component_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["StateHistoryOut"];
+        };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
+  events_stream_api_v1_events_stream_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Each SSE data field follows this envelope. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "text/event-stream": components["schemas"]["StreamEventOut"];
+        };
+      };
+      /** @description LIVE_UPDATES_UNAVAILABLE or LIVE_UPDATES_CAPACITY; use polling. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/problem+json": components["schemas"]["Problem"];
+        };
+      };
+      /** @description RFC 9457 errors before streaming begins. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/problem+json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
   list_health_rules_api_v1_health_rules_get: {
     parameters: {
       query?: {
@@ -2371,6 +2602,41 @@ export interface operations {
     responses: {
       /** @description Successful Response */
       200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["IncidentOut"];
+        };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
+  comment_incident_api_v1_incidents__incident_id__comments_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        incident_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CommentIn"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
         headers: {
           [name: string]: unknown;
         };

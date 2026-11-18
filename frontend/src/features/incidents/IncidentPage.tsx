@@ -18,7 +18,7 @@ import { DiagnosisPanel } from "./DiagnosisPanel";
 import { EvidenceChain } from "./EvidenceChain";
 import { IncidentActions } from "./IncidentActions";
 import { IncidentSignal } from "./IncidentSignal";
-import { IncidentTimeline } from "./IncidentTimeline";
+import { InvestigationTimeline } from "./InvestigationTimeline";
 import { humanize } from "@/shared/format/labels";
 
 function Fact({ label, children }: { label: string; children: ReactNode }) {
@@ -219,12 +219,7 @@ export function IncidentPage() {
             <Details incident={incident} />
           </Card>
           <Card title="Timeline" titleId="timeline-title" meta={<span>Times shown in UTC</span>}>
-            <IncidentTimeline events={incident.events} />
-            {incident.events_next_cursor !== null && (
-              <p className="border-t border-border px-4 py-2.5 text-small text-text-muted">
-                Showing the first {incident.events.length} of {incident.event_count} events.
-              </p>
-            )}
+            <InvestigationTimeline key={incident.id} incident={incident} />
           </Card>
         </aside>
       </div>

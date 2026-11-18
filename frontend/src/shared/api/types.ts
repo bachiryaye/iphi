@@ -19,6 +19,9 @@ export type HealthRule = Schemas["HealthRuleOut"];
 export type Topology = Schemas["TopologyOut"];
 export type TopologyNode = Schemas["TopologyNodeOut"];
 export type TopologyEdge = Schemas["TopologyEdgeOut"];
+export type StateHistory = Schemas["StateHistoryOut"];
+export type HistoryLane = Schemas["HistoryLaneOut"];
+export type HistorySegment = Schemas["HistorySegmentOut"];
 
 export type Incident = Schemas["IncidentOut"];
 export type IncidentDetail = Schemas["IncidentDetailOut"];

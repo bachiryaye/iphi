@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.connectors.registry import build_connectors
 from app.core.clock import Clock, WallClock
 from app.core.db import create_db_engine, create_session_factory
+from app.core.events import Notice, NoticeType, notify
 from app.core.liveness import LivenessFile
 from app.core.logging import configure_logging
 from app.core.retention import RetentionJob
@@ -156,6 +157,7 @@ class Worker:
             self._heartbeats.record(
                 session, Heartbeat(WORKER_PROCESS, at, duration_ms, lag_ms, ProcessStatus.RUNNING)
             )
+            notify(session, Notice(NoticeType.MONITOR, WORKER_PROCESS, platform_now))
         purged = self._steps.retention.purge_if_due(self._session_factory, platform_now)
         # The heartbeat cannot include its own commit; this event does.
         log.debug(

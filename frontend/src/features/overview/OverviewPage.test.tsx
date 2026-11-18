@@ -108,7 +108,7 @@ describe("Overview", () => {
     await act(() => client.refetchQueries({ queryKey: ["components"] }));
 
     const components = region("Components");
-    expect(await within(components).findByText(/refresh failed, retrying every 10/)).toBeVisible();
+    expect(await within(components).findByText(/refresh failed, retrying every 30/)).toBeVisible();
     expect(within(components).getByRole("table")).toBeInTheDocument();
   });
 

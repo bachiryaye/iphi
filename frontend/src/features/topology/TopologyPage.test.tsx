@@ -4,25 +4,22 @@ import { describe, expect, it } from "vitest";
 import { topology } from "@/test/apiFixtures";
 import { renderApp, seriousViolations, stubApi } from "@/test/render";
 
-import { isImpactEdge, layoutTopology } from "./layout";
+import { isImpactEdge } from "./layout";
+import { graphLayout } from "./graphLayout";
 
 describe("topology layout", () => {
-  it("orders components along the data flow and puts the database under the historian", () => {
-    const placed = new Map(
-      layoutTopology(topology.nodes, topology.edges).map((p) => [p.node.key, p]),
+  it("places every dependency before its dependent without overlapping nodes", () => {
+    const positions = graphLayout(topology);
+    expect(positions.size).toBe(topology.nodes.length);
+    for (const edge of topology.edges) {
+      const source = positions.get(edge.dependency_id),
+        target = positions.get(edge.dependent_id);
+      if (source === undefined || target === undefined) throw new Error("Missing graph position");
+      expect(source.x + 184).toBeLessThan(target.x);
+    }
+    expect(new Set([...positions.values()].map((p) => `${String(p.x)},${String(p.y)}`)).size).toBe(
+      positions.size,
     );
-
-    expect(
-      [
-        "plc-sim-01",
-        "edge-gateway-01",
-        "collector-01",
-        "historian-01",
-        "data-api-01",
-        "analytics-01",
-      ].map((key) => placed.get(key)?.column),
-    ).toEqual([0, 1, 2, 3, 4, 5]);
-    expect(placed.get("timeseries-db-01")).toMatchObject({ column: 3, row: 1 });
   });
 
   it("marks only the edges downstream of the failing collector as impact", () => {

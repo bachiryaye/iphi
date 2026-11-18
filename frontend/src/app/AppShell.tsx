@@ -1,4 +1,5 @@
 import { Outlet } from "react-router";
+import { LiveUpdatesProvider, LiveUpdatesBanner } from "@/shared/live/LiveUpdates";
 
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
@@ -19,7 +20,7 @@ function SimulatedBanner() {
 
 export function AppShell() {
   return (
-    <>
+    <LiveUpdatesProvider>
       <a
         href="#main"
         className="absolute -top-10 left-2 z-10 rounded-control border border-border-strong bg-surface px-3 py-2 focus:top-2"
@@ -36,10 +37,11 @@ export function AppShell() {
             tabIndex={-1}
             className="flex max-w-[1440px] flex-col gap-4 px-6 pt-5 pb-8 max-lg:p-4"
           >
+            <LiveUpdatesBanner />
             <Outlet />
           </main>
         </div>
       </div>
-    </>
+    </LiveUpdatesProvider>
   );
 }

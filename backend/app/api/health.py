@@ -21,6 +21,7 @@ from app.api.simulations import simulation_service
 from app.api.windows import WindowParams, window_of
 from app.health.domain.evaluation import Evidence, Measurement
 from app.health.domain.freshness import HealthView, ReadContext, evaluation_max_age
+from app.health.domain.history import HistoryLane
 from app.health.domain.key_metric import KeyMetric, KeyMetricKind
 from app.health.domain.records import EvaluationFilter, EvaluationPosition, StoredEvaluation
 from app.health.domain.rules import (
@@ -33,6 +34,7 @@ from app.health.domain.rules import (
     RuleType,
 )
 from app.health.domain.states import HealthState
+from app.health.history_service import StateHistoryQueries
 from app.health.service import (
     ComponentHealthView,
     ComponentRef,
@@ -310,6 +312,58 @@ class EvaluationPageOut(BaseModel):
     next_cursor: str | None
 
 
+class HistorySegmentOut(BaseModel):
+    start: datetime = Field(serialization_alias="from")
+    end: datetime = Field(serialization_alias="to")
+    state: HealthState
+    evaluation_ids: list[int] = Field(
+        description="At most 20 representative evaluations; not an exhaustive set."
+    )
+    contains_unknown: bool
+
+
+class HistoryLaneOut(BaseModel):
+    key: str
+    versions: list[int]
+    aggregated: bool = Field(
+        description="Peak-preserving display bins rather than exact transitions."
+    )
+    segments: list[HistorySegmentOut]
+
+    @classmethod
+    def of(cls, lane: HistoryLane) -> HistoryLaneOut:
+        return cls(
+            key=lane.key,
+            versions=list(lane.versions),
+            aggregated=lane.aggregated,
+            segments=[
+                HistorySegmentOut(
+                    start=s.start,
+                    end=s.end,
+                    state=s.state,
+                    evaluation_ids=list(s.evaluation_ids),
+                    contains_unknown=s.contains_unknown,
+                )
+                for s in lane.segments
+            ],
+        )
+
+
+class StateHistoryOut(BaseModel):
+    environment: Simulation = "simulation"
+    source: Literal["rule_evaluations"] = "rule_evaluations"
+    component: ComponentRefOut
+    start: datetime = Field(serialization_alias="from")
+    end: datetime = Field(serialization_alias="to")
+    reset_at: datetime | None
+    component_lane: HistoryLaneOut
+    rules: list[HistoryLaneOut]
+
+
+class HistoryParams(WindowParams):
+    max_segments: int = Field(default=500, ge=1, le=2000)
+
+
 class ComponentFilter(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -355,6 +409,34 @@ def read_context(
 
 Queries = Annotated[HealthQueries, Depends(health_queries)]
 Context = Annotated[ReadContext, Depends(read_context)]
+
+
+def history_queries(request: Request) -> StateHistoryQueries:
+    service: StateHistoryQueries = request.app.state.state_history
+    return service
+
+
+@router.get(
+    "/components/{component_id}/state-history",
+    summary="Recorded rule and component intervals; gaps are Unknown.",
+)
+def component_state_history(
+    component_id: uuid.UUID,
+    service: Annotated[StateHistoryQueries, Depends(history_queries)],
+    context: Context,
+    params: Annotated[HistoryParams, Query()],
+) -> StateHistoryOut:
+    view = service.component(
+        component_id, window_of(params, context.platform_now), context, params.max_segments
+    )
+    return StateHistoryOut(
+        component=ComponentRefOut.of(view.component),
+        start=view.window.start,
+        end=view.window.end,
+        reset_at=view.reset_at,
+        component_lane=HistoryLaneOut.of(view.history.component),
+        rules=[HistoryLaneOut.of(lane) for lane in view.history.rules],
+    )
 
 
 @router.get("/platforms", summary="Platforms with their aggregated state and its rationale.")

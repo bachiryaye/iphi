@@ -14,6 +14,7 @@ import type {
   ScenarioCatalog,
   SystemStatus,
   Topology,
+  StateHistory,
 } from "@/shared/api/types";
 
 /** collector_down #12 on the simulated platform, as the API reports it at 10:42:05 UTC. */
@@ -24,6 +25,47 @@ const SINCE = "2026-11-12T10:39:47Z";
 const id = (n: number) => `0b6f1e1a-0000-4000-8000-0000000001${String(n).padStart(2, "0")}`;
 export const COLLECTOR_ID = id(3);
 export const INCIDENT_ID = "0b6f1e1a-0000-4000-8000-000000000901";
+
+export const recordedHistory: StateHistory = {
+  environment: "simulation",
+  source: "rule_evaluations",
+  component: { id: COLLECTOR_ID, key: "collector-01" },
+  from: "2026-11-12T10:27:05Z",
+  to: NOW,
+  reset_at: "2026-11-12T10:25:00Z",
+  component_lane: {
+    key: "component",
+    versions: [],
+    aggregated: false,
+    segments: [
+      {
+        from: "2026-11-12T10:27:05Z",
+        to: SINCE,
+        state: "healthy",
+        evaluation_ids: [11],
+        contains_unknown: false,
+      },
+      { from: SINCE, to: NOW, state: "critical", evaluation_ids: [42], contains_unknown: false },
+    ],
+  },
+  rules: [
+    {
+      key: "R-AVAIL-001",
+      versions: [1],
+      aggregated: false,
+      segments: [
+        {
+          from: "2026-11-12T10:27:05Z",
+          to: SINCE,
+          state: "healthy",
+          evaluation_ids: [11],
+          contains_unknown: false,
+        },
+        { from: SINCE, to: NOW, state: "critical", evaluation_ids: [42], contains_unknown: false },
+      ],
+    },
+  ],
+};
 
 const healthy = {
   state: "healthy",

@@ -21,6 +21,7 @@ import {
   statusMutable,
   topology,
   upSeries,
+  recordedHistory,
 } from "./apiFixtures";
 import { readyBody } from "./fixtures";
 
@@ -52,6 +53,10 @@ export const defaultRoutes: Routes = {
   "/api/v1/components": { body: { items: components } },
   "/api/v1/components/:id": { body: collectorDetail },
   "/api/v1/components/:id/health": { body: collectorRules },
+  "/api/v1/components/:id/state-history": { body: recordedHistory },
+  "/api/v1/rule-evaluations": {
+    body: { environment: "simulation", items: [collectorDetail.reason], next_cursor: null },
+  },
   "/api/v1/health-rules": { body: rules },
   "/api/v1/metrics": { body: upSeries },
   "/api/v1/logs": { body: logs },

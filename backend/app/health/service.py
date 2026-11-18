@@ -7,6 +7,7 @@ from typing import Protocol
 import structlog
 from sqlalchemy.orm import Session, sessionmaker
 
+from app.core.events import Notice, NoticeType, notify
 from app.core.observation import SAMPLE_INTERVAL
 from app.core.retention import EvidenceHolds
 from app.health.domain.engine import (
@@ -169,6 +170,7 @@ class HealthEvaluation:
             snapshots.save_platform(result.platform)
         for transition in result.transitions:
             _log_transition(transition)
+        _notify_transitions(session, result.transitions, topology)
         return HealthPass(
             history_start=origin,
             rules=tuple(rules),
@@ -243,6 +245,19 @@ def _log_transition(t: Transition) -> None:
         Scope.PLATFORM: "health.platform_state_changed",
     }[t.scope]
     log.info(event, subject=t.subject, previous=t.previous, state=t.current, platform_time=t.at)
+
+
+def _notify_transitions(
+    session: Session, transitions: Sequence[Transition], topology: PlatformTopology
+) -> None:
+    ids = {c.key: c.id for c in topology.components}
+    changes = {
+        (item.scope, item.subject): item for item in transitions if item.scope is not Scope.RULE
+    }
+    for (_, subject), item in changes.items():
+        kind = NoticeType.PLATFORM if item.scope is Scope.PLATFORM else NoticeType.COMPONENT
+        entity_id = topology.platform_id if item.scope is Scope.PLATFORM else ids[subject]
+        notify(session, Notice(kind, str(entity_id), item.at))
 
 
 class HealthHistory:

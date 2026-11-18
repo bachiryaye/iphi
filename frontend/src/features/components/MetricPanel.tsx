@@ -1,6 +1,13 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
-import { REFRESH_MS, type SeriesRequest, useMetricSeries } from "@/shared/api/queries";
+import {
+  REFRESH_MS,
+  type SeriesRequest,
+  useMetricSeries,
+  useStateHistory,
+  useInvestigationRuns,
+  useIncidents,
+} from "@/shared/api/queries";
 import type { ComponentDetail, RuleStatus } from "@/shared/api/types";
 import { MetricChart } from "@/shared/charts/MetricChart";
 import { metricLabel } from "@/shared/format/number";
@@ -13,6 +20,7 @@ import { staleClass } from "@/shared/ui/stale";
 import { Segmented } from "@/shared/ui/Segmented";
 
 import { thresholdsFor } from "./thresholds";
+import { StateBand } from "./StateBand";
 
 const WINDOWS = [
   { value: "15m", label: "15m", seconds: 15 * 60 },
@@ -50,10 +58,63 @@ export function MetricPanel({ detail, rules }: MetricPanelProps) {
           to: new Date(nowMs).toISOString(),
         };
   const series = useMetricSeries(request);
+  const historyRequest = useMemo(
+    () =>
+      nowMs === null
+        ? null
+        : {
+            componentId: detail.id,
+            from: new Date(nowMs - windowSeconds * 1000).toISOString(),
+            to: new Date(nowMs).toISOString(),
+          },
+    [detail.id, nowMs, windowSeconds],
+  );
+  const history = useStateHistory(historyRequest);
+  const incidents = useIncidents({ component_id: detail.id, limit: 100 });
+  const runs = useInvestigationRuns();
+  const [cursor, setCursor] = useState<number | null>(null);
+  const markers = useMemo(
+    () =>
+      incidents.data?.items
+        .flatMap((i) => [
+          { at: i.opened_at, label: `${i.reference} opened` },
+          ...(i.resolved_at === null
+            ? []
+            : [{ at: i.resolved_at, label: `${i.reference} resolved` }]),
+        ])
+        .filter(
+          (m) =>
+            historyRequest !== null &&
+            Date.parse(m.at) >= Date.parse(historyRequest.from) &&
+            Date.parse(m.at) < Date.parse(historyRequest.to),
+        )
+        .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
+        .map((marker, index) => ({ ...marker, showLabel: index === 0 })) ?? [],
+    [incidents.data, historyRequest],
+  );
+  const spans =
+    runs.data?.items
+      .filter((r) => r.target_component_key === null || r.target_component_key === detail.key)
+      .map((r) => ({
+        from: r.started_at,
+        to: r.stopped_at ?? r.ends_at ?? historyRequest?.to ?? r.started_at,
+        label: `SIM ${r.scenario_key} #${String(r.number)}`,
+      }))
+      .filter(
+        (r) =>
+          historyRequest !== null &&
+          Date.parse(r.from) < Date.parse(historyRequest.to) &&
+          Date.parse(r.to) > Date.parse(historyRequest.from),
+      ) ?? [];
   const thresholds = useMemo(
     () => (metric === null ? [] : thresholdsFor(metric, rules)),
     [metric, rules],
   );
+  const aligned =
+    history.data === undefined ||
+    series.data === undefined ||
+    (Date.parse(history.data.from) === Date.parse(series.data.window_start) &&
+      Date.parse(history.data.to) === Date.parse(series.data.window_end));
 
   return (
     <Card
@@ -82,6 +143,38 @@ export function MetricPanel({ detail, rules }: MetricPanelProps) {
         </>
       }
     >
+      {historyRequest !== null && history.isPending && <SkeletonRows rows={3} />}
+      {history.isError && history.data === undefined && (
+        <LoadError what="recorded state history" query={history} />
+      )}
+      {!aligned && (
+        <p className="px-4 py-2 text-small text-text-muted" role="status">
+          Aligning the recorded states and metric window…
+        </p>
+      )}
+      {history.data !== undefined && aligned && (
+        <div className={staleClass(history.isError)}>
+          <StateBand
+            history={history.data}
+            series={series.data}
+            cursor={cursor}
+            onCursor={setCursor}
+            markers={markers}
+            scenarios={spans}
+          />
+        </div>
+      )}
+      {(incidents.isError || runs.isError) && (
+        <p className="px-4 py-2 text-small text-text-muted">
+          Some investigation annotations could not be refreshed.
+        </p>
+      )}
+      {(incidents.data?.next_cursor != null || runs.data?.next_cursor != null) && (
+        <p className="px-4 py-2 text-small text-text-muted">
+          Annotations cover the latest 100 incidents and scenario runs. Older items remain available
+          in their lists.
+        </p>
+      )}
       {metric === null && (
         <EmptyState title="No measured metric.">
           No rule on {detail.key} measures a metric yet; rules appear after the first evaluation.
@@ -91,9 +184,16 @@ export function MetricPanel({ detail, rules }: MetricPanelProps) {
       {series.isError && series.data === undefined && (
         <LoadError what="the metric history" query={series} />
       )}
-      {series.data !== undefined && (
+      {series.data !== undefined && aligned && (
         <div className={staleClass(series.isError)}>
-          <MetricChart series={series.data} thresholds={thresholds} />
+          <MetricChart
+            series={series.data}
+            thresholds={thresholds}
+            markers={markers}
+            cursor={cursor}
+            onCursor={setCursor}
+            leftInset={150}
+          />
         </div>
       )}
     </Card>

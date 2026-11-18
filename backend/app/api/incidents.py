@@ -219,6 +219,14 @@ class ResolveIn(BaseModel):
     comment: Comment = Field(description="Why the incident is closed; kept in its timeline.")
 
 
+class CommentIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    comment: Comment = Field(
+        description="Investigation note, stored verbatim as text in the timeline."
+    )
+
+
 class CitationOut(BaseModel):
     evidence_id: int
     label: str
@@ -415,6 +423,21 @@ def resolve_incident(
     context: Annotated[AuditContext, Depends(mutation(AuditAction.INCIDENT_RESOLVE))],
 ) -> IncidentOut:
     return views.of(service.resolve(incident_id, body.comment, context))
+
+
+@router.post(
+    "/{incident_id}/comments",
+    status_code=status.HTTP_201_CREATED,
+    summary="Append an audited investigation note; one event per accepted request.",
+)
+def comment_incident(
+    incident_id: uuid.UUID,
+    body: CommentIn,
+    service: Commands,
+    views: Views,
+    context: Annotated[AuditContext, Depends(mutation(AuditAction.INCIDENT_COMMENT))],
+) -> IncidentOut:
+    return views.of(service.comment(incident_id, body.comment, context))
 
 
 @router.post(

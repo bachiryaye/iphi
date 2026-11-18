@@ -2,12 +2,35 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
-import { COLLECTOR_ID } from "@/test/apiFixtures";
+import { COLLECTOR_ID, collectorDetail } from "@/test/apiFixtures";
 import { renderApp, seriousViolations, stubApi } from "@/test/render";
 
 const path = `/components/${COLLECTOR_ID}`;
 
 describe("Component", () => {
+  it("never explains a component without evaluations as every rule Healthy", async () => {
+    stubApi({
+      [`/api/v1/components/${COLLECTOR_ID}`]: {
+        body: {
+          ...collectorDetail,
+          reason: null,
+          health: {
+            state: "unknown",
+            evaluated_state: null,
+            since: null,
+            evaluated_at: null,
+            stale: true,
+            stale_reason: "Not evaluated yet.",
+          },
+        },
+      },
+    });
+    renderApp(path);
+    await screen.findByRole("heading", { level: 1, name: "collector-01" });
+    const reason = screen.getByText("Reason", { selector: "dt" }).parentElement;
+    expect(reason).toHaveTextContent("Not evaluated yet.");
+    expect(reason).not.toHaveTextContent("every rule Healthy");
+  });
   it("heads with state, reason rule and the open incident as the primary action", async () => {
     stubApi();
     renderApp(path);

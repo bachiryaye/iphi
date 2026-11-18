@@ -27,4 +27,6 @@ Format : contexte, décision, alternatives, conséquences. Statut de toutes les 
 | [0021](0021-diagnostic-llm-us08.md) | US-08 : diagnostic LLM borné, quota persistant, comparaison déterministe et repli |
 | [0022](0022-rapports-incidents-us09.md) | US-09 : rapports PDF/CSV sur instantané cohérent, bornes et rendu sans ressources externes |
 
+| [0023](0023-investigation-stream-history.md) | US-07 : SSE transactionnel, historique prouvé et investigation interactive |
+
 Nouvelle ADR : copier le format, numéro suivant, statut *Proposée* jusqu'à validation.

@@ -65,7 +65,11 @@ function Header({
           <dt className="text-text-muted">Reason</dt>
           <dd>
             {reason === null ? (
-              "every rule Healthy"
+              detail.health.state === "healthy" ? (
+                "every rule Healthy"
+              ) : (
+                (detail.health.stale_reason ?? "No stored evaluation explains this state yet.")
+              )
             ) : (
               <>
                 <span className="data">

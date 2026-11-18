@@ -5,6 +5,7 @@ import { ApiError } from "@/shared/api/client";
 import { REFRESH_MS } from "@/shared/api/queries";
 import { formatAge, formatUtcTime } from "@/shared/format/time";
 import { useNow } from "@/shared/hooks/useNow";
+import { useLiveState } from "@/shared/live/context";
 
 import { Button } from "./Button";
 import { CopyButton } from "./CopyButton";
@@ -141,6 +142,7 @@ interface RefreshMetaProps {
 /** "Updated 4 s ago", or the stale-view notice once a refresh failed with data on screen. */
 export function RefreshMeta({ updatedAt, failed }: RefreshMetaProps) {
   const now = useNow();
+  const { mode } = useLiveState();
   if (updatedAt === 0) return null;
   const at = new Date(updatedAt);
   if (failed) {
@@ -148,12 +150,19 @@ export function RefreshMeta({ updatedAt, failed }: RefreshMetaProps) {
       <span className="flex items-center gap-1.5">
         <Time size={16} aria-hidden="true" />
         Data from <span className="data">{formatUtcTime(at)} UTC</span>, {formatAge(at, now)};
-        refresh failed, retrying every {REFRESH_S}&nbsp;s.
+        refresh failed,{" "}
+        {mode === "live" ? "retrying on live updates." : <>retrying every {REFRESH_S}&nbsp;s.</>}
       </span>
     );
   }
   return (
-    <span title={`Refreshes every ${String(REFRESH_S)} s`}>
+    <span
+      title={
+        mode === "live"
+          ? "Refreshes on committed changes"
+          : `Refreshes every ${String(REFRESH_S)} s`
+      }
+    >
       Updated <span className="data">{formatAge(at, now)}</span>
     </span>
   );

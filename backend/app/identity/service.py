@@ -7,6 +7,7 @@ from typing import Any
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.clock import Clock
+from app.core.events import Notice, NoticeType, notify
 from app.core.exceptions import IphiError
 from app.identity.domain import AuditAction, AuditContext, AuditEntry, AuditOutcome
 from app.identity.repository import AuditEventRepository
@@ -71,6 +72,15 @@ class AuditedMutations:
                 AuditLog(session).record(
                     draft.entry(context, action, AuditOutcome.ALLOWED, wall_now)
                 )
+                if draft.platform_time is not None:
+                    kind = (
+                        NoticeType.SCENARIO
+                        if action.value.startswith(("scenario.", "simulation.", "clock."))
+                        else NoticeType.INCIDENT_UPDATED
+                    )
+                    notify(
+                        session, Notice(kind, draft.target_id or "simulation", draft.platform_time)
+                    )
         except IphiError as exc:
             draft.details["error_code"] = exc.code
             with self._session_factory.begin() as session:
