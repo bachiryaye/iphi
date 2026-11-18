@@ -8,6 +8,7 @@ import structlog
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.clock import Clock
+from app.core.events import Notice, NoticeType, notify
 from app.core.observation import ObservationSource
 from app.core.retention import EvidenceHolds
 from app.health.domain.records import HealthPass, RuleCondition
@@ -26,6 +27,7 @@ from app.incidents.domain.lifecycle import (
     Change,
     Closure,
     acknowledge,
+    add_comment,
     record_diagnostic,
     resolve,
 )
@@ -139,6 +141,11 @@ class IncidentProcessing:
         incidents.add_impacts(result.impacts)
         incidents.add_events(result.events)
         incidents.add_evidence(result.evidence)
+        for incident in [*opened, *result.changed]:
+            kind = NoticeType.INCIDENT_OPENED if incident in opened else NoticeType.INCIDENT_UPDATED
+            if incident.status.value == "resolved":
+                kind = NoticeType.INCIDENT_RESOLVED
+            notify(session, Notice(kind, str(incident.id), incident.updated_at))
         _log_events(result, {**{i.id: i.number for i in result.changed}, **numbers})
         return result
 
@@ -222,6 +229,11 @@ class IncidentCommands:
         incident = history.lock(incident_id)
         audit.platform_time = at = self._platform_now()
         return history, incident, at
+
+    def comment(self, incident_id: uuid.UUID, comment: str, context: AuditContext) -> Incident:
+        with self._audited.run(context, AuditAction.INCIDENT_COMMENT) as work:
+            history, incident, at = self._begin(work.session, incident_id, work.audit)
+            return history.apply(add_comment(incident, comment, actor_of(context), at))
 
 
 class IncidentHistory:

@@ -23,6 +23,7 @@ class AuditAction(StrEnum):
     INCIDENT_ACK = "incident.ack"
     INCIDENT_RESOLVE = "incident.resolve"
     INCIDENT_DIAGNOSE = "incident.diagnose"
+    INCIDENT_COMMENT = "incident.comment"
 
 
 class AuditOutcome(StrEnum):

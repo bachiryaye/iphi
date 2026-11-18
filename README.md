@@ -16,8 +16,9 @@ IPHI monitors the health of an **industrial data platform** — sources, gateway
 | US-06 | Operator dashboard: Overview, Topology, Components, Incidents, Scenarios, Rules | Delivered |
 | US-10 | One-command reproducible demo, end-to-end tests of the mandatory scenarios, performance check, case study | Delivered |
 | US-08 | Optional structured diagnosis, evidence validation, deterministic comparison and fallback | Delivered (PR #8; CI green on main) |
-| US-09 | Incident PDF and CSV reports from stored evidence | Implemented and verified locally; CI pending |
-| US-07, US-11, US-12 | Live updates, authentication and roles, MQTT adapter | Planned ([backlog](docs/03-backlog.md)) |
+| US-09 | Incident PDF and CSV reports from stored evidence | Delivered (PR #9; main CI 44248348754 green) |
+| US-07 | Live updates, interactive topology, recorded state history and investigation comments | Implemented; full regression and CI pending |
+| US-11, US-12 | Authentication and roles, MQTT adapter | Planned ([backlog](docs/03-backlog.md)) |
 
 What runs today: PostgreSQL, a migration and seed job, the FastAPI API (`/health`, `/ready`, simulation, metrics, logs, health and system status endpoints, OpenAPI), a worker that holds the scheduler lock and, every cycle, collects the simulated observations, validates and stores them, evaluates the health rules, opens, updates and resolves incidents, purges data past retention and writes a heartbeat, and the operator dashboard described below.
 
@@ -258,18 +259,20 @@ keep this demonstrator on simulated data. Configuration and limits:
 
 ## Dashboard
 
-Open http://127.0.0.1:8080. Every view polls the API every 10 s, shows when it was last updated, and keeps the last data visible but marked stale if a refresh fails; the top bar always carries the platform state and the monitor's own state.
+Open http://127.0.0.1:8080. Active views refetch stored facts after committed SSE notices. If the stream is unavailable, an explicit banner announces the 30 s polling fallback; reconnection revalidates the views. Failed refreshes keep the previous data visibly stale. The top bar carries platform time, platform health and the monitor's own state.
 
 | View | What it answers |
 |---|---|
 | Overview | Platform state with the aggregation rationale, components by state, active incidents, one row per component with its key metric drawn against its thresholds (chosen by the API) |
-| Topology | The dependency chain left to right in the direction of the data, states and impact paths, with a table equivalent |
-| Components / Component | Header with the rule behind the state, metric history with thresholds and visible gaps (15 min to 24 h, table view), every rule with its condition, observed value and debounce, recent logs grouped by fingerprint, dependencies, recent incidents |
-| Incidents / Incident | Filterable list (filters in the URL, cursor pages); the incident page shows the triggering signal, the immutable evidence chain, the deterministic diagnosis with clickable evidence chips, the timeline with grouped occurrences, and Acknowledge, Resolve and Diagnose |
+| Topology | Interactive dependency chain with zoom, keyboard selection, a component panel and a table equivalent |
+| Components / Component | Header with the rule behind the state, recorded component/rule state bands aligned with metrics (shared cursor, incident/scenario markers, shareable evaluation filter), metric thresholds and visible gaps (15 min to 24 h, table view), every rule with its condition, observed value and debounce, recent logs grouped by fingerprint, dependencies, recent incidents |
+| Incidents / Incident | Filterable list (filters in the URL, cursor pages); the incident page shows the triggering signal, the immutable evidence chain, the deterministic diagnosis with clickable evidence chips, the paginated timeline with grouped occurrences and investigation comments, and Acknowledge, Resolve and Diagnose |
 | Scenarios | The fault catalog with each expected outcome, start and stop, the platform clock (mode, speed, advance in manual mode) and reset with an in-page confirmation |
 | Rules | The active rule versions: measure, thresholds and clear levels, debounce, targets, rationale |
 
 Controls that the API would refuse (mutations disabled, see ADR 0007) are hidden or disabled with the reason.
+
+Actual US-07 captures: [topology](docs/design/screenshots/us-07-topology-light-1440.png), [recorded states and metrics](docs/design/screenshots/us-07-component-light-1440.png), [dark theme at 768 px](docs/design/screenshots/us-07-component-dark-768.png).
 
 ## Develop and test
 
@@ -303,7 +306,7 @@ The design dossier is in French: [requirements](docs/01-cahier-des-charges.md), 
 
 ## Limitations
 
-- Views poll every 10 s. Live updates (SSE), the interactive dependency graph, the state history band and incident comments arrive with US-07. Optional AI diagnosis is available through US-08.
+- SSE notices have no durable replay: every connection resynchronizes active views, with a 30 s polling fallback. Streams and state-history reads are bounded ([ADR 0023](docs/adr/0023-investigation-stream-history.md)). Optional AI diagnosis is available through US-08.
 - Downstream suppression can hide a second, independent fault downstream: its evidence stays attached to the upstream incident as impact.
 - An observation arriving late, after its sample slot was evaluated, does not trigger a re-evaluation of that slot.
 - After the worker has been stopped for more than 10 minutes of platform time, the missed sample slots are not backfilled: they remain a visible gap.
@@ -313,4 +316,4 @@ The design dossier is in French: [requirements](docs/01-cahier-des-charges.md), 
 
 ## Résumé en français
 
-IPHI surveille la santé d'une plateforme de données industrielle **simulée** : collecte, règles de santé explicables, incidents dédupliqués et prouvés, diagnostic optionnel. `docker compose up --build` démarre PostgreSQL, les migrations et le seed, l'API, le worker et l'interface (http://127.0.0.1:8080). La plateforme simulée compte sept composants et neuf scénarios de panne reproductibles (seed, horloge de plateforme accélérable) ; ses mesures et logs sont validés, historisés dans PostgreSQL et consultables par l'API, et des règles versionnées avec hystérésis en déduisent l'état justifié de chaque composant et de la plateforme (jamais « sain » faute de données). Une panne ouvre un incident unique, dédoublonné par la base, rattaché aux évaluations et observations qui le prouvent, avec suppression des alertes en aval, résolution automatique au retour à la normale et diagnostic déterministe sans IA. Le tableau de bord (vue d'ensemble, topologie, composants, incidents, scénarios, règles) affiche ces états et leurs preuves, rafraîchis toutes les 10 s. `make demo` rejoue les pannes principales sur un environnement propre et vérifie chaque conclusion ([guide](docs/demo.md), [étude de cas](docs/case-study.md)). Le dossier de conception (cahier des charges, architecture, backlog, design system, ADR) est dans `docs/`. Aucune connexion à une installation réelle n'existe ni n'est revendiquée.
+IPHI surveille la santé d'une plateforme de données industrielle **simulée** : collecte, règles de santé explicables, incidents dédupliqués et prouvés, diagnostic optionnel. `docker compose up --build` démarre PostgreSQL, les migrations et le seed, l'API, le worker et l'interface (http://127.0.0.1:8080). La plateforme simulée compte sept composants et neuf scénarios de panne reproductibles (seed, horloge de plateforme accélérable) ; ses mesures et logs sont validés, historisés dans PostgreSQL et consultables par l'API, et des règles versionnées avec hystérésis en déduisent l'état justifié de chaque composant et de la plateforme (jamais « sain » faute de données). Une panne ouvre un incident unique, dédoublonné par la base, rattaché aux évaluations et observations qui le prouvent, avec suppression des alertes en aval, résolution automatique au retour à la normale et diagnostic déterministe sans IA. Le tableau de bord (vue d'ensemble, topologie, composants, incidents, scénarios, règles) affiche ces états et leurs preuves, mis à jour par SSE, avec un repli à 30 s signalé en cas de coupure. `make demo` rejoue les pannes principales sur un environnement propre et vérifie chaque conclusion ([guide](docs/demo.md), [étude de cas](docs/case-study.md)). Le dossier de conception (cahier des charges, architecture, backlog, design system, ADR) est dans `docs/`. Aucune connexion à une installation réelle n'existe ni n'est revendiquée.

@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api, toApiError, unreachable } from "./client";
+import { FALLBACK_MS, MONITOR_REFRESH_MS, usePolling } from "@/shared/live/context";
 import type {
   ClockMode,
   FailureClass,
@@ -10,8 +11,8 @@ import type {
   ScenarioKey,
 } from "./types";
 
-/** Polling period of every operator view until SSE arrives (US-07). */
-export const REFRESH_MS = 10_000;
+/** Fallback period; live notices invalidate active views after committed changes. */
+export const REFRESH_MS = FALLBACK_MS;
 
 interface Result<T> {
   data?: T;
@@ -34,14 +35,11 @@ export async function call<T>(request: Promise<Result<T>>): Promise<T> {
 // The API refuses mutations without a JSON content type (ADR 0007), bodyless ones included.
 const JSON_HEADERS = { "content-type": "application/json" } as const;
 
-// Half a period of freshness: components mounting after the first answer reuse it.
-const polled = { refetchInterval: REFRESH_MS, staleTime: REFRESH_MS / 2 } as const;
-
 export function usePlatforms() {
   return useQuery({
     queryKey: ["platforms"],
     queryFn: () => call(api.GET("/api/v1/platforms")),
-    ...polled,
+    ...usePolling(),
   });
 }
 
@@ -55,7 +53,7 @@ export function useTopology(platformId: string | undefined) {
         }),
       ),
     enabled: platformId !== undefined,
-    ...polled,
+    ...usePolling(),
   });
 }
 
@@ -63,7 +61,77 @@ export function useComponents() {
   return useQuery({
     queryKey: ["components"],
     queryFn: () => call(api.GET("/api/v1/components")),
-    ...polled,
+    ...usePolling(),
+  });
+}
+
+export function useStateHistory(request: { componentId: string; from: string; to: string } | null) {
+  return useQuery({
+    queryKey: ["state-history", request],
+    queryFn: () =>
+      call(
+        api.GET("/api/v1/components/{component_id}/state-history", {
+          params: {
+            path: { component_id: request?.componentId ?? "" },
+            query: { from: request?.from ?? null, to: request?.to ?? null, max_segments: 500 },
+          },
+        }),
+      ),
+    enabled: request !== null,
+    placeholderData: keepPreviousData,
+    ...usePolling(),
+  });
+}
+
+export function useEvaluationHistory(
+  request: { componentId: string; from: string; to: string; ruleKey?: string } | null,
+) {
+  return useQuery({
+    queryKey: ["evaluation-history", request],
+    queryFn: () =>
+      call(
+        api.GET("/api/v1/rule-evaluations", {
+          params: {
+            query: {
+              component_id: request?.componentId ?? null,
+              from: request?.from ?? null,
+              to: request?.to ?? null,
+              rule_key: request?.ruleKey ?? null,
+              limit: 50,
+            },
+          },
+        }),
+      ),
+    enabled: request !== null,
+    ...usePolling(),
+  });
+}
+
+export function useComment(id: string) {
+  const onSuccess = useRefreshAll();
+  return useMutation({
+    mutationFn: (comment: string) =>
+      call(
+        api.POST("/api/v1/incidents/{incident_id}/comments", {
+          params: { path: { incident_id: id } },
+          body: { comment },
+        }),
+      ),
+    onSuccess,
+  });
+}
+
+export function useIncidentEvents(id: string, cursor: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ["incident-events", id, cursor],
+    queryFn: () =>
+      call(
+        api.GET("/api/v1/incidents/{incident_id}/events", {
+          params: { path: { incident_id: id }, query: { cursor, limit: 200 } },
+        }),
+      ),
+    enabled,
+    ...usePolling(),
   });
 }
 
@@ -74,7 +142,7 @@ export function useComponent(id: string) {
       call(
         api.GET("/api/v1/components/{component_id}", { params: { path: { component_id: id } } }),
       ),
-    ...polled,
+    ...usePolling(),
   });
 }
 
@@ -87,7 +155,7 @@ export function useComponentRules(id: string) {
           params: { path: { component_id: id } },
         }),
       ),
-    ...polled,
+    ...usePolling(),
   });
 }
 
@@ -126,7 +194,7 @@ export function useMetricSeries(request: SeriesRequest | null) {
     placeholderData: keepPreviousData,
     // The window moves with each refresh, so older entries are never read again.
     gcTime: REFRESH_MS,
-    ...polled,
+    ...usePolling(),
   });
 }
 
@@ -139,7 +207,7 @@ export function useLogs(componentId: string, minSeverity: LogSeverity) {
           params: { query: { component_id: componentId, min_severity: minSeverity, limit: 100 } },
         }),
       ),
-    ...polled,
+    ...usePolling(),
   });
 }
 
@@ -157,7 +225,7 @@ export function useIncidents(filters: IncidentFilters) {
     queryKey: ["incidents", filters],
     queryFn: () => call(api.GET("/api/v1/incidents", { params: { query: filters } })),
     placeholderData: keepPreviousData,
-    ...polled,
+    ...usePolling(),
   });
 }
 
@@ -166,10 +234,7 @@ export function useIncident(id: string) {
     queryKey: ["incident", id],
     queryFn: () =>
       call(api.GET("/api/v1/incidents/{incident_id}", { params: { path: { incident_id: id } } })),
-    ...polled,
-    // A resolved incident only changes when reopened, which the incident list shows.
-    refetchInterval: (query: { state: { data?: { status: string } | undefined } }) =>
-      query.state.data?.status === "resolved" ? false : REFRESH_MS,
+    ...usePolling(),
   });
 }
 
@@ -183,7 +248,7 @@ export function useDiagnostics(id: string) {
         }),
       ),
     // Poll stored results only; a refresh never calls a language model.
-    ...polled,
+    ...usePolling(),
   });
 }
 
@@ -208,7 +273,9 @@ export function useSystemStatus() {
   return useQuery({
     queryKey: ["system-status"],
     queryFn: () => call(api.GET("/api/v1/system/status")),
-    ...polled,
+    ...usePolling(),
+    // The instrument checks its own liveness even when its event transport appears connected.
+    refetchInterval: MONITOR_REFRESH_MS,
   });
 }
 
@@ -230,7 +297,15 @@ export function useActiveRuns() {
     queryKey: ["runs", "active"],
     queryFn: () =>
       call(api.GET("/api/v1/simulations/runs", { params: { query: { status: "active" } } })),
-    ...polled,
+    ...usePolling(),
+  });
+}
+
+export function useInvestigationRuns() {
+  return useQuery({
+    queryKey: ["runs", "investigation"],
+    queryFn: () => call(api.GET("/api/v1/simulations/runs", { params: { query: { limit: 100 } } })),
+    ...usePolling(),
   });
 }
 
@@ -238,11 +313,11 @@ export function useClock() {
   return useQuery({
     queryKey: ["clock"],
     queryFn: () => call(api.GET("/api/v1/simulations/clock")),
-    ...polled,
+    ...usePolling(),
   });
 }
 
-/** Every view polls; after a mutation they all refetch at once instead of within 10 s. */
+/** Local mutations invalidate immediately; events propagate changes from other clients. */
 function useRefreshAll() {
   const client = useQueryClient();
   return () => client.invalidateQueries();
@@ -358,6 +433,6 @@ export function useActiveIncidents() {
       );
       return { items: page.items, more: page.next_cursor !== null };
     },
-    ...polled,
+    ...usePolling(),
   });
 }

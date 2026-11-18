@@ -270,6 +270,15 @@ def _not_before(incident: Incident, at: datetime) -> datetime:
     return max(at, incident.updated_at)
 
 
+def add_comment(incident: Incident, comment: str, actor: Actor, at: datetime) -> Change:
+    text = comment.strip()
+    if not 1 <= len(text) <= 4000:
+        raise ValueError("a comment contains 1 to 4000 nonblank characters")
+    at = _not_before(incident, at)
+    changed = replace(incident, updated_at=at)
+    return Change(changed, (_event(changed, EventType.COMMENTED, actor, at, {"comment": text}),))
+
+
 def _rank(severity: IncidentSeverity) -> int:
     return severity.rank
 

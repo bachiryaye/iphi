@@ -15,7 +15,7 @@ case "$role" in
     api)
         migrate_if_requested
         exec uvicorn app.main:build --factory --host 0.0.0.0 --port "${IPHI_PORT:-8000}" \
-            --no-server-header "$@"
+            --no-server-header --timeout-graceful-shutdown 5 "$@"
         ;;
     worker)
         migrate_if_requested

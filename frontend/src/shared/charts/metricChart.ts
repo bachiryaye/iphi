@@ -14,6 +14,7 @@ export interface Threshold {
 export interface ChartMarker {
   at: string;
   label: string;
+  showLabel?: boolean;
 }
 
 export interface EvidencePoint {
@@ -38,6 +39,7 @@ export interface MetricChartInput {
   evidence: readonly EvidencePoint[];
   activeEvidence: number | null;
   colors: ChartColors;
+  leftInset?: number;
 }
 
 type Point = [number, number | null];
@@ -75,7 +77,7 @@ export function metricChartOption(input: MetricChartInput): ChartOption {
     animation: false,
     useUTC: true,
     textStyle: { fontFamily: "IBM Plex Sans, system-ui, sans-serif", color: colors.muted },
-    grid: { left: 56, right: 112, top: 24, bottom: 28 },
+    grid: { left: input.leftInset ?? 56, right: 112, top: 24, bottom: 28 },
     xAxis: {
       type: "time",
       min: ms(series.window_start),
@@ -134,7 +136,13 @@ export function metricChartOption(input: MetricChartInput): ChartOption {
   const markerLines = input.markers.map((m) => ({
     xAxis: ms(m.at),
     lineStyle: { color: colors.muted, type: [3, 3], width: 1 },
-    label: { formatter: m.label, position: "end", color: colors.text, fontSize: 11 },
+    label: {
+      show: m.showLabel ?? true,
+      formatter: m.label,
+      position: "end",
+      color: colors.text,
+      fontSize: 11,
+    },
   }));
   const markLine = {
     silent: true,

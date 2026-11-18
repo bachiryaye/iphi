@@ -22,6 +22,9 @@ interface MetricChartProps {
   evidence?: readonly EvidencePoint[];
   activeEvidence?: number | null;
   height?: number;
+  cursor?: number | null;
+  onCursor?: (at: number | null) => void;
+  leftInset?: number;
 }
 
 // ECharts is most of the bundle and only the Component and Incident views draw charts.
@@ -119,6 +122,9 @@ export function MetricChart({
   evidence = NONE,
   activeEvidence = null,
   height = 240,
+  cursor = null,
+  onCursor,
+  leftInset = 56,
 }: MetricChartProps) {
   const theme = useThemeVersion();
   const [table, setTable] = useState(false);
@@ -131,17 +137,18 @@ export function MetricChart({
         evidence,
         activeEvidence,
         colors: readColors(),
+        leftInset,
       }),
     // The theme only changes the tokens read inside.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [series, thresholds, markers, evidence, activeEvidence, theme],
+    [series, thresholds, markers, evidence, activeEvidence, theme, leftInset],
   );
   const summary = chartSummary(series, thresholds);
   return (
     <figure className="flex flex-col">
       <div role="img" aria-label={summary} className="px-2 pt-1">
         <Suspense fallback={<div className="skeleton" style={{ height }} />}>
-          <EChart option={option} height={height} />
+          <EChart option={option} height={height} cursor={cursor} onCursor={onCursor} />
         </Suspense>
       </div>
       <figcaption className="flex flex-wrap items-center gap-3 px-4 pb-3 text-small text-text-muted">
