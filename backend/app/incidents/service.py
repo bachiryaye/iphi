@@ -47,6 +47,7 @@ from app.incidents.domain.records import (
     ImpactView,
     IncidentDetail,
     IncidentFilter,
+    IncidentSnapshot,
     IncidentSummary,
     StoredEvidence,
 )
@@ -235,6 +236,19 @@ class IncidentHistory:
         if incident is None:
             raise IncidentNotFoundError(f"No incident {incident_id}.")
         return incident
+
+    def snapshot(self, incident_id: uuid.UUID, limit: int) -> IncidentSnapshot:
+        """Bounded immutable facts in the caller's read transaction; counts reveal overflow."""
+        incident = self.find(incident_id)
+        (summary,) = _summaries(self._incidents, [incident])
+        return IncidentSnapshot(
+            summary,
+            tuple(
+                resolve_evidence(self._session, self._incidents.evidence(incident_id, None, limit))
+            ),
+            tuple(self._incidents.events(incident_id, None, limit)),
+            self._incidents.event_count(incident_id),
+        )
 
     def lock(self, incident_id: uuid.UUID) -> Incident:
         incident = self._incidents.get(incident_id, for_update=True)

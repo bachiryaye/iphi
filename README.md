@@ -15,8 +15,9 @@ IPHI monitors the health of an **industrial data platform** — sources, gateway
 | US-05 | Deduplicated incidents with evidence, lifecycle, downstream suppression, deterministic diagnosis | Delivered |
 | US-06 | Operator dashboard: Overview, Topology, Components, Incidents, Scenarios, Rules | Delivered |
 | US-10 | One-command reproducible demo, end-to-end tests of the mandatory scenarios, performance check, case study | Delivered |
-| US-08 | Optional structured diagnosis, evidence validation, deterministic comparison and fallback | Implemented and verified locally; CI pending |
-| US-07, US-09, US-11, US-12 | Live updates, reports, authentication and roles, MQTT adapter | Planned ([backlog](docs/03-backlog.md)) |
+| US-08 | Optional structured diagnosis, evidence validation, deterministic comparison and fallback | Delivered (PR #8; CI green on main) |
+| US-09 | Incident PDF and CSV reports from stored evidence | Implemented and verified locally; CI pending |
+| US-07, US-11, US-12 | Live updates, authentication and roles, MQTT adapter | Planned ([backlog](docs/03-backlog.md)) |
 
 What runs today: PostgreSQL, a migration and seed job, the FastAPI API (`/health`, `/ready`, simulation, metrics, logs, health and system status endpoints, OpenAPI), a worker that holds the scheduler lock and, every cycle, collects the simulated observations, validates and stores them, evaluates the health rules, opens, updates and resolves incidents, purges data past retention and writes a heartbeat, and the operator dashboard described below.
 
@@ -60,6 +61,32 @@ flowchart LR
 ```
 
 One PostgreSQL, one API process, one worker holding the scheduler lock: a modular monolith whose module boundaries (simulation, connectors, ingestion, health, incidents, diagnostics) are enforced by import contracts in CI. The worker alone collects and evaluates; the API serves the results and records operator actions (acknowledge, resolve, diagnose, scenarios, clock). Details in the [architecture document](docs/02-architecture-technique.md) and the [decision records](docs/adr/README.md).
+
+## Incident reports
+
+On an incident page, **Export PDF** and **Export CSV** download a snapshot of its stored
+facts, timeline, evidence and versioned rules. Stored deterministic and AI diagnoses are
+separate; AI output carries a verification label and its comparison or fallback reference.
+Export does not call a model or change the incident. No diagnosis yet is a valid report state.
+Real captures: [download controls](docs/design/screenshots/us-09-exports-light-1440.png) and
+[PDF first page](docs/design/screenshots/us-09-report-first-page.png).
+
+The read-only endpoint is `GET /api/v1/reports/incidents/{id}?format=pdf|csv` (PDF by default).
+All pages/rows identify the simulated environment; timestamps are UTC, with the wall-clock
+export time distinguished from the simulated platform time. CSV uses UTF-8 with BOM and a
+`record_type` column (`summary`, `event`, `evidence`, `rule`, `diagnostic_meta`, `diagnostic`).
+Spreadsheet formula prefixes are protected by an apostrophe, preserving the database value.
+
+Reports include every attached proof/event up to 1,000 of each; larger incidents receive
+`413 REPORT_TOO_LARGE` and remain accessible through the paginated incident APIs. PDF content
+is limited to 2 MB of HTML, 100 pages and one simultaneous render per API process (`503
+REPORT_BUSY`); CSV remains available during rendering. Downloads are capped at 8 MB. The PDF
+uses bundled IBM Plex fonts and refuses external resources. Details: [ADR 0022](docs/adr/0022-rapports-incidents-us09.md).
+
+The Docker image includes Pango. For backend development outside containers, install
+`libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0` on Debian/Ubuntu before running the PDF
+tests; see the [WeasyPrint installation guide](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html)
+for other systems. Non-PDF endpoints do not load the native rendering library.
 
 ## Requirements
 

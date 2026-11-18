@@ -50,6 +50,25 @@ MAX_LISTED = 50
 log = structlog.get_logger(__name__)
 
 
+class DiagnosticReader:
+    def __init__(self, session: Session) -> None:
+        self._repository = DiagnosticRepository(session)
+
+    def for_report(self, incident_id: uuid.UUID) -> tuple[StoredDiagnostic, ...]:
+        """Latest of each kind, plus the latest LLM's comparison, in the caller's snapshot."""
+        found = [
+            item
+            for kind in DiagnosticKind
+            if (item := self._repository.latest(incident_id, kind)) is not None
+        ]
+        reference = next((item.deterministic_id for item in found if item.deterministic_id), None)
+        if reference and all(item.id != reference for item in found):
+            comparison = self._repository.get(reference)
+            if comparison is not None:
+                found.append(comparison)
+        return tuple(found)
+
+
 @dataclass(frozen=True, slots=True)
 class DiagnosisResult:
     diagnostic: StoredDiagnostic

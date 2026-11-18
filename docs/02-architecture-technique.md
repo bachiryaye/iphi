@@ -470,6 +470,19 @@ charger une preuve citée hors de la première page, en conservant son label sta
 d'appartenance à l'incident. La validation des références ne certifie pas la vérité sémantique
 des affirmations ; cette limite reste visible dans l'interface.
 
+### 06.3 — Rapports d'incident (US-09, ADR 0022)
+
+L'export PDF/CSV lit les faits, preuves, événements et diagnostics dans un instantané
+PostgreSQL `REPEATABLE READ, READ ONLY`, fermé avant le rendu. La topologie est fixe pendant
+le fonctionnement nominal. Il ne génère pas de diagnostic. Les derniers diagnostics de
+chaque type et la comparaison déterministe du dernier LLM sont étiquetés séparément.
+Les prompts ne sont jamais exportés. Registre complet jusqu'à 1 000 preuves et 1 000
+événements, sinon refus `413 REPORT_TOO_LARGE`, sans troncature silencieuse. PDF : 2 Mo de
+HTML, 100 pages, un rendu simultané par processus API (`503 REPORT_BUSY`), ressources limitées
+aux polices embarquées. CSV et supervision restent disponibles. Toutes les pièces jointes
+sont limitées à 8 Mo, non mises en cache et explicitement simulées. Jinja2 auto-échappe les
+textes ; le CSV neutralise les formules, y compris après espaces initiaux.
+
 ## 07 — Sécurité, qualité et exploitation
 
 - RBAC minimal : viewer, engineer, admin. Scénarios de simulation réservés à engineer/admin.

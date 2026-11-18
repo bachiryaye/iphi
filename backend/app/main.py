@@ -4,7 +4,7 @@ import structlog
 from fastapi import FastAPI
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from app.api import health, incidents, observations, simulations, system
+from app.api import health, incidents, observations, reports, simulations, system
 from app.connectors.registry import ENABLED_CONNECTOR_KEYS
 from app.core.clock import WallClock
 from app.core.db import create_db_engine, create_session_factory
@@ -25,11 +25,13 @@ from app.identity.service import AuditService
 from app.incidents.service import IncidentCommands, IncidentQueries
 from app.ingestion.service import MetricCatalogService, ObservationQueryService
 from app.monitor.service import MonitoredParts, ReadinessService, SystemStatusService
+from app.reporting.pdf import PdfRenderer
+from app.reporting.service import ReportingService
 from app.simulation.domain.platform import SIMULATED_PLATFORM
 from app.simulation.service import build_simulation
 from app.topology.service import TopologyService
 
-API_VERSION = "0.8.0"
+API_VERSION = "0.9.0"
 
 log = structlog.get_logger(__name__)
 
@@ -57,6 +59,7 @@ def create_app(settings: Settings) -> FastAPI:
 
     app.state.incident_queries = IncidentQueries(session_factory)
     app.state.incident_commands = IncidentCommands(session_factory, wall, platform_now)
+    app.state.reporting = ReportingService(session_factory, wall, topology, PdfRenderer())
     app.state.diagnostics = DiagnosticsService(
         session_factory,
         wall,
@@ -91,6 +94,7 @@ def create_app(settings: Settings) -> FastAPI:
     app.include_router(observations.router)
     app.include_router(health.router)
     app.include_router(incidents.router)
+    app.include_router(reports.router)
     # Starlette runs the last added middleware first. Security headers wrap every response,
     # including the 413 and crash responses produced by the two inner middlewares.
     # Unauthenticated loopback mutations (ADR 0007) must not be reachable through a rebound
