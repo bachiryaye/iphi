@@ -3000,6 +3000,14 @@
         "title": "ReadinessOut",
         "type": "object"
       },
+      "ReportFormat": {
+        "enum": [
+          "pdf",
+          "csv"
+        ],
+        "title": "ReportFormat",
+        "type": "string"
+      },
       "ResetIn": {
         "additionalProperties": false,
         "properties": {
@@ -3984,7 +3992,7 @@
   "info": {
     "summary": "Health intelligence for a simulated industrial data platform.",
     "title": "IPHI API",
-    "version": "0.8.0"
+    "version": "0.9.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -5180,6 +5188,71 @@
         "summary": "Components with state and impact, and dependency edges with explicit direction.",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/api/v1/reports/incidents/{incident_id}": {
+      "get": {
+        "operationId": "incident_report_api_v1_reports_incidents__incident_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "incident_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Incident Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ReportFormat",
+              "default": "pdf"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REPORT_TOO_LARGE: use the paginated incident evidence/events API."
+          },
+          "503": {
+            "description": "REPORT_BUSY or REPORT_UNAVAILABLE; retry or export CSV."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "RFC 9457 problem details."
+          }
+        },
+        "summary": "Download a simulated incident report from stored evidence.",
+        "tags": [
+          "reports"
         ]
       }
     },

@@ -25,5 +25,6 @@ Format : contexte, décision, alternatives, conséquences. Statut de toutes les 
 | [0019](0019-demo-e2e-performance-us10.md) | Démonstration US-10 : environnement propre isolé, démo exécutable, e2e en temps de plateforme, mesure de performance |
 | [0020](0020-images-sans-compose.md) | Images exécutables sans Compose : entrypoint par rôle, migration au démarrage, healthchecks |
 | [0021](0021-diagnostic-llm-us08.md) | US-08 : diagnostic LLM borné, quota persistant, comparaison déterministe et repli |
+| [0022](0022-rapports-incidents-us09.md) | US-09 : rapports PDF/CSV sur instantané cohérent, bornes et rendu sans ressources externes |
 
 Nouvelle ADR : copier le format, numéro suivant, statut *Proposée* jusqu'à validation.

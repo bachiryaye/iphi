@@ -158,3 +158,24 @@ To restore the ordinary demo configuration, run the same API recreation command 
 `IPHI_LLM_PROVIDER=none`. No model key is needed for either stage. Invalid output, invented
 citations, provider failure/timeout, quota and concurrent requests are exercised by the
 backend tests, using local fakes and an HTTP test transport.
+
+## Incident reports (US-09)
+
+After `make demo`, open the live incident at http://127.0.0.1:8081/incidents. Select **Export
+PDF**, then **Export CSV**. Both download `IPHI-INC-…-simulated` files. The PDF contains the
+incident snapshot, complete timeline, cited rule versions, stored diagnoses and evidence
+register. Every page identifies the simulated environment and UTC. The CSV has one record
+per proof/event, plus summary/rule/diagnosis records identified by `record_type`.
+
+Run `cd frontend && IPHI_E2E_URL=http://127.0.0.1:8081 pnpm exec playwright test
+--project chromium --grep US-09` as one command to automate both downloads. It resets the
+demo simulation, injects `collector_down`, generates a deterministic diagnosis and checks
+the downloaded files. Use `IPHI_LLM_PROVIDER=fake make demo` to demonstrate an explicitly
+labelled local AI test result without external calls; an AI diagnosis generated before
+export appears separately from its deterministic comparison.
+
+For direct API downloads, use `GET /api/v1/reports/incidents/{incident UUID}?format=pdf|csv`.
+Reports are read-only and work when mutations are disabled. Exports over 1,000 proofs or
+events return `REPORT_TOO_LARGE`; use the paginated evidence/events APIs. A PDF over 100
+pages can be exported as CSV if the other bounds permit. `REPORT_BUSY` means another PDF
+is rendering; retry shortly. The incident and monitoring continue to work.

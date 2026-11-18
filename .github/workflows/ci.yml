@@ -38,6 +38,8 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync --locked
+      - name: PDF rendering libraries
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0
       - name: Lint
         run: uv run ruff format --check . && uv run ruff check .
       - name: Import contracts

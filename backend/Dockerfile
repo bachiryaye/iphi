@@ -11,7 +11,11 @@ LABEL org.opencontainers.image.title="iphi-backend" \
       org.opencontainers.image.description="IPHI API, worker and migrations (simulated industrial data platform)" \
       org.opencontainers.image.source="https://github.com/bachiryaye/iphi"
 ENV PATH=/app/.venv/bin:$PATH PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
-RUN groupadd --system --gid 10001 iphi && useradd --system --uid 10001 --gid iphi --no-create-home iphi
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0 \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system --gid 10001 iphi \
+    && useradd --system --uid 10001 --gid iphi --no-create-home iphi
 WORKDIR /app
 COPY --from=build /app/.venv /app/.venv
 COPY alembic.ini ./

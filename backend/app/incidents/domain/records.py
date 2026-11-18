@@ -58,6 +58,14 @@ class IncidentSummary:
 
 
 @dataclass(frozen=True, slots=True)
+class IncidentSnapshot:
+    summary: IncidentSummary
+    evidence: tuple[EvidenceItem, ...]
+    events: tuple[StoredEvent, ...]
+    event_count: int
+
+
+@dataclass(frozen=True, slots=True)
 class StoredEvidence:
     """An evidence row; `ordinal` numbers the incident's evidence from 1, in insertion order,
     which append-only storage keeps stable (the `E<n>` labels)."""

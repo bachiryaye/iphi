@@ -6,6 +6,7 @@ import type { IncidentDetail } from "@/shared/api/types";
 import { Button } from "@/shared/ui/Button";
 import { RefusedAlert } from "@/shared/ui/QueryStates";
 import { AiDiagnosisAction } from "./AiDiagnosisAction";
+import { ReportActions } from "./ReportActions";
 
 function newKey(): string {
   return globalThis.crypto.randomUUID();
@@ -77,9 +78,10 @@ export function IncidentActions({ incident }: { incident: IncidentDetail }) {
         </Button>
       </div>
       <AiDiagnosisAction incidentId={incident.id} />
+      <ReportActions incidentId={incident.id} reference={incident.reference} />
       {reason !== undefined && !allowed && (
         <p className="max-w-[60ch] text-right text-small text-text-muted max-xl:text-left">
-          Actions are disabled: {reason}
+          Incident changes are disabled: {reason} Reports remain available.
         </p>
       )}
       {allowed && !resolved && !incident.resolvable && (

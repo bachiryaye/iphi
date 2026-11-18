@@ -94,7 +94,9 @@ describe("Incident", () => {
     stubApi({ "/api/v1/system/status": { body: statusReadOnly } });
     renderApp(path);
 
-    expect(await screen.findByText(/Actions are disabled: Mutations are disabled/)).toBeVisible();
+    expect(
+      await screen.findByText(/Incident changes are disabled: Mutations are disabled/),
+    ).toBeVisible();
     expect(screen.getByRole("button", { name: "Acknowledge" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Diagnose" })).toBeDisabled();
   });

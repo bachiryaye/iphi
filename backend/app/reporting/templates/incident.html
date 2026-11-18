@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ view.snapshot.facts.summary.incident.reference }} | IPHI incident report</title>
+  <meta name="dcterms.created" content="{{ view.snapshot.generated_at | utc }}">
+  <style>{% include 'report.css' %}</style>
+</head>
+<body>
+  {% set incident = view.snapshot.facts.summary.incident %}
+  <div class="running-header">IPHI · SIMULATED ENVIRONMENT · Synthetic telemetry, no real plant</div>
+  <main>
+    <header>
+      <p class="brand">IPHI / Platform Health Intelligence</p>
+      <h1>{{ incident.reference }}<br>{{ incident.title }}</h1>
+      <p class="severity {{ incident.severity.value }}">{% if incident.severity.value == 'critical' %}■ Critical{% else %}▲ Warning{% endif %} · {{ incident.status.value | capitalize }}</p>
+      <p class="muted">Generated {{ view.snapshot.generated_at | utc }} (wall clock).<br>Incident and observation timestamps use the simulated platform clock, in UTC.</p>
+    </header>
+    <section>
+      <h2>Incident snapshot</h2>
+      <dl class="summary">
+        {% for row in view.group('summary') %}
+        <div><dt>{{ row.type }}</dt><dd>{{ row.text }}</dd></div>
+        {% endfor %}
+      </dl>
+      <p class="notice">This report is a stored-evidence snapshot. Health and incident states are deterministic. Correlation is not proven causation. No action is executed by this report.</p>
+    </section>
+    <section>
+      <h2>Timeline <span class="muted">/ {{ view.snapshot.facts.event_count }} stored events</span></h2>
+      <table>
+        <thead><tr><th scope="col">UTC / event ID</th><th scope="col">Event / actor / stored detail</th></tr></thead>
+        <tbody>
+        {% for row in view.group('event') %}
+          <tr><td class="mono">{{ row.occurred_at_utc }}<br>#{{ row.id }}</td><td><strong>{{ row.type }}</strong> · {{ row.text }}<p class="detail">{{ row.details }}</p></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </section>
+    <section>
+      <h2>Rules and versions in the evidence</h2>
+      {% for row in view.group('rule') %}
+      <article>
+        <h3>{{ row.rule_key }} v{{ row.rule_version }} <span class="muted">/ {{ row.metric }} {{ row.unit }}</span></h3>
+        <p class="mono">Rule ID {{ row.id }}</p>
+        <p>{{ row.text }}</p>
+        <p><strong>Recommended check:</strong> {{ row.recommendation }}</p>
+        <p class="detail">{{ row.details }}</p>
+      </article>
+      {% else %}<p>No stored rule evaluation is attached to this incident.</p>{% endfor %}
+    </section>
+    <section>
+      <h2>Stored diagnoses</h2>
+      <p class="muted">Latest stored diagnosis of each kind, plus the AI request's deterministic comparison when different. Export does not generate a new diagnosis.</p>
+      {% for diagnostic in view.snapshot.diagnostics %}
+      <article class="diagnosis">
+        <h3>{% if diagnostic.kind.value == 'llm' %}AI-generated — verify against evidence{% else %}Deterministic diagnosis{% endif %}</h3>
+        <p class="mono">{{ diagnostic.model }} · {{ diagnostic.status.value }}<br>{{ diagnostic.created_at | utc }} · ID {{ diagnostic.id }}</p>
+        {% if diagnostic.provider == 'fake' %}<p class="notice">Local fake provider: test output; no language model was called.</p>{% endif %}
+        {% if diagnostic.deterministic_id %}<p class="detail">Deterministic comparison / fallback ID {{ diagnostic.deterministic_id }}</p>{% endif %}
+        {% if diagnostic.error_code %}<p class="notice">AI unavailable or rejected: {{ diagnostic.error_code }}. Use the deterministic comparison.</p>{% endif %}
+        <p class="detail">Evidence set hash: {{ diagnostic.evidence_set_hash }}</p>
+        {% for row in view.claims(diagnostic.id) %}
+        <div class="claim {% if row.type == 'Hypothesis' %}hypothesis{% endif %}">
+          <strong>{{ row.type }}</strong>
+          <p>{{ row.text }}</p>
+          {% if row.get('uncertainty') %}<p>Uncertainty: {{ row.uncertainty }}</p>{% endif %}
+          {% if row.get('evidence_ids') %}<p class="mono">Evidence: {{ row.evidence_ids }}</p>{% endif %}
+        </div>
+        {% endfor %}
+      </article>
+      {% else %}<p>No diagnosis has been generated. The report contains the stored incident facts and evidence only.</p>{% endfor %}
+    </section>
+    <section class="appendix">
+      <h2>Evidence register <span class="muted">/ {{ view.snapshot.facts.summary.evidence_count }} immutable items</span></h2>
+      <p class="muted">E labels and evidence IDs match the incident. Observation IDs identify the original sample, log or rule evaluation. Values retain their units and quality.</p>
+      {% for row in view.group('evidence') %}
+      <article id="proof-{{ row.label }}">
+        <h3>{{ row.label }} <span class="muted">/ evidence #{{ row.id }} · {{ row.role }} · {{ row.type }}</span></h3>
+        <p class="mono">{{ row.component }} · {{ row.occurred_at_utc }}<br>Observation #{{ row.observation_id }} · source={{ row.source }}</p>
+        {% if row.get('rule_key') %}<p><strong>{{ row.rule_key }} v{{ row.rule_version }}</strong> · {{ row.state }}</p>{% endif %}
+        {% if row.get('metric') %}<p class="mono">{{ row.metric }} = {{ row.value or 'No measured value' }} {{ row.unit }}{% if row.get('quality') %} · quality={{ row.quality }}{% endif %}</p>{% endif %}
+        {% if row.get('text') %}<p>{{ row.text }}</p>{% endif %}
+        {% if row.get('details') %}<p class="detail">{{ row.details }}</p>{% endif %}
+        {% if row.get('scenario_run_id') %}<p class="detail">Scenario run {{ row.scenario_run_id }}</p>{% endif %}
+      </article>
+      {% endfor %}
+    </section>
+  </main>
+</body>
+</html>
