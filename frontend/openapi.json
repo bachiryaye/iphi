@@ -4189,7 +4189,7 @@
   "info": {
     "summary": "Health intelligence for a simulated industrial data platform.",
     "title": "IPHI API",
-    "version": "0.10.0"
+    "version": "0.10.1"
   },
   "openapi": "3.1.0",
   "paths": {

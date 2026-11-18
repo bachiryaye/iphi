@@ -17,7 +17,7 @@ IPHI monitors the health of an **industrial data platform** — sources, gateway
 | US-10 | One-command reproducible demo, end-to-end tests of the mandatory scenarios, performance check, case study | Delivered |
 | US-08 | Optional structured diagnosis, evidence validation, deterministic comparison and fallback | Delivered (PR #8; CI green on main) |
 | US-09 | Incident PDF and CSV reports from stored evidence | Delivered (PR #9; main CI 44248348754 green) |
-| US-07 | Live updates, interactive topology, recorded state history and investigation comments | Implemented; full regression and CI pending |
+| US-07 | Live updates, interactive topology, recorded state history and investigation comments | Delivered (PR #10; CI green on main) |
 | US-11, US-12 | Authentication and roles, MQTT adapter | Planned ([backlog](docs/03-backlog.md)) |
 
 What runs today: PostgreSQL, a migration and seed job, the FastAPI API (`/health`, `/ready`, simulation, metrics, logs, health and system status endpoints, OpenAPI), a worker that holds the scheduler lock and, every cycle, collects the simulated observations, validates and stores them, evaluates the health rules, opens, updates and resolves incidents, purges data past retention and writes a heartbeat, and the operator dashboard described below.
@@ -239,10 +239,29 @@ inspect the same observations through the deterministic reading.
 |---|---|
 | ![Fake-provider diagnosis with citations and explicit simulation limitations](docs/design/screenshots/us-08-diagnosis-light-1440.png) | ![The same diagnosis in the dark theme](docs/design/screenshots/us-08-diagnosis-dark-1440.png) |
 
-For an actual provider, explicitly configure `IPHI_LLM_PROVIDER=openai`,
-`IPHI_LLM_MODEL` (a model supporting structured output), and `IPHI_LLM_API_KEY` in your
-untracked environment. No paid model or key is provided by default; this path is optional
-and is **not tested by live paid calls**. The credential is passed only to the API container.
+For **free OpenRouter models**, put these settings in your ignored local `.env` and
+supply your own `IPHI_LLM_API_KEY` there:
+
+```dotenv
+IPHI_LLM_PROVIDER=openrouter
+IPHI_LLM_MODEL=particle-ai/particle-1:free
+IPHI_LLM_REASONING_EFFORT=none
+```
+
+This model accepts reasoning effort `none`. For another model, restore
+`IPHI_LLM_REASONING_EFFORT=default` or choose an effort it supports; mandatory-reasoning
+models can spend the whole output budget before producing an answer. `openrouter/free`
+automatically selects a free model, but capacity and structured-output support vary.
+The adapter accepts only that free router or explicit `:free` variants, sets a zero
+price ceiling, disables plugins, and rejects missing/nonzero reported usage cost. It
+never switches to a paid route. Rate limits or unavailable free capacity show the
+existing deterministic fallback. See [ADR 0024](docs/adr/0024-openrouter-free-us08.md).
+
+The separate OpenAI adapter uses `IPHI_LLM_PROVIDER=openai` and a configured model with
+structured-output support; **live paid calls have not been tested**. Neither adapter
+has a default paid model or bundled credential. The credential is passed only to the
+API container. Free-provider data policies still apply: use simulated evidence only.
+
 The server uses a fixed HTTPS endpoint, exposes no tools, and applies a shared deadline
 (maximum 20 s, at most one retry), input/output caps and a persisted six-attempt/60 s actor
 budget. Retried requests with the same `Idempotency-Key` reuse the stored result; conflicting

@@ -15,9 +15,14 @@ US-11, no real OT access, no public deployment. These are approved project const
 than inferred hosting assumptions. Owner approval covers this story. Auth/RBAC, reporting,
 industrial connectors and generic repository hardening are outside this review.
 
-Open questions: actual provider/model availability, account retention controls and pricing
-depend on operator configuration and have not been verified by live requests. Public exposure
-or real sensitive telemetry would require a new risk review before use.
+OpenRouter extends this boundary under [ADR 0024](../adr/0024-openrouter-free-us08.md):
+fixed HTTPS endpoint, free router or `:free` model allowlist, zero price ceiling, no
+plugins, mandatory zero reported cost and trusted transport model identity. Schema,
+citation, redaction, admission and deadline checks apply to both remote adapters.
+Free-model capacity and retention policies depend on the selected provider; synthetic
+live requests do not establish factual reliability. Account privacy controls have
+not been changed. Public exposure or real sensitive telemetry would require a new
+risk review before use.
 
 ## System model
 

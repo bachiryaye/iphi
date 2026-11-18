@@ -272,7 +272,8 @@ class DiagnosticsService:
         pack = build_pack(data, self._settings.llm_input_tokens - schema_bytes - 512)
         started = time.perf_counter()
         status, code = DiagnosticStatus.SUCCEEDED, None
-        diagnosis = Diagnosis((), (), (), (), self._provider.model)
+        model = self._provider.model
+        diagnosis = Diagnosis((), (), (), (), model)
         report = ValidationReport(0, (), 0)
         reply = None
         try:
@@ -287,7 +288,9 @@ class DiagnosticsService:
                 and reply.output_tokens > self._settings.llm_output_tokens
             ):
                 raise ProviderError("LLM_TOKEN_BUDGET")
-            validated = validate_reply(reply.text, pack, self._provider.model)
+            model = reply.resolved_model or model
+            diagnosis = replace(diagnosis, model=model)
+            validated = validate_reply(reply.text, pack, model)
             diagnosis, report = validated.diagnosis, validated.report
             if not diagnosis.observed_facts:
                 status, code = DiagnosticStatus.REJECTED, "LLM_NO_SUPPORTED_FACTS"
@@ -308,7 +311,7 @@ class DiagnosticsService:
             data.incident.id,
             DiagnosticKind.LLM,
             self._provider.name,
-            self._provider.model,
+            model,
             status,
             diagnosis,
             evidence_set_hash(data),
