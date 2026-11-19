@@ -36,7 +36,7 @@ export function PlatformHealthCard({ platform, components }: PlatformHealthCardP
   const health = platform.health;
   const impacted = components.filter((c) => c.impacted_by.length > 0);
   return (
-    <div className="flex flex-col gap-3.5 px-4 py-4">
+    <div className="@container flex flex-col gap-3.5 px-4 py-4">
       <div className="flex flex-wrap items-center gap-3">
         <HealthBadge health={health} size="lg" />
         {health.since !== null && <Since iso={health.since} />}
@@ -54,15 +54,12 @@ export function PlatformHealthCard({ platform, components }: PlatformHealthCardP
       )}
       <ul
         aria-label={t("Components by state")}
-        className="grid grid-cols-4 rounded-control border border-border"
+        className="grid grid-cols-1 gap-px overflow-hidden rounded-control border border-border bg-border @min-[280px]:grid-cols-2 @min-[560px]:grid-cols-4"
       >
         {ORDER.map((state) => {
           const count = health.counts[state];
           return (
-            <li
-              key={state}
-              className="flex flex-col gap-0.5 border-l border-border px-3 py-2 first:border-l-0"
-            >
+            <li key={state} className="flex flex-col gap-0.5 bg-surface px-3 py-2">
               <span className="inline-flex items-center gap-1.5 text-small text-text-muted">
                 <StatusIndicator state={state} size="sm" />
                 {t.label(STATE_LABEL[state])}

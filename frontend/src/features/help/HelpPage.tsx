@@ -50,12 +50,12 @@ export function HelpPage() {
           className="self-start md:sticky md:top-6"
         >
           <p className="mb-3 font-semibold">{fr ? "Dans ce guide" : "In this guide"}</p>
-          <ol className="flex list-inside list-decimal flex-col gap-1 text-small">
+          <ol className="flex list-outside list-decimal flex-col gap-1 pl-4 text-small">
             {sections[language].map((section) => (
               <li key={section.id}>
                 <a
                   href={`#${section.id}`}
-                  className="inline-block py-1 text-text-muted underline-offset-4 hover:text-text hover:underline"
+                  className="block py-1 text-text-muted underline-offset-4 hover:text-text hover:underline"
                 >
                   {section.title}
                 </a>
