@@ -1,11 +1,12 @@
 import { expect, test } from "@playwright/test";
 
 import { AUTH_STATE } from "./auth";
-import { BASE_URL } from "./simulation";
+import { BASE_URL, Simulation } from "./simulation";
 
 const output = "../docs/design/screenshots";
 
 test("capture bilingual help and the current dashboard", async ({ browser }) => {
+  await new Simulation().waitAllHealthy();
   for (const view of [
     {
       name: "finalization-help-en-light-1440",
@@ -67,10 +68,14 @@ test("capture bilingual help and the current dashboard", async ({ browser }) => 
       ).toBeVisible();
     if (view.authenticated) {
       const items = page.getByRole("list", { name: "Composants par état" }).getByRole("listitem");
+      await expect(items).toHaveCount(4);
       for (const item of await items.all())
-        expect(await item.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(
-          true,
-        );
+        expect(
+          await item.evaluate(
+            (element: { scrollWidth: number; clientWidth: number }) =>
+              element.scrollWidth <= element.clientWidth,
+          ),
+        ).toBe(true);
     }
     if (view.path === "/login") {
       await expect(page.getByLabel("Mot de passe", { exact: true })).toHaveValue("");

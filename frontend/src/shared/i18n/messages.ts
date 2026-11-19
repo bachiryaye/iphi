@@ -705,6 +705,7 @@ export const french = {
   "Press Enter or Space to select a dependency. Escape clears selection.":
     "Appuyez sur Entrée ou Espace pour sélectionner une dépendance. Échap efface la sélection.",
   "Connection point": "Point de connexion",
+  never: "jamais",
 } as const satisfies Readonly<Record<string, string>>;
 
 export type MessageKey = keyof typeof french;

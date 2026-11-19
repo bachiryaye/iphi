@@ -89,7 +89,7 @@ function Header({
           <dt className="text-text-muted">{t("Last evaluation")}</dt>
           <dd>
             {detail.health.evaluated_at === null ? (
-              "never"
+              t("never")
             ) : (
               <Timestamp iso={detail.health.evaluated_at} />
             )}
