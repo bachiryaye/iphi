@@ -33,7 +33,7 @@ def collector_down(url: str, wall: FixedClock) -> Platform:
 def client(seeded_url: str) -> Iterator[TestClient]:
     """collector_down for one minute on a manual clock: stored states never go stale."""
     platform = collector_down(seeded_url, FixedClock(datetime.now(UTC)))
-    with client_for(seeded_url, dev_mutations=False) as test_client:
+    with client_for(seeded_url, role="viewer") as test_client:
         yield test_client
     platform.engine.dispose()
 
@@ -175,7 +175,7 @@ def test_rule_evaluations_page_newest_first_with_a_stable_cursor(client: TestCli
 
 def test_next_pages_keep_the_window_of_the_first_page(seeded_url: str) -> None:
     platform = collector_down(seeded_url, FixedClock(datetime.now(UTC)))
-    with client_for(seeded_url, dev_mutations=False) as client:
+    with client_for(seeded_url, role="viewer") as client:
         first = get(client, "/rule-evaluations", limit=5)
         # Two hours later the default window no longer covers the first page's evaluations.
         platform.simulation.advance_clock(7200, CONTEXT)
@@ -227,7 +227,7 @@ def test_states_turn_unknown_when_the_worker_stops_evaluating(seeded_url: str) -
     )
     platform.simulation.set_clock_mode(ClockMode.REALTIME, 1.0, CONTEXT)
 
-    with client_for(seeded_url, dev_mutations=False) as client:
+    with client_for(seeded_url, role="viewer") as client:
         (stored,) = get(client, "/platforms")["items"]
         collector = component(client, "collector-01")
         rules = get(client, f"/components/{collector['id']}/health")["rules"]

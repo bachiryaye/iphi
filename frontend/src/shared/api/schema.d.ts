@@ -4,6 +4,74 @@
  */
 
 export interface paths {
+  "/api/v1/audit-events": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Admin-only bounded audit journal with stable cursor pagination. */
+    get: operations["audit_events_api_v1_audit_events_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/auth/login": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Sign in with a server-side session. */
+    post: operations["login_api_v1_auth_login_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/auth/logout": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Revoke the current server session. */
+    post: operations["logout_api_v1_auth_logout_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/auth/me": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Current session, role and CSRF proof. */
+    get: operations["me_api_v1_auth_me_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/components": {
     parameters: {
       query?: never;
@@ -546,6 +614,74 @@ export interface components {
       detail: string;
       status: components["schemas"]["CheckStatus"];
     };
+    /**
+     * AuditAction
+     * @description Audited mutations; the same value names the denied, allowed and failed rows.
+     * @enum {string}
+     */
+    AuditAction:
+      | "scenario.start"
+      | "scenario.stop"
+      | "simulation.reset"
+      | "clock.update"
+      | "incident.ack"
+      | "incident.resolve"
+      | "incident.diagnose"
+      | "incident.comment"
+      | "auth.login"
+      | "auth.logout"
+      | "audit.read"
+      | "identity.user.seed"
+      | "identity.password.rotate";
+    /** AuditEventOut */
+    AuditEventOut: {
+      /** Action */
+      action: string;
+      /** Actor Id */
+      actor_id: string | null;
+      /** Actor Label */
+      actor_label: string;
+      /** Correlation Id */
+      correlation_id: string | null;
+      /** Details */
+      details: {
+        [key: string]: unknown;
+      };
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Occurred At
+       * Format: date-time
+       */
+      occurred_at: string;
+      outcome: components["schemas"]["AuditOutcome"];
+      /** Platform Time */
+      platform_time: string | null;
+      /** Target Id */
+      target_id: string | null;
+      /** Target Type */
+      target_type: string | null;
+    };
+    /** AuditListOut */
+    AuditListOut: {
+      /**
+       * Environment
+       * @default simulation
+       */
+      environment: string;
+      /** Items */
+      items: components["schemas"]["AuditEventOut"][];
+      /** Next Cursor */
+      next_cursor: string | null;
+    };
+    /**
+     * AuditOutcome
+     * @enum {string}
+     */
+    AuditOutcome: "allowed" | "denied" | "failed";
     /** BucketOut */
     BucketOut: {
       /** Avg */
@@ -1599,6 +1735,16 @@ export interface components {
      * @enum {string}
      */
     LogSeverity: "debug" | "info" | "warning" | "error" | "critical";
+    /** LoginIn */
+    LoginIn: {
+      /**
+       * Password
+       * Format: password
+       */
+      password: string;
+      /** Username */
+      username: string;
+    };
     /** MetricCatalogOut */
     MetricCatalogOut: {
       /** Items */
@@ -1875,6 +2021,11 @@ export interface components {
        */
       comment: string;
     };
+    /**
+     * Role
+     * @enum {string}
+     */
+    Role: "viewer" | "engineer" | "admin";
     /** RuleRefOut */
     RuleRefOut: {
       /**
@@ -2076,6 +2227,17 @@ export interface components {
      * @enum {string}
      */
     SeriesMode: "raw" | "aggregated";
+    /** SessionOut */
+    SessionOut: {
+      /** Csrf Token */
+      csrf_token: string;
+      /**
+       * Expires At
+       * Format: date-time
+       */
+      expires_at: string;
+      user: components["schemas"]["UserOut"];
+    };
     /** SetClockModeIn */
     SetClockModeIn: {
       /**
@@ -2246,6 +2408,14 @@ export interface components {
      * @enum {string}
      */
     Uncertainty: "low" | "medium" | "high";
+    /** UserOut */
+    UserOut: {
+      /** Display Name */
+      display_name: string;
+      role: components["schemas"]["Role"];
+      /** Username */
+      username: string;
+    };
     /** ValidationOut */
     ValidationOut: {
       /** Checked Claims */
@@ -2312,6 +2482,132 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  audit_events_api_v1_audit_events_get: {
+    parameters: {
+      query?: {
+        from?: string | null;
+        to?: string | null;
+        action?: components["schemas"]["AuditAction"] | null;
+        outcome?: components["schemas"]["AuditOutcome"] | null;
+        actor?: string | null;
+        cursor?: string | null;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AuditListOut"];
+        };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
+  login_api_v1_auth_login_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["LoginIn"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SessionOut"];
+        };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
+  logout_api_v1_auth_logout_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
+  me_api_v1_auth_me_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SessionOut"];
+        };
+      };
+      /** @description RFC 9457 problem details. */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Problem"];
+        };
+      };
+    };
+  };
   list_components_api_v1_components_get: {
     parameters: {
       query?: {

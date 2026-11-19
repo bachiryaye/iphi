@@ -14,7 +14,7 @@ JSON = {"Content-Type": "application/json"}
 
 @pytest.fixture
 def client(seeded_url: str) -> Iterator[TestClient]:
-    with client_for(seeded_url, dev_mutations=True) as test_client:
+    with client_for(seeded_url, role="admin") as test_client:
         yield test_client
 
 
@@ -156,7 +156,7 @@ def test_reset_without_body_uses_the_configured_seed(client: TestClient) -> None
 
 
 def test_mutations_without_dev_flag_are_denied_and_audited(seeded_url: str, engine: Engine) -> None:
-    with client_for(seeded_url, dev_mutations=False) as denied_client:
+    with client_for(seeded_url, role="viewer") as denied_client:
         response = denied_client.post(
             f"{BASE}/scenarios",
             json={"scenario_key": "collector_down"},
@@ -165,13 +165,16 @@ def test_mutations_without_dev_flag_are_denied_and_audited(seeded_url: str, engi
         catalog = denied_client.get(f"{BASE}/scenarios")
 
     assert response.status_code == 403
-    assert response.json()["code"] == "MUTATIONS_DISABLED"
+    assert response.json()["code"] == "PERMISSION_DENIED"
     assert catalog.status_code == 200
     with engine.connect() as connection:
         row = connection.execute(
-            text("SELECT action, outcome, actor_label, correlation_id FROM audit_event")
+            text(
+                "SELECT action, outcome, actor_label, correlation_id "
+                "FROM audit_event WHERE action = 'scenario.start'"
+            )
         ).one()
-    assert tuple(row) == ("scenario.start", "denied", "dev-local", "corr-denied-0001")
+    assert tuple(row) == ("scenario.start", "denied", "viewer", "corr-denied-0001")
 
 
 def test_allowed_mutations_are_audited_with_platform_time(
@@ -181,7 +184,10 @@ def test_allowed_mutations_are_audited_with_platform_time(
 
     with engine.connect() as connection:
         row = connection.execute(
-            text("SELECT action, outcome, target_type, platform_time IS NOT NULL FROM audit_event")
+            text(
+                "SELECT action, outcome, target_type, platform_time IS NOT NULL "
+                "FROM audit_event WHERE action = 'scenario.start'"
+            )
         ).one()
     assert tuple(row) == ("scenario.start", "allowed", "scenario_run", True)
 

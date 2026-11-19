@@ -16,6 +16,7 @@ from app.core.migrations import alembic_config
 from app.core.settings import Settings
 from app.health.config import DEFAULT_RULES_PATH, load_rules
 from app.health.service import HealthRuleCatalog
+from app.identity.users import ensure_users
 from app.ingestion.domain.catalog import METRIC_CATALOG
 from app.ingestion.service import MetricCatalogService
 from app.simulation.domain.platform import SIMULATED_PLATFORM
@@ -61,6 +62,7 @@ def bootstrap(settings: Settings) -> None:
             try:
                 command.upgrade(alembic_config(settings.database_url.get_secret_value()), "head")
                 seed(create_session_factory(engine), WallClock(), settings.sim_seed)
+                ensure_users(create_session_factory(engine), WallClock(), settings)
             finally:
                 lock.execute(text("SELECT pg_advisory_unlock(:id)"), {"id": BOOTSTRAP_LOCK_ID})
                 lock.commit()

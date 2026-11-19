@@ -6,7 +6,7 @@ How to reproduce the IPHI demonstration on your own machine, and what you should
 
 - Docker Engine with the Compose plugin (v2 or later), GNU Make, `curl`
 - Ports `8081`, `8001` and `5434` free on `127.0.0.1` (override with `IPHI_DEMO_FRONTEND_PORT`, `IPHI_DEMO_API_PORT`, `IPHI_DEMO_DB_PORT`)
-- Nothing else: no account, no API key, no AI provider
+- Python 3 for local credential initialization; no external account, API key or AI provider
 
 ## One command
 
@@ -14,7 +14,7 @@ How to reproduce the IPHI demonstration on your own machine, and what you should
 make demo
 ```
 
-This builds the images, starts a dedicated Compose project (`iphi-demo`) on a **fresh database volume**, waits for `/ready`, then runs the scripted walkthrough ([`backend/scripts/demo.py`](../backend/scripts/demo.py)) from inside the API container. The walkthrough takes about two minutes after the build. It uses the public API only, so every step goes through the same validation, mutation guard and audit log as the interface.
+This builds the images, starts a dedicated Compose project (`iphi-demo`) on a **fresh database volume**, waits for `/ready`, then runs the scripted walkthrough ([`backend/scripts/demo.py`](../backend/scripts/demo.py)) from inside the API container. The walkthrough takes about two minutes after the build. It initializes local demo passwords in the ignored `.env` and signs in as admin through the actual API. It uses the HTTP API only, so every step goes through the same validation, mutation guard and audit log as the interface.
 
 The script resets the simulation with seed 42, accelerates the platform clock 30 times, injects five faults in turn and **checks each expected outcome**: it exits with a non-zero status and the unmet expectation if IPHI concludes anything else. Health rules are evaluated per 5 s of platform time, so an accelerated run reaches the same conclusions as a realtime one, sooner.
 
@@ -41,7 +41,7 @@ IPHI demo: simulated industrial data platform, no real system involved.
   ok  platform Critical: Priority 1: a high- or medium-criticality component is Critical (collector-01).
   ok  deterministic diagnosis (iphi/deterministic-v1): 6 facts, 2 checks, 9 evidence items cited
   ..  hypothesis (low): collector-01 is the most upstream component in fault in this incident; the degradation of analytics-01, historian-01 downstream is correlated with it. Correlation along the dependency graph; causation is not proven.
-  ok  INC-0001 acknowledged by dev-local
+  ok  INC-0001 acknowledged by admin
   ..  run #3 stopped; waiting for the rules to clear
   ok  INC-0001 resolved by auto_recovered (13 occurrences), platform Healthy
 
@@ -80,7 +80,7 @@ Demo passed in 113 s.
 
 ## Explore the interface
 
-Open <http://127.0.0.1:8081>. The banner states that the data is simulated; the top bar carries the platform state and the monitor's own state.
+Open <http://127.0.0.1:8081> and sign in using a local account from `.env` ([access guide](access.md)); engineer/admin can run the actions below. The banner states that the data is simulated; the top bar carries the platform state and the monitor's own state.
 
 1. **Overview**: the platform is `Critical` with the aggregation rule that decided it; `collector-01` shows *DOWN since*, the components downstream are marked as impacted; one active incident.
 2. Open the incident: the triggering signal with its evidence points, the **evidence chain** (rule evaluations, samples and logs, each with an ID), the timeline. Press **Diagnose**: facts, a hypothesis worded as a correlation, recommended checks, each with clickable evidence chips. No AI provider is involved.
@@ -98,7 +98,7 @@ cd frontend && pnpm exec playwright install chromium && cd ..   # once
 make test-e2e
 ```
 
-`make test-e2e` runs Playwright (Chromium) against the demo stack, started clean when it is not running; every test resets the simulation. The suite covers the mandatory scenarios 1 to 6 and 8 of the backlog (§01.1) through the interface, and measures the first display of the Overview. Scenario 7 (a viewer is refused a mutation) needs the roles of US-11.
+`make test-e2e` runs Playwright (Chromium) against the demo stack, started clean when it is not running; every test resets the simulation. The suite covers the all eight mandatory scenarios of the backlog (§01.1) through the interface, and measures the first display of the Overview. The browser setup signs in as admin through the actual endpoint; scenario 7 uses a separate viewer session, verifies server refusal and checks the admin audit journal.
 
 | Test | Checks |
 |---|---|
@@ -108,6 +108,7 @@ make test-e2e
 | 4 | `telemetry_blackout`: `Unknown` on the row and on the platform, never `Healthy`; one telemetry-loss incident |
 | 5 | `error_burst`: at least 20 occurrences on a single active incident, grouped in the timeline |
 | 6 | `/ready` reports the AI provider `disabled`; detection, incident and dashboard work |
+| 7 | Viewer signs in, sees disabled controls, sends a forged scenario request ⇒ 403; admin sees the denied audit event; viewer signs out ⇒ reads return 401 |
 | 8 | After `reset` with seed 42, the same fault replayed twice on a manual clock gives identical component states, deciding rules, impact and incident |
 | first display | Five cold loads of the Overview, each under 2 s |
 
@@ -129,9 +130,9 @@ make demo-down    # stops the demo stack and deletes its volume
 ## Troubleshooting
 
 - **A port is already in use**: `IPHI_DEMO_FRONTEND_PORT=9081 IPHI_DEMO_API_PORT=9001 IPHI_DEMO_DB_PORT=6434 make demo`.
-- **`DEMO FAILED: not observed within N s`**: the line names the expectation that was not met. `docker compose -p iphi-demo logs worker` shows the rule and incident transitions; `curl -s http://127.0.0.1:8081/api/v1/system/status` shows the collection state. On a heavily loaded machine, lower the clock factor: `docker compose -p iphi-demo exec api python -m scripts.demo --speed 10`.
+- **`DEMO FAILED: not observed within N s`**: the line names the expectation that was not met. `docker compose -p iphi-demo logs worker` shows the rule and incident transitions; the authenticated `system/status` view shows the collection state. On a heavily loaded machine, lower the clock factor: `docker compose -p iphi-demo exec api python -m scripts.demo --speed 10`.
 - **An e2e test times out in `reset` or before the first row appears**: PostgreSQL commits wait on `fsync`. On a spinning disk shared with other databases, a single commit was measured at 126 s, which stalls the worker and every request behind the clock lock. Stop other database containers while the suite runs (`docker compose -p iphi stop` for the development stack); `cat /proc/pressure/io` shows the I/O pressure.
-- **Mutations answer `403 MUTATIONS_DISABLED`**: the stack was published on a non-loopback address (`IPHI_BIND_HOST`); unauthenticated mutations are refused there by design (ADR 0007).
+- **401 / 403**: sign in again for an expired session; use engineer/admin for mutations and admin for reset/audit. Direct requests need the session cookie, JSON and CSRF proof ([access guide](access.md)). Login 429 means waiting for the one-minute limit to clear.
 
 
 ## Optional diagnosis with the local fake provider (US-08)
@@ -175,7 +176,7 @@ labelled local AI test result without external calls; an AI diagnosis generated 
 export appears separately from its deterministic comparison.
 
 For direct API downloads, use `GET /api/v1/reports/incidents/{incident UUID}?format=pdf|csv`.
-Reports are read-only and work when mutations are disabled. Exports over 1,000 proofs or
+Reports require a viewer session and remain available when that role cannot mutate incidents. Exports over 1,000 proofs or
 events return `REPORT_TOO_LARGE`; use the paginated evidence/events APIs. A PDF over 100
 pages can be exported as CSV if the other bounds permit. `REPORT_BUSY` means another PDF
 is rendering; retry shortly. The incident and monitoring continue to work.
@@ -202,7 +203,7 @@ worker's collection and hysteresis. Fault detection retains its separate latency
    platform time; the monitor's cycle timestamps use wall-clock UTC.
 4. Open an incident, add an **Investigation comment**, then reload to verify persistence.
    Comments also work after resolution and preserve status. More than 200 events can be
-   loaded incrementally. Mutations still follow ADR 0007 before US-11.
+   loaded incrementally. Mutations require engineer/admin, CSRF and audit under ADR 0025.
 5. Temporarily interrupt the browser connection. **Live updates paused** announces the
    30-second polling fallback. Restore connectivity, or choose **Retry live updates**:
    the initial `sync` revalidates active views, including changes missed offline.

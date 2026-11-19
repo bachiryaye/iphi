@@ -1,14 +1,17 @@
 """HTTP client of the API for the command-line tools; standard library only (runs in the image)."""
 
 import http.client
+import http.cookiejar
+import ipaddress
 import json
+import os
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, override
 
 DEFAULT_BASE_URL = "http://127.0.0.1:8000"
 API_PREFIX = "/api/v1"
@@ -31,12 +34,46 @@ class Reply:
     elapsed_ms: float
 
 
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    @override
+    def redirect_request(
+        self, req: urllib.request.Request, fp: Any, code: int, msg: str, headers: Any, newurl: str
+    ) -> None:
+        return None
+
+
 class Api:
     def __init__(self, base_url: str) -> None:
         parsed = urllib.parse.urlsplit(base_url)
         if parsed.scheme not in {"http", "https"} or not parsed.netloc:
             raise ToolError(f"--base-url must be an http(s) URL, got {base_url!r}")
+        try:
+            loopback = (
+                parsed.hostname == "localhost"
+                or ipaddress.ip_address(parsed.hostname or "").is_loopback
+            )
+        except ValueError:
+            loopback = False
+        if not loopback or parsed.username or parsed.password:
+            raise ToolError("Demo admin credentials may be sent to loopback URLs only.")
         self._base = base_url.rstrip("/")
+        self._opener = urllib.request.build_opener(
+            urllib.request.ProxyHandler({}),
+            NoRedirect(),
+            urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()),
+        )
+        self._csrf = ""
+
+    def sign_in(self) -> None:
+        password = os.environ.get("IPHI_DEMO_ADMIN_PASSWORD", "")
+        if not password:
+            raise ToolError("Configure the local admin password with make init-env, then migrate.")
+        result = self.send(
+            "POST", "/api/v1/auth/login", {"username": "admin", "password": password}
+        )
+        if result.status != 200:
+            raise ToolError("Sign-in failed; verify the demo admin environment and bootstrap.")
+        self._csrf = str(result.body["csrf_token"])
 
     def send(
         self,
@@ -51,12 +88,21 @@ class Api:
             url += "?" + urllib.parse.urlencode(query, doseq=True)
         # Mutations require a JSON content type (ADR 0007).
         data = None if method == "GET" else json.dumps(body or {}).encode()
+        if (
+            path.startswith(API_PREFIX)
+            and not path.startswith(API_PREFIX + "/auth/")
+            and not self._csrf
+        ):
+            self.sign_in()
         request = urllib.request.Request(  # noqa: S310 - scheme validated in __init__
-            url, data=data, method=method, headers={"content-type": "application/json"}
+            url,
+            data=data,
+            method=method,
+            headers={"content-type": "application/json", "x-csrf-token": self._csrf},
         )
         started = time.perf_counter()
         try:
-            with urllib.request.urlopen(request, timeout=timeout_s) as response:  # noqa: S310
+            with self._opener.open(request, timeout=timeout_s) as response:
                 status, raw = response.status, response.read()
         except urllib.error.HTTPError as error:
             status, raw = error.code, error.read()

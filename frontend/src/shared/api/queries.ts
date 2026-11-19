@@ -1,6 +1,9 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { api, toApiError, unreachable } from "./client";
+import { useSession } from "@/shared/identity/session";
+
+import { api, call } from "./client";
+export { call } from "./client";
 import { FALLBACK_MS, MONITOR_REFRESH_MS, usePolling } from "@/shared/live/context";
 import type {
   ClockMode,
@@ -13,24 +16,6 @@ import type {
 
 /** Fallback period; live notices invalidate active views after committed changes. */
 export const REFRESH_MS = FALLBACK_MS;
-
-interface Result<T> {
-  data?: T;
-  error?: unknown;
-  response: Response;
-}
-
-/** Turns an openapi-fetch result into data or an ApiError; a network failure is "unreachable". */
-export async function call<T>(request: Promise<Result<T>>): Promise<T> {
-  let result: Result<T>;
-  try {
-    result = await request;
-  } catch {
-    throw unreachable();
-  }
-  if (result.response.ok && result.data !== undefined) return result.data;
-  throw toApiError(result.response, result.error);
-}
 
 // The API refuses mutations without a JSON content type (ADR 0007), bodyless ones included.
 const JSON_HEADERS = { "content-type": "application/json" } as const;
@@ -280,9 +265,12 @@ export function useSystemStatus() {
 }
 
 /** ADR 0007 guard as the API reports it; `undefined` until the status has loaded. */
-export function useMutationGuard() {
+export function useMutationGuard(required: "engineer" | "admin" = "engineer") {
   const mutations = useSystemStatus().data?.mutations;
-  return { allowed: mutations?.enabled === true, reason: mutations?.reason };
+  const user = useSession().data?.user;
+  const roleAllowed =
+    user?.role === "admin" || (required === "engineer" && user?.role === "engineer");
+  return { allowed: mutations?.enabled === true && roleAllowed, reason: mutations?.reason };
 }
 
 export function useScenarios() {

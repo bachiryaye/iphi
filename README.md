@@ -18,7 +18,8 @@ IPHI monitors the health of an **industrial data platform** — sources, gateway
 | US-08 | Optional structured diagnosis, evidence validation, deterministic comparison and fallback | Delivered (PR #8; CI green on main) |
 | US-09 | Incident PDF and CSV reports from stored evidence | Delivered (PR #9; main CI 44248348754 green) |
 | US-07 | Live updates, interactive topology, recorded state history and investigation comments | Delivered (PR #10; CI green on main) |
-| US-11, US-12 | Authentication and roles, MQTT adapter | Planned ([backlog](docs/03-backlog.md)) |
+| US-11 | Server sessions, roles, CSRF, audit and permission tests | In validation ([access guide](docs/access.md)) |
+| US-12 | MQTT adapter | Planned ([backlog](docs/03-backlog.md)) |
 
 What runs today: PostgreSQL, a migration and seed job, the FastAPI API (`/health`, `/ready`, simulation, metrics, logs, health and system status endpoints, OpenAPI), a worker that holds the scheduler lock and, every cycle, collects the simulated observations, validates and stores them, evaluates the health rules, opens, updates and resolves incidents, purges data past retention and writes a heartbeat, and the operator dashboard described below.
 
@@ -36,7 +37,7 @@ Screenshots are taken from the running application by `make screenshots`; more i
 make demo
 ```
 
-Starts a clean, seeded stack in its own Compose project (fresh volume, http://127.0.0.1:8081), then injects five faults on an accelerated platform clock and **checks what IPHI concludes** for each: collector outage (one incident with evidence, downstream attached as impact, deterministic diagnosis), latency rise and stable recovery, stale data distinct from availability, telemetry blackout (`Unknown`, never `Healthy`), error burst without incident storm. It takes about two minutes after the build, needs no account or API key, and leaves a live incident to explore in the interface. The step-by-step guide with the expected output is in [docs/demo.md](docs/demo.md); the reasoning behind the design is in the [case study](docs/case-study.md).
+Starts a clean, seeded stack in its own Compose project (fresh volume, http://127.0.0.1:8081), then injects five faults on an accelerated platform clock and **checks what IPHI concludes** for each: collector outage (one incident with evidence, downstream attached as impact, deterministic diagnosis), latency rise and stable recovery, stale data distinct from availability, telemetry blackout (`Unknown`, never `Healthy`), error burst without incident storm. It takes about two minutes after the build, needs no external account or API key; local demo accounts are initialized automatically, and leaves a live incident to explore in the interface. The step-by-step guide with the expected output is in [docs/demo.md](docs/demo.md); the reasoning behind the design is in the [case study](docs/case-study.md).
 
 ## Architecture
 
@@ -91,13 +92,14 @@ for other systems. Non-PDF endpoints do not load the native rendering library.
 
 ## Requirements
 
-- Docker Engine with the Compose plugin (v2 or later)
+- Docker Engine with the Compose plugin (v2 or later), GNU Make and Python 3.10+
 - For local development outside containers: [uv](https://docs.astral.sh/uv/) ≥ 0.13, Node.js ≥ 24, pnpm 12, GNU Make
 
 ## Run
 
 ```sh
-docker compose up --build        # or: make up
+make up                         # generates missing local credentials, builds and starts
+# Direct Compose: make init-env && docker compose up --build
 ```
 
 | Service | Address | Role |
@@ -108,7 +110,7 @@ docker compose up --build        # or: make up
 | migrate | — | `alembic upgrade head`, idempotent seed (topology, clock, baseline run), then exits |
 | worker | — | Single scheduler (PostgreSQL advisory lock), heartbeat every 5 s |
 
-All ports bind to `127.0.0.1` (`IPHI_BIND_HOST` moves the API and frontend; the database stays local). Defaults work without configuration; copy `.env.example` to `.env` to change ports or the local database password.
+All ports bind to `127.0.0.1` (`IPHI_BIND_HOST` moves the API and frontend; the database stays local). `make init-env` creates missing demo passwords in an ignored mode-600 `.env`; existing configuration is preserved. Sign in with the local `viewer`, `engineer` or `admin` account. See [sessions, roles and API access](docs/access.md).
 
 Check the stack:
 
@@ -130,7 +132,7 @@ docker run -d -e IPHI_DATABASE_URL=… iphi-backend:local worker        # a sing
 docker run -d -e IPHI_API_UPSTREAM=http://<api-host>:8000 -p 8080:8080 iphi-frontend:local
 ```
 
-`IPHI_MIGRATE_ON_START=true` runs the migration at the start of `api` or `worker` instead; concurrent starts migrate one after the other. Mutations stay refused unless `IPHI_DEV_MUTATIONS=true` on a loopback-only stack (ADR 0007), so an exposed deployment is read-only until authentication (US-11).
+`IPHI_MIGRATE_ON_START=true` runs the migration at the start of `api` or `worker` instead; concurrent starts migrate one after the other. Supply the three `IPHI_DEMO_*_PASSWORD` values to the migration job to initialize local accounts. Operational reads require a session; mutations additionally require the appropriate role and CSRF proof. Local HTTP requires loopback binding; `IPHI_DEPLOYMENT_MODE=production` enables Secure cookies and needs an HTTPS ingress (ADR 0025).
 
 ## Simulation
 
@@ -148,18 +150,20 @@ The simulated platform (`sim-plant-01`) has seven components — `plc-sim-01 →
 | `backlog_growth` | collector-01 | Growing queue, one backlog incident |
 | `telemetry_blackout` | historian-01 | No observation at all, Unknown, one telemetry-loss incident |
 
+First initialize the authenticated `iphi_request` helper from the [API access guide](docs/access.md#authenticated-api-examples).
+
 ```sh
 B=http://127.0.0.1:8080/api/v1/simulations
-curl -s $B/scenarios                                   # catalog, parameters, expected outcomes
-curl -s -X POST $B/scenarios -H 'content-type: application/json' \
+iphi_request $B/scenarios                                   # catalog, parameters, expected outcomes
+iphi_request -X POST $B/scenarios -H 'content-type: application/json' \
      -d '{"scenario_key": "latency_rise", "parameters": {"peak_ms": 2000}, "duration_s": 600}'
-curl -s "$B/runs?status=active"                        # runs, newest first (cursor pagination)
-curl -s -X POST $B/clock -H 'content-type: application/json' \
+iphi_request "$B/runs?status=active"                        # runs, newest first (cursor pagination)
+iphi_request -X POST $B/clock -H 'content-type: application/json' \
      -d '{"action": "set_mode", "mode": "accelerated", "speed": 10}'   # realtime | accelerated | manual
-curl -s -X POST $B/reset -H 'content-type: application/json'   # stop runs, realtime clock, fresh baseline
+iphi_request -X POST $B/reset -H 'content-type: application/json'   # stop runs, realtime clock, fresh baseline
 ```
 
-Mutations (start, stop, clock, reset) are unauthenticated until US-11: they work only with `IPHI_DEV_MUTATIONS=true` (the Compose default) **and** ports published on loopback; otherwise they answer `403 MUTATIONS_DISABLED`. They also require `Content-Type: application/json` (even without a body) and refuse cross-site browser requests, so another web page cannot trigger them; the API only answers the `Host` names in `IPHI_ALLOWED_HOSTS`. Every attempt is written to the append-only audit log.
+Mutations require a signed-in engineer or admin; reset requires admin. Each requires a session-bound CSRF header and `Content-Type: application/json`, including bodyless requests. Cross-site browser requests are refused, Host values are restricted to `IPHI_ALLOWED_HOSTS`, and sensitive actions and permission refusals are audited.
 
 Preview the generator without a database; the printed fingerprint is the one checked by the golden test:
 
@@ -174,11 +178,11 @@ Every cycle the worker collects each elapsed 5 s sample slot once (also in accel
 
 ```sh
 A=http://127.0.0.1:8080/api/v1
-curl -s $A/system/status            # clock, worker cycle, collection state and recent runs
-curl -s $A/metrics/catalog          # metric names, units, accepted ranges
+iphi_request $A/system/status            # clock, worker cycle, collection state and recent runs
+iphi_request $A/metrics/catalog          # metric names, units, accepted ranges
 C=$(docker compose exec -T db psql -U iphi -Atc "SELECT id FROM component WHERE key='collector-01'")
-curl -s "$A/metrics?component_id=$C&metric_name=probe_latency_ms&max_points=200"
-curl -s "$A/logs?component_id=$C&min_severity=warning&limit=20"
+iphi_request "$A/metrics?component_id=$C&metric_name=probe_latency_ms&max_points=200"
+iphi_request "$A/logs?component_id=$C&min_severity=warning&limit=20"
 ```
 
 `GET /metrics` returns raw samples while the window holds at most `max_points` (≤ 2000), otherwise min/avg/max buckets; windows are limited to 7 days, and stretches without data come back as explicit `gaps`, never interpolated. Component IDs are listed by `GET /components`.
@@ -190,11 +194,11 @@ Nine default rules in [`backend/config/health_rules.yaml`](backend/config/health
 A component takes the worst state of its rules (`Critical > Unknown > Warning > Healthy`); components downstream of a `Critical` or `Unknown` one are marked as impacted without changing their own state. The platform state follows a priority table, never an average: a high- or medium-criticality component `Critical` makes it `Critical`, a high one `Unknown` makes it `Unknown`, any other degradation `Warning`. Thresholds are demonstration values, not industrial recommendations; changing one in the file creates a new rule version at the next bootstrap.
 
 ```sh
-curl -s $A/platforms                    # aggregated state, counts, priority line applied
-curl -s "$A/components?state=critical"  # current state, deciding evaluation, impacted_by
-curl -s $A/components/$C/health         # every rule: threshold, window, value, evidence, debounce
-curl -s "$A/rule-evaluations?component_id=$C&rule_key=R-LAT-001"   # stored evaluations
-curl -s $A/health-rules                 # active rule versions (read-only)
+iphi_request $A/platforms                    # aggregated state, counts, priority line applied
+iphi_request "$A/components?state=critical"  # current state, deciding evaluation, impacted_by
+iphi_request $A/components/$C/health         # every rule: threshold, window, value, evidence, debounce
+iphi_request "$A/rule-evaluations?component_id=$C&rule_key=R-LAT-001"   # stored evaluations
+iphi_request $A/health-rules                 # active rule versions (read-only)
 ```
 
 Every state cites its rule version, window, threshold, observed value and the IDs of the samples behind it. If the worker stops evaluating, the API reports `unknown` with `stale: true` instead of the last computed state.
@@ -206,12 +210,12 @@ When a rule turns `Warning` or `Critical` (or a component that was observed goes
 Every incident links the rule evaluations behind it and the samples and logs they cite; these are kept by retention and by `reset`, which closes active incidents (`resolution: reset`). The timeline (opened, occurrences, severity changes, acknowledgement, resolution, reopening, suppressed downstream alerts, diagnoses) is append-only.
 
 ```sh
-curl -s "$A/incidents?status=open&status=acknowledged"    # newest first, cursor pagination
-I=$(curl -s "$A/incidents?status=open" | python3 -c 'import json,sys; print(json.load(sys.stdin)["items"][0]["id"])')
-curl -s $A/incidents/$I                     # covered rules, evidence (E1…En), timeline
-curl -s -X POST $A/incidents/$I/ack -H 'content-type: application/json'
-curl -s -X POST "$A/incidents/$I/diagnose?mode=deterministic" -H 'content-type: application/json'
-curl -s -X POST $A/incidents/$I/resolve -H 'content-type: application/json' \
+iphi_request "$A/incidents?status=open&status=acknowledged"    # newest first, cursor pagination
+I=$(iphi_request "$A/incidents?status=open" | python3 -c 'import json,sys; print(json.load(sys.stdin)["items"][0]["id"])')
+iphi_request $A/incidents/$I                     # covered rules, evidence (E1…En), timeline
+iphi_request -X POST $A/incidents/$I/ack -H 'content-type: application/json'
+iphi_request -X POST "$A/incidents/$I/diagnose?mode=deterministic" -H 'content-type: application/json'
+iphi_request -X POST $A/incidents/$I/resolve -H 'content-type: application/json' \
      -d '{"comment": "Collector restarted."}'   # 409 while the condition is still active
 ```
 
@@ -288,8 +292,9 @@ Open http://127.0.0.1:8080. Active views refetch stored facts after committed SS
 | Incidents / Incident | Filterable list (filters in the URL, cursor pages); the incident page shows the triggering signal, the immutable evidence chain, the deterministic diagnosis with clickable evidence chips, the paginated timeline with grouped occurrences and investigation comments, and Acknowledge, Resolve and Diagnose |
 | Scenarios | The fault catalog with each expected outcome, start and stop, the platform clock (mode, speed, advance in manual mode) and reset with an in-page confirmation |
 | Rules | The active rule versions: measure, thresholds and clear levels, debounce, targets, rationale |
+| Audit (admin) | Sensitive actions and denied attempts, actor, UTC time, result, correlation ID, filters and cursor pages |
 
-Controls that the API would refuse (mutations disabled, see ADR 0007) are hidden or disabled with the reason.
+Operational controls are visible but disabled with the required role explained. Audit navigation is admin-only; server permissions apply even when a caller bypasses the UI (ADR 0025).
 
 Actual US-07 captures: [topology](docs/design/screenshots/us-07-topology-light-1440.png), [recorded states and metrics](docs/design/screenshots/us-07-component-light-1440.png), [dark theme at 768 px](docs/design/screenshots/us-07-component-dark-768.png).
 
@@ -303,7 +308,7 @@ make help        # every target
 
 - Backend tests run against a real PostgreSQL (`make test-backend` starts the `db` service; each test gets a fresh database).
 - Frontend tests use Vitest, Testing Library and axe-core (every screen is checked for serious accessibility violations).
-- End-to-end: `make test-e2e` runs Playwright (Chromium) against the demo stack (started clean when it is not running): the mandatory scenarios 1 to 6 and 8 of the backlog through the interface, and the first display of the Overview (once: `cd frontend && pnpm exec playwright install chromium`).
+- End-to-end: `make test-e2e` runs Playwright (Chromium) against the demo stack (started clean when it is not running): all eight mandatory scenarios of the backlog, including viewer refusal and admin audit through the interface, and the first display of the Overview (once: `cd frontend && pnpm exec playwright install chromium`).
 - `make demo` is itself an executable acceptance test of the API path: it exits non-zero when an expected state, incident or diagnosis is not observed.
 - Performance: `make perf` measures API latency, worker cycle duration and detection delay against the targets of the architecture; results in [docs/performance.md](docs/performance.md).
 - The TypeScript API types are generated from the backend OpenAPI document (`make api-client`); CI fails if they drift.
@@ -330,9 +335,9 @@ The design dossier is in French: [requirements](docs/01-cahier-des-charges.md), 
 - An observation arriving late, after its sample slot was evaluated, does not trigger a re-evaluation of that slot.
 - After the worker has been stopped for more than 10 minutes of platform time, the missed sample slots are not backfilled: they remain a visible gap.
 - Simulation simplifications: `stale_data` does not age downstream data; one fault scenario per component at a time.
-- No authentication until US-11; the stack is meant for a local machine only (ADR 0007). The mutation guard trusts `IPHI_BIND_HOST`: publishing the API port any other way (e.g. a Compose override) bypasses it.
+- Identity supports a local demonstrator, with an eight-hour session and a conservative shared login limit; no account-management UI or public deployment is included (ADR 0025).
 - The default database password is a local development value; set your own in `.env`.
 
 ## Résumé en français
 
-IPHI surveille la santé d'une plateforme de données industrielle **simulée** : collecte, règles de santé explicables, incidents dédupliqués et prouvés, diagnostic optionnel. `docker compose up --build` démarre PostgreSQL, les migrations et le seed, l'API, le worker et l'interface (http://127.0.0.1:8080). La plateforme simulée compte sept composants et neuf scénarios de panne reproductibles (seed, horloge de plateforme accélérable) ; ses mesures et logs sont validés, historisés dans PostgreSQL et consultables par l'API, et des règles versionnées avec hystérésis en déduisent l'état justifié de chaque composant et de la plateforme (jamais « sain » faute de données). Une panne ouvre un incident unique, dédoublonné par la base, rattaché aux évaluations et observations qui le prouvent, avec suppression des alertes en aval, résolution automatique au retour à la normale et diagnostic déterministe sans IA. Le tableau de bord (vue d'ensemble, topologie, composants, incidents, scénarios, règles) affiche ces états et leurs preuves, mis à jour par SSE, avec un repli à 30 s signalé en cas de coupure. `make demo` rejoue les pannes principales sur un environnement propre et vérifie chaque conclusion ([guide](docs/demo.md), [étude de cas](docs/case-study.md)). Le dossier de conception (cahier des charges, architecture, backlog, design system, ADR) est dans `docs/`. Aucune connexion à une installation réelle n'existe ni n'est revendiquée.
+IPHI surveille la santé d'une plateforme de données industrielle **simulée** : collecte, règles de santé explicables, incidents dédupliqués et prouvés, diagnostic optionnel. `make up` initialise les comptes locaux puis démarre PostgreSQL, les migrations et le seed, l'API, le worker et l'interface (http://127.0.0.1:8080). La plateforme simulée compte sept composants et neuf scénarios de panne reproductibles (seed, horloge de plateforme accélérable) ; ses mesures et logs sont validés, historisés dans PostgreSQL et consultables par l'API, et des règles versionnées avec hystérésis en déduisent l'état justifié de chaque composant et de la plateforme (jamais « sain » faute de données). Une panne ouvre un incident unique, dédoublonné par la base, rattaché aux évaluations et observations qui le prouvent, avec suppression des alertes en aval, résolution automatique au retour à la normale et diagnostic déterministe sans IA. Les sessions serveur et rôles viewer/engineer/admin protègent les accès ; les actions sensibles et refus sont audités. Le tableau de bord (vue d'ensemble, topologie, composants, incidents, scénarios, règles) affiche ces états et leurs preuves, mis à jour par SSE, avec un repli à 30 s signalé en cas de coupure. `make demo` rejoue les pannes principales sur un environnement propre et vérifie chaque conclusion ([guide](docs/demo.md), [étude de cas](docs/case-study.md)). Le dossier de conception (cahier des charges, architecture, backlog, design system, ADR) est dans `docs/`. Aucune connexion à une installation réelle n'existe ni n'est revendiquée.

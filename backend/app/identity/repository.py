@@ -18,6 +18,11 @@ class AuditEventRecord(Base):
         CheckConstraint(check_in("outcome", AuditOutcome), name="outcome"),
         Index("ix_audit_event_occurred_at", text("occurred_at DESC")),
         Index("ix_audit_event_action", "action"),
+        Index(
+            "ix_audit_event_login_time",
+            "occurred_at",
+            postgresql_where=text("action = 'auth.login'"),
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)

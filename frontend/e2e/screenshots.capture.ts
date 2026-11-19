@@ -1,5 +1,7 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 
+import { AUTH_STATE } from "./auth";
+
 import {
   BASE_URL,
   componentRow,
@@ -32,6 +34,7 @@ interface View {
 async function capture(browser: Browser, views: readonly View[]): Promise<void> {
   for (const theme of THEMES) {
     const context = await browser.newContext({
+      storageState: AUTH_STATE,
       baseURL: BASE_URL,
       colorScheme: theme,
       viewport: VIEWPORT,

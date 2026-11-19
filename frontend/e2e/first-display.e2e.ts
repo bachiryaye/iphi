@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { AUTH_STATE } from "./auth";
+
 import { BASE_URL, componentRow, VIEWPORT } from "./simulation";
 
 /** Architecture §07.2: first display of the dashboard under 2 s on the production build. */
@@ -10,7 +12,11 @@ test("first display of the Overview stays under 2 s", async ({ browser }, testIn
   const durations: number[] = [];
   for (let load = 0; load < LOADS; load += 1) {
     // Empty cache per load; hand-made contexts do not inherit the configuration's `use`.
-    const context = await browser.newContext({ baseURL: BASE_URL, viewport: VIEWPORT });
+    const context = await browser.newContext({
+      storageState: AUTH_STATE,
+      baseURL: BASE_URL,
+      viewport: VIEWPORT,
+    });
     const page = await context.newPage();
     const started = performance.now();
     await page.goto("/", { waitUntil: "commit" });

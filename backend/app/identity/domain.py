@@ -1,16 +1,9 @@
-import ipaddress
 import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
-from http import HTTPStatus
 from typing import Any
-
-from app.core.exceptions import IphiError
-
-# ADR 0007: the only actor before US-11; every mutation is attributed to it.
-DEV_ACTOR = "dev-local"
 
 
 class AuditAction(StrEnum):
@@ -24,6 +17,11 @@ class AuditAction(StrEnum):
     INCIDENT_RESOLVE = "incident.resolve"
     INCIDENT_DIAGNOSE = "incident.diagnose"
     INCIDENT_COMMENT = "incident.comment"
+    AUTH_LOGIN = "auth.login"
+    AUTH_LOGOUT = "auth.logout"
+    AUDIT_READ = "audit.read"
+    USER_SEED = "identity.user.seed"
+    PASSWORD_ROTATE = "identity.password.rotate"  # noqa: S105 - Audit action, not a credential.
 
 
 class AuditOutcome(StrEnum):
@@ -53,39 +51,15 @@ class AuditEntry:
     details: Mapping[str, Any]
 
 
-class MutationsDisabledError(IphiError):
-    status = HTTPStatus.FORBIDDEN
-    code = "MUTATIONS_DISABLED"
+@dataclass(frozen=True, slots=True)
+class AuditEvent:
+    id: uuid.UUID
+    entry: AuditEntry
 
 
 @dataclass(frozen=True, slots=True)
 class MutationPolicy:
-    """ADR 0007, before US-11: mutations need IPHI_DEV_MUTATIONS and loopback-only publishing."""
+    """Role-based availability shown to the signed-in operator; routes enforce RBAC separately."""
 
     enabled: bool
     reason: str
-
-    @classmethod
-    def evaluate(cls, dev_mutations: bool, bind_host: str) -> MutationPolicy:
-        if not dev_mutations:
-            return cls(
-                False, "Mutations are disabled; set IPHI_DEV_MUTATIONS=true on a local host."
-            )
-        if not _is_loopback(bind_host):
-            return cls(
-                False,
-                f"Mutations are disabled: the API is published on {bind_host}, not loopback.",
-            )
-        return cls(True, "Local development mutations enabled (unauthenticated, ADR 0007).")
-
-    def enforce(self) -> None:
-        if not self.enabled:
-            raise MutationsDisabledError(self.reason)
-
-
-def _is_loopback(host: str) -> bool:
-    # IP literals only: Compose port bindings do not resolve host names.
-    try:
-        return ipaddress.ip_address(host).is_loopback
-    except ValueError:
-        return False

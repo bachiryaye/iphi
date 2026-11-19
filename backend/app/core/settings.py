@@ -1,7 +1,8 @@
+import ipaddress
 from enum import StrEnum
 from typing import Literal
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 MAX_SEED = 2**31 - 1
@@ -30,10 +31,10 @@ class Settings(BaseSettings):
     llm_timeout_s: float = Field(default=20, gt=0, le=20)
     llm_input_tokens: int = Field(default=8192, ge=2048, le=24_000)
     llm_output_tokens: int = Field(default=1600, ge=256, le=2048)
-    dev_mutations: bool = Field(
-        default=False,
-        description="Enables unauthenticated mutations before US-11; honoured on loopback only.",
-    )
+    deployment_mode: Literal["local", "production"] = "local"
+    demo_viewer_password: SecretStr = SecretStr("")
+    demo_engineer_password: SecretStr = SecretStr("")
+    demo_admin_password: SecretStr = SecretStr("")
     bind_host: str = Field(
         default="127.0.0.1",
         max_length=255,
@@ -65,6 +66,20 @@ class Settings(BaseSettings):
         le=600,
         description="How long the bootstrap waits for the database to accept connections.",
     )
+
+    @model_validator(mode="after")
+    def local_cookie_boundary(self) -> Settings:
+        if self.deployment_mode == "local":
+            try:
+                loopback = ipaddress.ip_address(self.bind_host).is_loopback
+            except ValueError:
+                loopback = False
+            if not loopback:
+                raise ValueError(
+                    "Local HTTP sessions require loopback binding; "
+                    "use production mode with HTTPS otherwise."
+                )
+        return self
 
     @property
     def allowed_host_list(self) -> list[str]:

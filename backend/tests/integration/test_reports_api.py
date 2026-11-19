@@ -25,7 +25,7 @@ from app.reporting.domain import (
 from app.reporting.pdf import report_html
 from app.reporting.service import ReportingService
 from app.topology.service import TopologyService
-from tests.api_client import client_for
+from tests.api_client import client_for, sign_in
 from tests.health_runs import Platform
 
 pytestmark = pytest.mark.integration
@@ -34,7 +34,7 @@ BASE = "/api/v1/reports/incidents"
 
 @pytest.fixture
 def client(seeded_url: str, platform: Platform) -> Iterator[TestClient]:
-    with client_for(seeded_url, dev_mutations=True) as client:
+    with client_for(seeded_url, role="admin") as client:
         yield client
 
 
@@ -104,7 +104,7 @@ def test_report_read_is_available_when_mutations_are_disabled(
     seeded_url: str,
 ) -> None:
     iid = incident_id(client)
-    with client_for(seeded_url, dev_mutations=False) as viewer:
+    with client_for(seeded_url, role="viewer") as viewer:
         assert viewer.get(f"{BASE}/{iid}?format=csv").status_code == 200
         assert viewer.post(f"/api/v1/incidents/{iid}/diagnose", json={}).status_code == 403
 
@@ -117,11 +117,11 @@ def test_pdf_labels_fake_ai_and_preserves_deterministic_fallback(
     app = create_app(
         Settings(
             database_url=SecretStr(seeded_url),
-            dev_mutations=True,
             llm_provider=LlmProvider.FAKE,
         )
     )
     with TestClient(app, base_url="http://127.0.0.1") as fake:
+        sign_in(fake, seeded_url)
         diagnosis = fake.post(f"/api/v1/incidents/{iid}/diagnose?mode=llm", json={}).json()
         assert diagnosis["status"] == "succeeded"
         output = fake.get(f"{BASE}/{iid}?format=pdf")

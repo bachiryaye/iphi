@@ -65,15 +65,19 @@ describe("Scenarios", () => {
     expect(screen.getByRole("button", { name: "Confirm reset" })).toBeEnabled();
   });
 
-  it("hides every control and says why when mutations are disabled", async () => {
+  it("disables controls and says why when mutations are refused", async () => {
     stubApi({ "/api/v1/system/status": { body: statusReadOnly } });
     renderApp("/scenarios");
 
     expect(await screen.findByText(/Read-only: Mutations are disabled/)).toBeVisible();
     await screen.findByRole("region", { name: "Collector down" });
-    expect(screen.queryByRole("button", { name: "Start scenario" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Reset…" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("group", { name: "Clock mode" })).not.toBeInTheDocument();
+    expect(
+      screen
+        .getAllByRole("button", { name: "Start scenario" })
+        .every((button) => button.hasAttribute("disabled")),
+    ).toBe(true);
+    expect(screen.getByRole("button", { name: "Reset…" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /^realtime$/ })).toBeDisabled();
   });
 
   it("has no serious accessibility violation", async () => {

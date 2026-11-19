@@ -9,6 +9,7 @@ from app.health.repository import (
     RuleEvaluationRecord,
     RuleStateRecord,
 )
+from app.identity.auth_repository import SessionRecord, UserRecord
 from app.identity.repository import AuditEventRecord
 from app.incidents.repository import (
     IncidentEventRecord,
@@ -29,6 +30,8 @@ from app.topology.repository import ComponentRecord, DependencyRecord, PlatformR
 
 RECORDS = (
     AuditEventRecord,
+    SessionRecord,
+    UserRecord,
     CollectionCursorRecord,
     CollectionRunRecord,
     ComponentHealthRecord,

@@ -25,12 +25,12 @@ FRONTEND := cd frontend &&
 
 .DEFAULT_GOAL := help
 .PHONY: help up down logs db install lint typecheck test test-backend test-frontend test-e2e \
-	api-client api-drift check demo demo-up demo-running demo-down perf screenshots wait-ready
+	api-client api-drift check demo demo-up demo-running demo-down perf screenshots wait-ready init-env
 
 help: ## List targets
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
 
-up: ## Build and start the whole stack (db, migrate, api, worker, frontend)
+up: init-env ## Build and start the whole stack (db, migrate, api, worker, frontend)
 	docker compose up --build -d
 	@echo "Frontend http://127.0.0.1:$(IPHI_FRONTEND_PORT)  API docs http://127.0.0.1:$(IPHI_API_PORT)/docs"
 
@@ -48,11 +48,11 @@ install: ## Install backend and frontend dependencies from the lockfiles
 	$(FRONTEND) pnpm install --frozen-lockfile
 
 lint: ## Ruff, import contracts, ESLint, Prettier
-	$(BACKEND) uv run ruff format --check . && uv run ruff check . && uv run lint-imports
+	$(BACKEND) uv run ruff format --config pyproject.toml --check . ../scripts/init_env.py && uv run ruff check --config pyproject.toml . ../scripts/init_env.py && uv run lint-imports
 	$(FRONTEND) pnpm lint
 
 typecheck: ## mypy --strict and tsc
-	$(BACKEND) uv run mypy
+	$(BACKEND) uv run mypy && uv run mypy ../scripts/init_env.py
 	$(FRONTEND) pnpm typecheck
 
 test-backend: db ## Backend unit + integration tests against PostgreSQL
@@ -84,7 +84,10 @@ wait-ready: ## Wait up to 3 min for READY_URL/ready (default: the demo stack)
 		curl -fs -o /dev/null $(READY_URL)/ready && exit 0; sleep 2; \
 	done; echo "$(READY_URL)/ready not ready after 180 s"; exit 1
 
-demo-up: demo-down ## Start a clean, seeded demo stack (fresh volume) and wait until it is ready
+init-env: ## Generate missing local demo credentials without printing them
+	python3 scripts/init_env.py
+
+demo-up: init-env demo-down ## Start a clean, seeded demo stack (fresh volume) and wait until it is ready
 	$(DEMO_COMPOSE) up --build -d
 	@$(MAKE) --no-print-directory wait-ready || \
 		{ $(DEMO_COMPOSE) ps --all; $(DEMO_COMPOSE) logs --tail 50; exit 1; }

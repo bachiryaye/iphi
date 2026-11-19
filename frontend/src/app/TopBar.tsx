@@ -1,5 +1,7 @@
 import { Asleep, Light } from "@carbon/icons-react";
 
+import { UserMenu } from "@/features/identity/UserMenu";
+
 import { Clock } from "./Clock";
 import { MonitorStatus } from "./MonitorStatus";
 import { PlatformSummary } from "./PlatformSummary";
@@ -10,12 +12,13 @@ export function TopBar() {
   const dark = theme === "dark";
 
   return (
-    <header className="flex h-15 items-center gap-6 border-b border-border bg-surface px-6 max-lg:px-4">
+    <header className="flex min-h-15 flex-wrap items-center gap-6 border-b border-border bg-surface px-6 max-lg:px-4">
       <PlatformSummary />
-      <div className="ml-auto flex items-center gap-5">
+      <div className="ml-auto flex flex-wrap items-center justify-end gap-3">
         <MonitorStatus />
         <span aria-hidden="true" className="h-7 w-px bg-border max-md:hidden" />
         <Clock />
+        <UserMenu />
         <button
           type="button"
           onClick={toggle}

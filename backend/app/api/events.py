@@ -1,4 +1,5 @@
 import asyncio
+import time
 from collections.abc import AsyncIterator
 from datetime import datetime
 from typing import Annotated, Literal
@@ -7,7 +8,9 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.sse import EventSourceResponse, ServerSentEvent
 from pydantic import BaseModel, Field
 
+from app.api.auth import auth_service
 from app.core.events import Notice, NoticeType
+from app.identity.auth_domain import AuthenticationRequiredError
 from app.monitor.events import EventHub
 
 router = APIRouter(prefix="/api/v1/events", tags=["events"])
@@ -56,6 +59,7 @@ async def event_subscription(
     },
 )
 async def events_stream(
+    request: Request,
     subscription: Annotated[
         tuple[asyncio.Queue[Notice | None], Notice],
         Depends(event_subscription, scope="request"),
@@ -63,8 +67,24 @@ async def events_stream(
 ) -> AsyncIterator[ServerSentEvent]:
     queue, sync = subscription
     yield ServerSentEvent(event=sync.type.value, data=_out(sync), retry=1000)
-    while (notice := await queue.get()) is not None:
-        yield ServerSentEvent(event=notice.type.value, data=_out(notice))
+    checked = time.monotonic()
+    while True:
+        try:
+            notice = await asyncio.wait_for(queue.get(), timeout=15)
+        except TimeoutError:
+            notice = sync
+        if time.monotonic() - checked >= 15:
+            try:
+                await asyncio.to_thread(
+                    auth_service(request).resolve, request.cookies.get("iphi_session")
+                )
+            except AuthenticationRequiredError:
+                return
+            checked = time.monotonic()
+        if notice is None:
+            return
+        if notice is not sync:
+            yield ServerSentEvent(event=notice.type.value, data=_out(notice))
 
 
 def _out(notice: Notice) -> StreamEventOut:

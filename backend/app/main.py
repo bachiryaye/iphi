@@ -3,10 +3,20 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 
 import structlog
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from app.api import events, health, incidents, observations, reports, simulations, system
+from app.api import (
+    audit,
+    auth,
+    events,
+    health,
+    incidents,
+    observations,
+    reports,
+    simulations,
+    system,
+)
 from app.connectors.registry import ENABLED_CONNECTOR_KEYS
 from app.core.clock import WallClock
 from app.core.db import create_db_engine, create_session_factory
@@ -23,7 +33,8 @@ from app.diagnostics.providers import build_provider
 from app.diagnostics.service import DiagnosticRuntime, DiagnosticsService
 from app.health.history_service import StateHistoryQueries
 from app.health.service import HealthQueries
-from app.identity.domain import MutationPolicy
+from app.identity.audit_queries import AuditQueries
+from app.identity.auth_service import AuthService
 from app.identity.service import AuditService
 from app.incidents.service import IncidentCommands, IncidentQueries
 from app.ingestion.service import MetricCatalogService, ObservationQueryService
@@ -35,7 +46,7 @@ from app.simulation.domain.platform import SIMULATED_PLATFORM
 from app.simulation.service import build_simulation
 from app.topology.service import TopologyService
 
-API_VERSION = "0.10.1"
+API_VERSION = "0.11.0"
 
 log = structlog.get_logger(__name__)
 
@@ -61,7 +72,11 @@ def create_app(settings: Settings) -> FastAPI:
         responses={"default": {"model": Problem, "description": "RFC 9457 problem details."}},
         lifespan=lifespan,
     )
+    app.state.wall = wall
     app.state.events = hub
+    app.state.auth = AuthService(session_factory, wall)
+    app.state.audit_queries = AuditQueries(session_factory)
+    app.state.cookie_secure = settings.deployment_mode != "local"
     topology = TopologyService(session_factory)
     observation_queries = ObservationQueryService(session_factory, topology, SIMULATED_PLATFORM.key)
     app.state.simulation = simulation
@@ -100,22 +115,19 @@ def create_app(settings: Settings) -> FastAPI:
     app.state.cycle_interval_s = settings.cycle_interval_s
     app.state.audit = AuditService(session_factory, wall)
     app.state.sim_seed = settings.sim_seed
-    policy = MutationPolicy.evaluate(settings.dev_mutations, settings.bind_host)
-    app.state.mutation_policy = policy
-    if settings.dev_mutations and not policy.enabled:
-        log.warning("api.mutations_refused", reason=policy.reason)
     register_error_handlers(app)
+    app.include_router(auth.router)
+    app.include_router(audit.router)
     app.include_router(system.router)
-    app.include_router(simulations.router)
-    app.include_router(observations.router)
-    app.include_router(health.router)
-    app.include_router(incidents.router)
-    app.include_router(reports.router)
-    app.include_router(events.router)
+    app.include_router(simulations.router, dependencies=[Depends(auth.require_read)])
+    app.include_router(observations.router, dependencies=[Depends(auth.require_read)])
+    app.include_router(health.router, dependencies=[Depends(auth.require_read)])
+    app.include_router(incidents.router, dependencies=[Depends(auth.require_read)])
+    app.include_router(reports.router, dependencies=[Depends(auth.require_read)])
+    app.include_router(events.router, dependencies=[Depends(auth.require_read)])
     # Starlette runs the last added middleware first. Security headers wrap every response,
     # including the 413 and crash responses produced by the two inner middlewares.
-    # Unauthenticated loopback mutations (ADR 0007) must not be reachable through a rebound
-    # DNS name pointing a hostile page at 127.0.0.1.
+    # A hostile page must not reach the local API through a rebound DNS name (ADR 0007).
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_host_list)
     app.add_middleware(BodySizeLimitMiddleware)
     app.add_middleware(CorrelationIdMiddleware)

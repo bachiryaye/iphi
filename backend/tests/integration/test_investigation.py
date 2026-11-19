@@ -12,7 +12,7 @@ pytestmark = pytest.mark.integration
 def test_recorded_history_has_proof_and_gaps_and_validates_bounds(
     seeded_url: str, platform: Platform, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    with client_for(seeded_url, dev_mutations=False) as client:
+    with client_for(seeded_url, role="viewer") as client:
         component = next(
             c
             for c in client.get("/api/v1/components").json()["items"]
@@ -62,7 +62,7 @@ def test_recorded_history_has_proof_and_gaps_and_validates_bounds(
 def test_comment_is_audited_escaped_and_does_not_change_status(
     seeded_url: str, platform: Platform
 ) -> None:
-    with client_for(seeded_url, dev_mutations=True) as client:
+    with client_for(seeded_url, role="admin") as client:
         incident = client.get("/api/v1/incidents").json()["items"][0]
         path = f"/api/v1/incidents/{incident['id']}"
         note = "<script>alert('untrusted')</script> investigate collector"
@@ -72,7 +72,7 @@ def test_comment_is_audited_escaped_and_does_not_change_status(
         events = client.get(f"{path}/events").json()["items"]
         comment = next(e for e in events if e["type"] == "commented")
         assert comment["payload"] == {"comment": note}
-        assert comment["actor_label"] == "dev-local"
+        assert comment["actor_label"] == "admin"
         for bad in ("", "   ", "a" * 4001):
             assert client.post(f"{path}/comments", json={"comment": bad}).status_code == 422
         (audit,) = platform.rows(
@@ -83,7 +83,7 @@ def test_comment_is_audited_escaped_and_does_not_change_status(
         closed = client.post(f"{path}/comments", json={"comment": "Post-resolution investigation."})
         assert closed.status_code == 201
         assert closed.json()["status"] == "resolved"
-    with client_for(seeded_url, dev_mutations=False) as client:
+    with client_for(seeded_url, role="viewer") as client:
         assert client.post(f"{path}/comments", json={"comment": "forbidden"}).status_code == 403
     assert platform.rows(
         "SELECT outcome FROM audit_event WHERE action = 'incident.comment' ORDER BY occurred_at"

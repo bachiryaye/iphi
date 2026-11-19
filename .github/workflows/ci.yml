@@ -41,11 +41,11 @@ jobs:
       - name: PDF rendering libraries
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0
       - name: Lint
-        run: uv run ruff format --check . && uv run ruff check .
+        run: uv run ruff format --config pyproject.toml --check . ../scripts/init_env.py && uv run ruff check --config pyproject.toml . ../scripts/init_env.py
       - name: Import contracts
         run: uv run lint-imports
       - name: Type check
-        run: uv run mypy
+        run: uv run mypy && uv run mypy ../scripts/init_env.py
       - name: Migrations and seed apply on an ephemeral PostgreSQL
         run: uv run python -m app.bootstrap && uv run python -m app.bootstrap
       - name: Tests
@@ -108,6 +108,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
+      - name: Configure disposable demo credentials
+        run: make init-env
       - name: Build the Compose images
         run: docker compose build
       - name: Stack starts and becomes ready
@@ -117,8 +119,7 @@ jobs:
             docker compose ps --all; docker compose logs; exit 1; }
       - name: Simulation is seeded and reachable through the frontend proxy
         run: |
-          curl -fsS http://127.0.0.1:8080/api/v1/simulations/scenarios | grep -q '"collector_down"'
-          curl -fsS 'http://127.0.0.1:8080/api/v1/simulations/runs?status=active' | grep -q '"baseline"'
+          docker compose exec -T api python -c 'from scripts.client import Api; a = Api("http://127.0.0.1:8000"); assert any(s["key"] == "collector_down" for s in a.get("/simulations/scenarios")["items"]); assert any(r["scenario_key"] == "baseline" for r in a.get("/simulations/runs", status="active")["items"])'
       - name: Proxy follows a recreated API container
         run: |
           docker compose up -d --force-recreate --no-deps api

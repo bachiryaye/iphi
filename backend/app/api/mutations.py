@@ -1,63 +1,41 @@
-"""Mutation guard while the API is unauthenticated (ADR 0007); US-11 swaps in RBAC."""
+"""Session, role and CSRF authorization; every denied mutation is audited (US-11)."""
 
 from collections.abc import Callable
-from http import HTTPStatus
 
 from fastapi import Request
 
+from app.api.auth import SessionToken, authenticate, context_of
+from app.api.request_policy import browser_forgery
 from app.core.errors import correlation_id_of
 from app.core.exceptions import IphiError
-from app.identity.domain import (
-    DEV_ACTOR,
-    AuditAction,
-    AuditContext,
-    MutationPolicy,
-    MutationsDisabledError,
-)
+from app.identity.auth_domain import CsrfRejectedError, PermissionDeniedError, Role
+from app.identity.domain import AuditAction, AuditContext
+from app.identity.passwords import csrf_matches
 from app.identity.service import AuditService
 
 
-def audit_context(request: Request) -> AuditContext:
-    return AuditContext(DEV_ACTOR, correlation_id_of(request.scope))
-
-
-class CrossSiteRequestError(IphiError):
-    status = HTTPStatus.FORBIDDEN
-    code = "CROSS_SITE_REQUEST"
-
-
-class JsonRequiredError(IphiError):
-    status = HTTPStatus.UNSUPPORTED_MEDIA_TYPE
-    code = "JSON_REQUIRED"
-
-
-def browser_forgery(request: Request) -> IphiError | None:
-    """Refuses requests another web page could forge while mutations are unauthenticated.
-
-    A JSON content type is not a CORS "simple" request: browsers preflight it, and the API
-    answers no preflight, so a foreign page cannot send it. Sec-Fetch-Site rejects the rest.
-    """
-    if request.headers.get("sec-fetch-site", "same-origin") not in {"same-origin", "none"}:
-        return CrossSiteRequestError("Mutations are accepted from the IPHI interface only.")
-    media_type = request.headers.get("content-type", "").split(";")[0].strip().lower()
-    if media_type != "application/json":
-        return JsonRequiredError("Mutations require Content-Type: application/json.")
-    return None
-
-
-def mutation(action: AuditAction) -> Callable[[Request], AuditContext]:
-    """Dependency enforcing ADR 0007; denied attempts are audited (X-14). US-11 swaps in RBAC."""
-
-    def guard(request: Request) -> AuditContext:
-        context = audit_context(request)
-        policy: MutationPolicy = request.app.state.mutation_policy
-        refusal = browser_forgery(request)
-        if refusal is None and not policy.enabled:
-            refusal = MutationsDisabledError(policy.reason)
-        if refusal is not None:
+def mutation(action: AuditAction) -> Callable[..., AuditContext]:
+    def guard(request: Request, token: SessionToken) -> AuditContext:
+        context = AuditContext("anonymous", correlation_id_of(request.scope))
+        try:
+            identity = authenticate(request, token)
+            context = context_of(request, identity)
+            required = Role.ADMIN if action is AuditAction.SIMULATION_RESET else Role.ENGINEER
+            if not identity.user.permits(required):
+                raise PermissionDeniedError(
+                    f"This action requires the {required.value} role. The refusal is audited."
+                )
+            refusal = browser_forgery(request)
+            if refusal is not None:
+                raise refusal
+            if not csrf_matches(identity.token, request.headers.get("x-csrf-token", "")):
+                raise CsrfRejectedError(
+                    "The session CSRF proof is missing or invalid. The refusal is audited."
+                )
+        except IphiError as exc:
             audit: AuditService = request.app.state.audit
-            audit.record_denied(context, action, refusal.detail)
-            raise refusal
+            audit.record_denied(context, action, exc.detail)
+            raise
         return context
 
     return guard

@@ -28,7 +28,7 @@ const MODES = [
   { value: "manual", label: "manual" },
 ] as const;
 
-function ClockControls({ clock }: { clock: Clock }) {
+function ClockControls({ clock, allowed }: { clock: Clock; allowed: boolean }) {
   const setClock = useSetClock();
   const speedId = useId();
   const [speed, setSpeed] = useState(String(clock.mode === "accelerated" ? clock.speed : 10));
@@ -40,7 +40,8 @@ function ClockControls({ clock }: { clock: Clock }) {
     });
   };
   return (
-    <div className="flex flex-col gap-3 border-t border-border px-4 py-3">
+    <fieldset disabled={!allowed} className="flex flex-col gap-3 border-t border-border px-4 py-3">
+      <legend className="sr-only">Clock controls</legend>
       <div className="flex flex-wrap items-center gap-3">
         <Segmented label="Clock mode" options={MODES} value={clock.mode} onChange={change} />
         <label htmlFor={speedId} className="text-small text-text-muted">
@@ -81,7 +82,7 @@ function ClockControls({ clock }: { clock: Clock }) {
         )}
       </div>
       <RefusedAlert action="Clock change" error={setClock.error} />
-    </div>
+    </fieldset>
   );
 }
 
@@ -122,7 +123,7 @@ function ClockCard({ allowed }: { allowed: boolean }) {
               <dd className="data">{data.seed}</dd>
             </div>
           </dl>
-          {allowed && <ClockControls clock={data} />}
+          <ClockControls clock={data} allowed={allowed} />
         </div>
       )}
     </Card>
@@ -185,17 +186,17 @@ function RunsCard({ allowed, scenarios }: { allowed: boolean; scenarios: readonl
                   </td>
                   <td>{run.ends_at === null ? "when stopped" : <Timestamp iso={run.ends_at} />}</td>
                   <td className="num">
-                    {allowed && (
+                    {
                       <Button
                         icon={<Stop size={16} aria-hidden="true" />}
-                        disabled={stop.isPending}
+                        disabled={!allowed || stop.isPending}
                         onClick={() => {
                           stop.mutate(run.id);
                         }}
                       >
                         Stop
                       </Button>
-                    )}
+                    }
                   </td>
                 </tr>
               ))}
@@ -271,7 +272,7 @@ function ScenarioCard({
             </>
           )}
         </dl>
-        {allowed && (
+        {
           <form
             onSubmit={submit}
             className="mt-auto flex flex-wrap items-end gap-3 border-t border-border pt-3"
@@ -283,6 +284,7 @@ function ScenarioCard({
               <select
                 id={targetId}
                 name="target"
+                disabled={!allowed}
                 value={target}
                 onChange={(event) => {
                   setChosen(event.target.value);
@@ -303,6 +305,7 @@ function ScenarioCard({
               <input
                 id={durationId}
                 name="duration"
+                disabled={!allowed}
                 autoComplete="off"
                 type="number"
                 min={10}
@@ -319,12 +322,12 @@ function ScenarioCard({
               type="submit"
               variant="primary"
               icon={<Play size={16} aria-hidden="true" />}
-              disabled={start.isPending || target === ""}
+              disabled={!allowed || start.isPending || target === ""}
             >
               {start.isPending ? "Starting…" : "Start scenario"}
             </Button>
           </form>
-        )}
+        }
         <RefusedAlert action="Start" error={start.error} />
         {start.isSuccess && (
           <p aria-live="polite" className="text-small text-text-muted">
@@ -338,6 +341,7 @@ function ScenarioCard({
 
 function ResetCard() {
   const reset = useReset();
+  const { allowed } = useMutationGuard("admin");
   const [confirming, setConfirming] = useState(false);
   return (
     <Card title="Reset the simulation" titleId="reset-title">
@@ -349,6 +353,7 @@ function ResetCard() {
         {!confirming ? (
           <div>
             <Button
+              disabled={!allowed}
               icon={<Reset size={16} aria-hidden="true" />}
               onClick={() => {
                 setConfirming(true);
@@ -366,7 +371,7 @@ function ResetCard() {
             <span className="font-medium">Reset the simulation now?</span>
             <Button
               variant="primary"
-              disabled={reset.isPending}
+              disabled={!allowed || reset.isPending}
               onClick={() => {
                 reset.mutate(undefined, {
                   onSettled: () => {
@@ -386,6 +391,7 @@ function ResetCard() {
             </Button>
           </div>
         )}
+        {!allowed && <p className="text-small text-text-muted">Reset requires the admin role.</p>}
         <RefusedAlert action="Reset" error={reset.error} />
         {reset.isSuccess && (
           <p aria-live="polite" className="text-small text-text-muted">
@@ -437,7 +443,7 @@ export function ScenariosPage() {
           </div>
         )}
       </Card>
-      {allowed && <ResetCard />}
+      <ResetCard />
     </>
   );
 }

@@ -399,10 +399,10 @@ const status = (mutations: boolean): SystemStatus => ({
   collection: { state: "ok", connectors: [], recent_runs: [] },
   ai_provider: { status: "disabled", detail: "LLM provider 'none'." },
   mutations: mutations
-    ? { enabled: true, reason: "Local development mutations enabled (unauthenticated, ADR 0007)." }
+    ? { enabled: true, reason: "Signed in as admin, role admin. Operational changes are audited." }
     : {
         enabled: false,
-        reason: "Mutations are disabled; set IPHI_DEV_MUTATIONS=true on a local host.",
+        reason: "Mutations are disabled for viewer. The engineer role is required.",
       },
 });
 export const statusMutable = status(true);
