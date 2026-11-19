@@ -63,7 +63,7 @@ The deterministic diagnosis walks the dependency graph and the incident's eviden
 
 One PostgreSQL, one API process, one worker holding an advisory lock, one Compose file. Module boundaries (simulation, connectors, ingestion, health, incidents, diagnostics) are checked by import contracts in CI. No message broker, no time-series database, no microservices.
 
-*Cost:* it does not scale horizontally as is. For seven components and a week of history it does not need to, and the measured numbers say so. The connector port is the seam where a real source (MQTT is the planned one) plugs in without touching the health engine.
+*Cost:* it does not scale horizontally as is. For seven components and a week of history it does not need to, and the measured numbers say so. The connector port also carries the [MQTT simulation](mqtt.md): a real Mosquitto broker and separate synthetic publisher feed the same ingestion and health engine. This validates a transport boundary, not a real industrial source.
 
 ### 8. The simulator never knows the thresholds
 
@@ -96,7 +96,13 @@ The dashboard follows a written design system inspired by high-performance HMI p
 
 ## What I would do next
 
-The optional MQTT protocol adapter, fed by a simulated publisher, can demonstrate the connector boundary after the current authentication milestone. Live updates, evidence-grounded diagnosis with a deterministic fallback, and PDF/CSV reports are already implemented. No real plant connection is planned for this demonstrator.
+The optional MQTT adapter runs with a simulated publisher in an isolated Compose profile.
+Its versioned, bounded JSON batches preserve event time, measurement quality and scenario
+attribution; complete batches reach the existing engine, while transport loss remains missing
+evidence. Live updates, evidence-grounded diagnosis with a deterministic fallback, and
+PDF/CSV reports use the same stored observations. The next portfolio task is clearer beginner
+documentation and an English/French interface. No real plant connection is planned for this
+demonstrator.
 
 ## Résumé en français
 
