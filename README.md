@@ -18,7 +18,7 @@ IPHI monitors the health of an **industrial data platform** — sources, gateway
 | US-08 | Optional structured diagnosis, evidence validation, deterministic comparison and fallback | Delivered (PR #8; CI green on main) |
 | US-09 | Incident PDF and CSV reports from stored evidence | Delivered (PR #9; main CI 44248348754 green) |
 | US-07 | Live updates, interactive topology, recorded state history and investigation comments | Delivered (PR #10; CI green on main) |
-| US-11 | Server sessions, roles, CSRF, audit and permission tests | In validation ([access guide](docs/access.md)) |
+| US-11 | Server sessions, roles, CSRF, audit and permission tests | Implemented (PR #12; CI green, [access guide](docs/access.md)) |
 | US-12 | MQTT adapter | Planned ([backlog](docs/03-backlog.md)) |
 
 What runs today: PostgreSQL, a migration and seed job, the FastAPI API (`/health`, `/ready`, simulation, metrics, logs, health and system status endpoints, OpenAPI), a worker that holds the scheduler lock and, every cycle, collects the simulated observations, validates and stores them, evaluates the health rules, opens, updates and resolves incidents, purges data past retention and writes a heartbeat, and the operator dashboard described below.

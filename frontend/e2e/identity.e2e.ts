@@ -16,6 +16,7 @@ test("7. viewer cannot inject a fault; the refusal is visible to admin in audit"
     expect((await viewer.request.get("/api/v1/platforms")).status()).toBe(401);
     const page = await viewer.newPage();
     await page.goto("/scenarios");
+    await page.waitForURL((url) => url.pathname === "/login");
     await expect(page.getByRole("heading", { name: "Sign in to platform health" })).toBeVisible();
     await page.getByLabel("Username", { exact: true }).fill("viewer");
     await page.getByLabel("Password", { exact: true }).fill(await demoPassword("viewer"));
@@ -59,6 +60,7 @@ test("7. viewer cannot inject a fault; the refusal is visible to admin in audit"
     await expect(auditPage.getByRole("table")).toContainText("viewer");
     await page.getByText("viewer · viewer", { exact: true }).click();
     await page.getByRole("button", { name: "Sign out", exact: true }).click();
+    await page.waitForURL((url) => url.pathname === "/login");
     await expect(page.getByRole("heading", { name: "Sign in to platform health" })).toBeVisible();
     expect((await viewer.request.get("/api/v1/platforms")).status()).toBe(401);
   } finally {
