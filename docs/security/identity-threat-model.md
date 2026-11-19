@@ -118,6 +118,8 @@ No real plant commands or model tools exist.
 5. Operator secret enters tooling or artifacts → disclosure → init avoids printing
    secrets; CLI rejects non-loopback destinations/redirects/proxy inheritance; ignored
    session files and CI secret scanning reduce accidental publication.
+   The frontend Docker context excludes session/report/environment artifacts;
+   the image job exports a probe context and verifies these exclusions before building.
 6. User follows a crafted return URL or untrusted audit detail → redirect or script
    execution → same-origin return validation and React text rendering prevent these sinks.
 
