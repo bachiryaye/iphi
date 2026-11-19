@@ -6,6 +6,10 @@ IPHI helps an engineer answer: **which service in an industrial data platform is
 
 **Français :** IPHI supervise la santé d’une plateforme de données industrielles simulée. Pour installer et découvrir l’outil, suivez le [guide débutant en français](docs/debuter.md). L’interface et l’aide sont disponibles en français et en anglais ; choisissez **Français / English** dès la connexion. [English beginner guide](docs/getting-started.md).
 
+![French dashboard with simulated telemetry, contextual help and language selector](docs/design/screenshots/finalization-overview-fr-light-1440.png)
+
+[English beginner help](docs/design/screenshots/finalization-help-en-light-1440.png) · [French help on a dark tablet layout](docs/design/screenshots/finalization-help-fr-dark-768.png) · [Capture provenance and reproduction](docs/design/screenshots/README.md)
+
 ## Try it locally
 
 You need Git, Docker Engine with Compose v2, GNU Make, Python 3.10+ and curl. Docker must be running and your account must be able to use it. The first build needs internet access to download images and dependencies; no cloud account, model key or local Node/Python toolchain is needed for the container demo.

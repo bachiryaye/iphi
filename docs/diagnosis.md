@@ -16,6 +16,8 @@ Open an incident and choose **AI diagnosis**. The panel explicitly says that it 
 output and no language model was called. Use **Compare with deterministic diagnosis** to
 inspect the same observations through the deterministic reading.
 
+The following images are US-08 milestone evidence; the current application also includes language selection and contextual help. [Current captures](design/screenshots/README.md).
+
 | Local fake diagnosis, light theme | Same panel, dark theme |
 |---|---|
 | ![Fake-provider diagnosis with citations and explicit simulation limitations](design/screenshots/us-08-diagnosis-light-1440.png) | ![The same diagnosis in the dark theme](design/screenshots/us-08-diagnosis-dark-1440.png) |

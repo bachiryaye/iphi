@@ -289,7 +289,7 @@ Le statut n'est mis à jour que sur preuve (commandes et résultats).
 
 Demande du propriétaire du 19 novembre 2026 : après MQTT, réaliser une tâche finale réunissant un README facile à parcourir (lancement, démo, tests), une page Aide / Documentation avec parcours débutant inspirée de Mintlify, une aide contextuelle sur chaque page et une bascule français / anglais. Le périmètre et les critères d'acceptation sont enregistrés dans le [plan de finalisation](portfolio-finalization.md).
 
-**Statut :** implémenté, validation finale en cours (ADR 0027). README, aide publique/contextuelle et présentation EN/FR ; vérifications statiques et démo sur base neuve réussies. Les parcours navigateur, captures et CI restent à confirmer dans le [plan de finalisation](portfolio-finalization.md). Ce lot conserve les identifiants US-01…US-12.
+**Statut :** implémentation validée (ADR 0027), livraison et contrôles dans la [PR 15](https://github.com/bachiryaye/iphi/pull/15). README, aide publique/contextuelle, présentation EN/FR et captures réelles ; les sept critères et leurs preuves sont consignés dans le [plan de finalisation](portfolio-finalization.md). Ce lot conserve les identifiants US-01…US-12.
 
 ---
 *Pied de page du document source : IPHI — Document de travail | Backlog et livraison incrémentale (v1.0 indiquait par erreur « Architecture et livraison incrémentale »)*
