@@ -1,6 +1,8 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 import createClient from "openapi-fetch";
 
+import { savedAuth } from "./auth";
+
 import type { components, paths } from "../src/shared/api/schema";
 import type {
   Clock,
@@ -39,6 +41,17 @@ function body<T>({ data, response }: Result<T>): T {
 /** Public API through the generated contract: same routes and mutation guard as the UI. */
 export class Simulation {
   private readonly api = createClient<paths>({ baseUrl: BASE_URL });
+
+  constructor() {
+    this.api.use({
+      onRequest: async ({ request }) => {
+        const auth = await savedAuth();
+        request.headers.set("cookie", auth.cookie);
+        if (request.method !== "GET") request.headers.set("x-csrf-token", auth.csrf);
+        return request;
+      },
+    });
+  }
 
   async reset(seed?: number): Promise<Schemas["ResetOut"]> {
     return body(

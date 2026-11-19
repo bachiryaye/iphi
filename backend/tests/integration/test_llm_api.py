@@ -17,6 +17,7 @@ from app.diagnostics.repository import admission
 from app.diagnostics.service import DiagnosticRuntime, DiagnosticsService
 from app.main import create_app
 from app.topology.service import TopologyService
+from tests.api_client import sign_in
 from tests.fakes import FixedClock
 from tests.health_runs import Platform
 
@@ -26,12 +27,9 @@ BASE = "/api/v1/incidents"
 
 @pytest.fixture
 def client(seeded_url: str, platform: Platform) -> Iterator[TestClient]:
-    app = create_app(
-        Settings(
-            database_url=SecretStr(seeded_url), dev_mutations=True, llm_provider=LlmProvider.FAKE
-        )
-    )
+    app = create_app(Settings(database_url=SecretStr(seeded_url), llm_provider=LlmProvider.FAKE))
     with TestClient(app, base_url="http://127.0.0.1") as client:
+        sign_in(client, seeded_url)
         yield client
 
 

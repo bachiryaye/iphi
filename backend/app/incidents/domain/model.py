@@ -75,7 +75,7 @@ class ActorType(StrEnum):
 
 @dataclass(frozen=True, slots=True)
 class Actor:
-    """`id` is set once users exist (US-11); `label` names the actor meanwhile."""
+    """Human actions retain the user ID and label; system actions have no user ID."""
 
     type: ActorType
     label: str

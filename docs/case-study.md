@@ -88,16 +88,16 @@ The dashboard follows a written design system inspired by high-performance HMI p
 ## Limits
 
 - **Everything is simulated.** No real protocol adapter exists yet; no compatibility with any commercial historian is claimed or implied. Thresholds are demonstration values, not industrial recommendations.
-- **No authentication yet.** Mutations are accepted only when the stack is bound to the loopback interface; roles and sessions are the next security story. It is a local demonstrator, not production software.
-- **Views poll every 10 s**; live updates are planned.
+- **Local identity scope.** Server sessions, Argon2id, CSRF and viewer/engineer/admin roles protect the simulated platform; no public deployment or account-management interface is included.
+- **SSE resynchronizes on connection**, with an explicit 30 s polling fallback and no durable event replay.
 - **One platform, seven components, one worker.** Performance was measured at that size only, on a 2015 laptop with a spinning disk: every target is met except the 7-day aggregated series (p95 337 to 613 ms for a 300 ms target), whose query takes 123 ms in the database when the host is idle.
 - **Detection delay is bounded by the design**, not optimised: two failed probes at 5 s plus one worker cycle, so up to about 15 s in real time.
 - Known simplifications of the simulator and of late-data handling are listed in the README.
 
 ## What I would do next
 
-Live updates and an interactive dependency graph; the evidence-grounded AI diagnosis behind the existing contract, with a fake provider in CI and prompt-injection tests on log content; PDF and CSV incident reports; authentication and roles; then one real protocol adapter (MQTT) fed by a simulated publisher, to prove the connector seam.
+The optional MQTT protocol adapter, fed by a simulated publisher, can demonstrate the connector boundary after the current authentication milestone. Live updates, evidence-grounded diagnosis with a deterministic fallback, and PDF/CSV reports are already implemented. No real plant connection is planned for this demonstrator.
 
 ## Résumé en français
 
-IPHI surveille la santé d'une plateforme de données industrielle **simulée** plutôt que celle des machines. Quatre choix structurent le projet : `Unknown` est un état à part entière (le silence n'est jamais « sain ») ; l'état de la plateforme suit une table de priorités et non une moyenne ; un incident est une empreinte garantie par la base (pas de tempête d'alarmes, les symptômes en aval sont rattachés comme impact) ; chaque état et chaque incident citent les évaluations et les mesures stockées qui les justifient. Le diagnostic est d'abord déterministe et sourcé ; l'IA reste une couche optionnelle. Limites assumées : tout est simulé, pas encore d'authentification, une seule plateforme de sept composants.
+IPHI surveille la santé d'une plateforme de données industrielle **simulée** plutôt que celle des machines. Quatre choix structurent le projet : `Unknown` est un état à part entière (le silence n'est jamais « sain ») ; l'état de la plateforme suit une table de priorités et non une moyenne ; un incident est une empreinte garantie par la base (pas de tempête d'alarmes, les symptômes en aval sont rattachés comme impact) ; chaque état et chaque incident citent les évaluations et les mesures stockées qui les justifient. Le diagnostic est d'abord déterministe et sourcé ; l'IA reste une couche optionnelle. Limites assumées : tout est simulé, identité limitée à la démonstration locale, une seule plateforme de sept composants.

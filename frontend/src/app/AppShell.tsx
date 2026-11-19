@@ -4,7 +4,7 @@ import { LiveUpdatesProvider, LiveUpdatesBanner } from "@/shared/live/LiveUpdate
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 
-function SimulatedBanner() {
+export function SimulatedBanner() {
   return (
     <div
       role="note"

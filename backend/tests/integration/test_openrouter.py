@@ -12,6 +12,7 @@ from app.diagnostics.providers import OpenRouterProvider
 from app.diagnostics.service import DiagnosticRuntime, DiagnosticsService
 from app.main import create_app
 from app.topology.service import TopologyService
+from tests.api_client import sign_in
 from tests.fakes import FixedClock
 from tests.health_runs import Platform
 from tests.unit.test_llm_diagnosis import reply
@@ -28,7 +29,6 @@ def test_router_identity_and_free_billing_boundary_persist_with_comparison(
 ) -> None:
     settings = Settings(
         database_url=SecretStr(seeded_url),
-        dev_mutations=True,
         llm_provider=LlmProvider.OPENROUTER,
         llm_model="openrouter/free",
         llm_api_key=SecretStr("test-only"),
@@ -64,6 +64,7 @@ def test_router_identity_and_free_billing_boundary_persist_with_comparison(
         DiagnosticRuntime(settings, provider),
     )
     with TestClient(app, base_url="http://127.0.0.1") as client:
+        sign_in(client, seeded_url)
         incident = client.get("/api/v1/incidents").json()["items"][0]
         path = f"/api/v1/incidents/{incident['id']}"
         response = client.post(

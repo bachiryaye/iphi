@@ -1,5 +1,7 @@
-import { Cube, Dashboard, Network_3, Play, Rule, WarningAlt } from "@carbon/icons-react";
+import { Catalog, Cube, Dashboard, Network_3, Play, Rule, WarningAlt } from "@carbon/icons-react";
 import { NavLink } from "react-router";
+
+import { useSession } from "@/shared/identity/session";
 
 import { useActiveIncidents } from "@/shared/api/queries";
 
@@ -32,6 +34,7 @@ const NAV_ITEMS = [
   { to: "/components", label: "Components", Icon: Cube, end: false },
   { to: "/scenarios", label: "Scenarios", Icon: Play, end: false },
   { to: "/rules", label: "Rules", Icon: Rule, end: false },
+  { to: "/audit", label: "Audit", Icon: Catalog, end: false },
 ] as const;
 
 /** Neutral outline counter: red stays reserved for alarms (§4). */
@@ -48,6 +51,7 @@ function ActiveCount() {
 }
 
 export function Sidebar() {
+  const session = useSession();
   return (
     <nav
       aria-label="Main"
@@ -69,7 +73,9 @@ export function Sidebar() {
         </span>
       </NavLink>
       <ul className="flex flex-col gap-0.5">
-        {NAV_ITEMS.map(({ to, label, Icon, end }) => (
+        {NAV_ITEMS.filter(
+          (item) => item.to !== "/audit" || session.data?.user.role === "admin",
+        ).map(({ to, label, Icon, end }) => (
           <li key={to}>
             <NavLink
               to={to}

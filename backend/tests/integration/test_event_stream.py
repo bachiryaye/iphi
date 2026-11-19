@@ -11,6 +11,7 @@ import psycopg
 import pytest
 import uvicorn
 from fastapi import FastAPI
+from fastapi.testclient import TestClient
 from pydantic import SecretStr
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
@@ -20,6 +21,7 @@ from app.core.events import CHANNEL, Notice, NoticeType, notify
 from app.core.settings import Settings
 from app.main import create_app
 from app.monitor.events import MAX_SUBSCRIBERS, EventHub, StreamCapacityError
+from tests.api_client import sign_in
 
 pytestmark = pytest.mark.integration
 AT = datetime(2026, 11, 18, tzinfo=UTC)
@@ -91,8 +93,11 @@ def test_listener_fanout_capacity_and_reconnection_use_the_same_database(seeded_
 
 
 @pytest.fixture
-def stream_server(seeded_url: str) -> Iterator[str]:
+def stream_server(seeded_url: str) -> Iterator[tuple[str, str]]:
     app = create_app(Settings(database_url=SecretStr(seeded_url)))
+    auth_client = TestClient(app, base_url="http://127.0.0.1")
+    sign_in(auth_client, seeded_url, "viewer")
+    session_cookie = "iphi_session=" + auth_client.cookies["iphi_session"]
     original = app.router.lifespan_context
     started = threading.Event()
 
@@ -113,7 +118,7 @@ def stream_server(seeded_url: str) -> Iterator[str]:
         thread.start()
         try:
             assert started.wait(10), "The test API did not start."
-            yield f"http://127.0.0.1:{port}"
+            yield f"http://127.0.0.1:{port}", session_cookie
         finally:
             server.should_exit = True
             thread.join(10)
@@ -121,13 +126,13 @@ def stream_server(seeded_url: str) -> Iterator[str]:
 
 
 def test_http_stream_flushes_sync_and_committed_notices(
-    stream_server: str, seeded_url: str
+    stream_server: tuple[str, str], seeded_url: str
 ) -> None:
     engine = create_engine(seeded_url)
     factory = create_session_factory(engine)
     with (
-        httpx2.Client(timeout=5) as client,
-        client.stream("GET", stream_server + "/api/v1/events/stream") as response,
+        httpx2.Client(timeout=5, headers={"cookie": stream_server[1]}) as client,
+        client.stream("GET", stream_server[0] + "/api/v1/events/stream") as response,
     ):
         assert response.status_code == 200
         assert response.headers["content-type"].startswith("text/event-stream")

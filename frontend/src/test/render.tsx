@@ -5,6 +5,14 @@ import { createMemoryRouter, RouterProvider } from "react-router";
 import { vi } from "vitest";
 
 import { routes } from "@/app/routes";
+import { setCsrfToken } from "@/shared/api/client";
+import type { Session } from "@/shared/identity/session";
+
+export const sessionFixture: Session = {
+  user: { username: "admin", display_name: "Demo admin", role: "admin" },
+  csrf_token: "test-only-csrf",
+  expires_at: "2099-01-01T00:00:00Z",
+};
 
 import {
   activeIncidents,
@@ -28,7 +36,12 @@ import { readyBody } from "./fixtures";
 export function renderApp(
   path = "/",
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } }),
+  authenticated = true,
 ) {
+  if (authenticated && client.getQueryData(["session"]) === undefined) {
+    client.setQueryData(["session"], sessionFixture);
+    setCsrfToken(sessionFixture.csrf_token);
+  }
   const router = createMemoryRouter(routes, { initialEntries: [path] });
   return render(
     <QueryClientProvider client={client}>
@@ -47,6 +60,7 @@ export type Routes = Record<string, Reply | "unreachable">;
 
 /** The API of the collector_down fixture: every view finds its endpoint answered. */
 export const defaultRoutes: Routes = {
+  "/api/v1/auth/me": { body: sessionFixture },
   "/ready": { body: readyBody },
   "/api/v1/platforms": { body: { items: [platform] } },
   "/api/v1/platforms/:id/topology": { body: topology },

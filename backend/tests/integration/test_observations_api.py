@@ -31,7 +31,7 @@ def factory(seeded_url: str) -> Iterator[sessionmaker[Session]]:
 
 @pytest.fixture
 def client(seeded_url: str) -> Iterator[TestClient]:
-    with client_for(seeded_url, dev_mutations=False) as test_client:
+    with client_for(seeded_url, role="viewer") as test_client:
         yield test_client
 
 
@@ -192,11 +192,12 @@ def test_system_status_tells_whether_mutations_are_accepted(
     client: TestClient, seeded_url: str
 ) -> None:
     disabled = client.get("/api/v1/system/status").json()["mutations"]
-    with client_for(seeded_url, dev_mutations=True) as enabled_client:
+    with client_for(seeded_url, role="admin") as enabled_client:
         enabled = enabled_client.get("/api/v1/system/status").json()["mutations"]
 
     assert disabled["enabled"] is False
-    assert "IPHI_DEV_MUTATIONS" in disabled["reason"]
+    assert "role viewer" in disabled["reason"]
+    assert "require engineer" in disabled["reason"]
     assert enabled["enabled"] is True
 
 

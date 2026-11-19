@@ -5,7 +5,9 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, Request, Response, status
 from pydantic import BaseModel, Field
 
+from app.api.auth import require_session
 from app.core.observation import ObservationSource
+from app.identity.auth_domain import Role, SignedIn
 from app.identity.domain import MutationPolicy
 from app.ingestion.domain.collection import CollectionRun, CollectionStatus
 from app.monitor.domain import (
@@ -226,8 +228,14 @@ def system_status_service(request: Request) -> SystemStatusService:
     summary="Monitor observability: clock, worker cycle, collection runs, AI provider.",
 )
 def system_status(
-    request: Request,
+    identity: Annotated[SignedIn, Depends(require_session)],
     service: Annotated[SystemStatusService, Depends(system_status_service)],
 ) -> SystemStatusOut:
-    policy: MutationPolicy = request.app.state.mutation_policy
+    user = identity.user
+    allowed = user.permits(Role.ENGINEER)
+    policy = MutationPolicy(
+        allowed,
+        f"Signed in as {user.username}, role {user.role.value}. "
+        "Mutations require engineer; reset requires admin.",
+    )
     return SystemStatusOut.of(service.status(), policy)

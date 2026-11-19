@@ -17,3 +17,9 @@ coverage/
 playwright-report/
 test-results/
 *.tsbuildinfo
+
+# Disposable browser session secrets.
+.playwright/
+.playwright-cli/
+
+.iphi-env-*

@@ -15,7 +15,7 @@ BASE = "/api/v1/incidents"
 
 @pytest.fixture
 def client(seeded_url: str, platform: Platform) -> Iterator[TestClient]:
-    with client_for(seeded_url, dev_mutations=True) as test_client:
+    with client_for(seeded_url, role="admin") as test_client:
         yield test_client
 
 
@@ -196,10 +196,10 @@ def test_unknown_incident_is_not_found(client: TestClient) -> None:
 def test_mutations_are_refused_and_audited_when_disabled(
     seeded_url: str, platform: Platform
 ) -> None:
-    with client_for(seeded_url, dev_mutations=False) as client:
+    with client_for(seeded_url, role="viewer") as client:
         response = post(client, f"/{the_incident(client)['id']}/ack")
 
     assert response.status_code == 403
-    assert response.json()["code"] == "MUTATIONS_DISABLED"
+    assert response.json()["code"] == "PERMISSION_DENIED"
     (audit,) = platform.rows("SELECT outcome FROM audit_event WHERE action = 'incident.ack'")
     assert audit[0] == "denied"
