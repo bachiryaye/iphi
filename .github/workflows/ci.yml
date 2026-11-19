@@ -181,9 +181,19 @@ jobs:
             docker compose -p iphi-demo up -d --no-deps --force-recreate api
           make wait-ready
           cd frontend && IPHI_E2E_URL=http://127.0.0.1:8081 IPHI_E2E_LLM=fake pnpm exec playwright test --project chromium --grep 'US-08'
+      - name: MQTT simulation through the real broker
+        run: |
+          make demo-down
+          IPHI_LLM_PROVIDER=none make mqtt-demo DEMO_ARGS=--no-live-incident
+      - name: Existing dashboard on MQTT observations
+        run: >-
+          cd frontend && IPHI_E2E_URL=http://127.0.0.1:8082 IPHI_E2E_MQTT=1
+          pnpm exec playwright test --project chromium --grep 'US-12'
       - name: Stack logs
         if: failure()
-        run: docker compose -p iphi-demo logs --tail 300
+        run: |
+          docker compose -p iphi-demo logs --tail 300
+          docker compose -p iphi-mqtt -f compose.yaml -f compose.mqtt.yaml --profile mqtt logs --tail 100
       - name: Keep the Playwright traces
         if: failure()
         uses: actions/upload-artifact@v4
@@ -193,7 +203,7 @@ jobs:
           retention-days: 7
       - name: Stop the stack
         if: always()
-        run: make demo-down
+        run: make demo-down mqtt-down
 
   secrets:
     runs-on: ubuntu-24.04

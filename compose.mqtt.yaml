@@ -1,0 +1,14 @@
+# Use with compose.yaml and --profile mqtt; see make mqtt-up / docs/mqtt.md.
+services:
+  api:
+    environment:
+      IPHI_CONNECTOR_SOURCE: mqtt
+  worker:
+    environment:
+      IPHI_CONNECTOR_SOURCE: mqtt
+      IPHI_MQTT_HOST: mosquitto
+      IPHI_MQTT_TIMEOUT_S: ${IPHI_MQTT_TIMEOUT_S:-3}
+    networks: [default, mqtt]
+    depends_on:
+      mqtt-publisher:
+        condition: service_healthy

@@ -220,3 +220,9 @@ keeps polling. `GET /api/v1/components/{id}/state-history?from&to&max_segments` 
 up to seven days and 2,000 display segments per lane. More than 100,000 source evaluations
 returns `413 HISTORY_TOO_DENSE`: narrow the window. A reset or missing recorded coverage
 remains Unknown. See [ADR 0023](adr/0023-investigation-stream-history.md).
+
+## MQTT transport
+
+The optional US-12 variant uses the same walkthrough through a real local Mosquitto broker:
+`make mqtt-demo`. Its dashboard is on http://127.0.0.1:8082, in the separate `iphi-mqtt`
+project; `make mqtt-down` stops it with its volume retained. See [MQTT setup and wire contract](mqtt.md).

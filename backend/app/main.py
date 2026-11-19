@@ -17,7 +17,7 @@ from app.api import (
     simulations,
     system,
 )
-from app.connectors.registry import ENABLED_CONNECTOR_KEYS
+from app.connectors.registry import enabled_connector_keys
 from app.core.clock import WallClock
 from app.core.db import create_db_engine, create_session_factory
 from app.core.errors import Problem, register_error_handlers
@@ -110,7 +110,9 @@ def create_app(settings: Settings) -> FastAPI:
         wall,
         settings.cycle_interval_s,
         app.state.diagnostics.provider_status,
-        MonitoredParts(simulation, observation_queries, ENABLED_CONNECTOR_KEYS),
+        MonitoredParts(
+            simulation, observation_queries, enabled_connector_keys(settings.connector_source)
+        ),
     )
     app.state.cycle_interval_s = settings.cycle_interval_s
     app.state.audit = AuditService(session_factory, wall)

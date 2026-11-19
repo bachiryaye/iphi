@@ -84,6 +84,41 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
 
+  mosquitto:
+    image: eclipse-mosquitto:2.0.22@sha256:81a6193ae693942a3231cd3ac52875b02b7e3a19da671b2fb4b55cc874c5b279
+    profiles: ["mqtt"]
+    user: "1883:1883"
+    command: ["mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]
+    volumes:
+      - ./config/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    networks: [mqtt]
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    healthcheck:
+      test: ["CMD", "mosquitto_pub", "-h", "127.0.0.1", "-t", "iphi/health", "-m", "simulation", "-q", "1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  mqtt-publisher:
+    <<: *backend
+    profiles: ["mqtt"]
+    command: ["mqtt-publisher"]
+    environment:
+      <<: *backend-env
+      IPHI_MQTT_HOST: mosquitto
+      IPHI_MQTT_TIMEOUT_S: ${IPHI_MQTT_TIMEOUT_S:-3}
+      IPHI_LIVENESS_MAX_AGE_S: 15
+    networks: [default, mqtt]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      mosquitto:
+        condition: service_healthy
+    restart: unless-stopped
+
   frontend:
     build:
       context: ./frontend
@@ -101,3 +136,7 @@ services:
 
 volumes:
   db-data:
+
+networks:
+  mqtt:
+    internal: true

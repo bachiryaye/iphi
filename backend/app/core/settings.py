@@ -5,6 +5,8 @@ from typing import Literal
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.core.observation import ObservationSource
+
 MAX_SEED = 2**31 - 1
 
 
@@ -46,6 +48,10 @@ class Settings(BaseSettings):
         description="Comma-separated Host header values the API answers (DNS rebinding).",
     )
     sim_seed: int = Field(default=42, ge=0, le=MAX_SEED)
+    connector_source: ObservationSource = ObservationSource.SIMULATION
+    mqtt_host: Literal["mosquitto", "127.0.0.1", "localhost"] = "mosquitto"
+    mqtt_port: int = Field(default=1883, ge=1, le=65535)
+    mqtt_timeout_s: float = Field(default=3.0, ge=0.1, le=10)
     retention_days: int = Field(
         default=7, ge=1, le=90, description="Observation retention in platform days (ADR 0008)."
     )
