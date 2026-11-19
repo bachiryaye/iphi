@@ -56,7 +56,7 @@ export function ComponentsTable({ components }: { components: readonly Component
               </td>
               <td className="num whitespace-nowrap text-text-muted">
                 {component.health.evaluated_at === null ? (
-                  "never"
+                  t("never")
                 ) : (
                   <Timestamp iso={component.health.evaluated_at} format="age" />
                 )}
