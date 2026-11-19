@@ -1,6 +1,6 @@
 # Finalisation — documentation, aide et interface bilingue
 
-**Statut :** tâche finale demandée par le propriétaire le 19 novembre 2026 ; à réaliser **après US-12 MQTT**. Implémentation en cours de validation ; voir les résultats ci-dessous.
+**Statut :** tâche finale demandée par le propriétaire le 19 novembre 2026 ; à réaliser **après US-12 MQTT**. Implémentation validée ; livraison et contrôles consultables dans la [PR 15](https://github.com/bachiryaye/iphi/pull/15).
 
 **Objectif :** permettre à un débutant de découvrir, lancer et utiliser IPHI sans accompagnement, et à un évaluateur de stage de comprendre rapidement le travail réalisé et ses limites.
 
@@ -46,4 +46,20 @@ La demande du propriétaire autorise cette évolution au-delà de l'interface un
 6. Les captures correspondent à la version livrée, aucune information secrète n'est publiée, et les limites de simulation restent visibles.
 7. Les vérifications pertinentes de lint, typage, tests et démonstration passent ; les résultats et éventuelles limites sont consignés avant de déclarer ce lot terminé.
 
-**État actuel :** README, guides débutants EN/FR, aide publique `/help`, aide contextuelle et traduction de présentation implémentés (ADR 0027). Vérifications statiques et démonstration sur base neuve réussies ; validation navigateur, captures et CI encore en cours. Ne pas déclarer le lot terminé avant la clôture des critères ci-dessus.
+## Preuves de validation
+
+La source applicative `812a307` a passé les six contrôles de la [CI 44580461936](https://github.com/bachiryaye/iphi/actions/runs/44580461936). Les captures ci-dessous proviennent de son application réelle, après les premières évaluations du scénario nominal, avec un fournisseur IA désactivé.
+
+| Critère | Résultat | Preuve |
+|---|---|---|
+| 1 — Lancement, connexion et démo | PASS | Base neuve, migrations, readiness et démonstration Compose en CI ; démo locale complète en 154 s |
+| 2 — Parcours débutant EN/FR et rôles | PASS | Deux parcours navigateur réels : connexion engineer, panne, composant/métriques, preuves, diagnostic, CSV et récupération ; tests viewer/serveur conservés |
+| 3 — Aide sur chaque page | PASS | Tests des liens contextuels de toutes les routes ; sommaire et ancres valides dans les deux langues |
+| 4 — Préférence et états d’interface | PASS | Rechargement réel, filtre canonique conservé, formulaires, chargement/vide/erreur et restrictions de rôle testés |
+| 5 — Clavier, ordinateur, tablette | PASS | Navigation clavier et focus vers le guide ; axe ; captures 1440/768 px et contrôle du débordement des libellés |
+| 6 — Captures réelles et simulation visible | PASS | [Captures et reproduction](design/screenshots/README.md), formulaire vide, scénario nominal évalué ; anciens clichés identifiés comme historiques |
+| 7 — Qualité et régressions | PASS | Lint/typage, tests frontend/backend, scénarios navigateur, captures, contrat API, images et secrets vérifiés en CI |
+
+**Limites conservées :** les journaux, explications et diagnostics enregistrés restent dans leur langue d’origine ; les rapports PDF/CSV restent anglais. Aucun calcul métier, contrat API, schéma persistant ou connecteur n’est modifié par ce lot. Le seuil p95 sur sept jours et les blocages I/O de la machine locale restent documentés dans [performance.md](performance.md). Les captures de livraison ont été produites par la CI après des expirations locales DNS/Chromium ; aucune attente ni assertion métier n’a été assouplie.
+
+**Livraison :** [PR 15 et ses contrôles](https://github.com/bachiryaye/iphi/pull/15). Les identifiants US-01…US-12 et leurs dépendances restent inchangés.

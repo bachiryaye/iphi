@@ -10,8 +10,8 @@ or screenshots. No password is built into the image or repository.
 Open the interface and sign in as `viewer`, `engineer` or `admin`, using the
 corresponding `IPHI_DEMO_*_PASSWORD`. All observations remain explicitly simulated.
 
-Actual sign-in captures: [light, 1440 px](design/screenshots/us-11-login-light-1440.png)
-and [dark, 768 px](design/screenshots/us-11-login-dark-768.png).
+Current sign-in capture: [French, light, 1440 px](design/screenshots/finalization-login-fr-light-1440.png).
+The [capture index](design/screenshots/README.md) distinguishes current images from historical story evidence.
 
 | Role | Permitted actions |
 |---|---|
