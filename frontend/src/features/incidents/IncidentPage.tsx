@@ -1,3 +1,4 @@
+import { useT } from "@/shared/i18n/context";
 import { ChevronRight } from "@carbon/icons-react";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
@@ -31,11 +32,15 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
 }
 
 function Header({ incident }: { incident: IncidentDetail }) {
+  const t = useT();
   return (
     <header className="flex flex-col gap-3">
-      <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-small text-text-muted">
+      <nav
+        aria-label={t("Breadcrumb")}
+        className="flex items-center gap-1 text-small text-text-muted"
+      >
         <Link to="/incidents" className="text-link">
-          Incidents
+          {t("Incidents")}
         </Link>
         <ChevronRight size={16} aria-hidden="true" />
         <span className="data text-text">{incident.reference}</span>
@@ -53,20 +58,20 @@ function Header({ incident }: { incident: IncidentDetail }) {
         <IncidentActions incident={incident} />
       </div>
       <dl className="flex flex-wrap items-center gap-y-1">
-        <Fact label="Status">
+        <Fact label={t("Status")}>
           <IncidentStatusLabel status={incident.status} acknowledgedBy={incident.acknowledged_by} />
         </Fact>
-        <Fact label="Failure class">{humanize(incident.failure_class)}</Fact>
-        <Fact label="Opened">
+        <Fact label={t("Failure class")}>{humanize(incident.failure_class, t)}</Fact>
+        <Fact label={t("Opened")}>
           <Timestamp iso={incident.opened_at} />{" "}
           <span className="text-text-muted">
             (<Timestamp iso={incident.opened_at} format="age" />)
           </span>
         </Fact>
-        <Fact label="Occurrences">
+        <Fact label={t("Occurrences")}>
           <span className="data">{incident.occurrence_count}</span>
         </Fact>
-        <Fact label="Source">
+        <Fact label={t("Source")}>
           <SimTag />
         </Fact>
       </dl>
@@ -84,44 +89,45 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
 }
 
 function Details({ incident }: { incident: IncidentDetail }) {
+  const t = useT();
   return (
     <dl className="px-4 pt-2 pb-3">
-      <DetailRow label="Status">
+      <DetailRow label={t("Status")}>
         <IncidentStatusLabel status={incident.status} acknowledgedBy={incident.acknowledged_by} />
       </DetailRow>
-      <DetailRow label="Severity">
+      <DetailRow label={t("Severity")}>
         <StatusBadge state={incident.severity} />
       </DetailRow>
-      <DetailRow label="Peak severity">
+      <DetailRow label={t("Peak severity")}>
         <StatusBadge state={incident.peak_severity} />
       </DetailRow>
-      <DetailRow label="Component">
+      <DetailRow label={t("Component")}>
         <Link to={`/components/${incident.component.id}`} className="text-link">
           {incident.component.key}
         </Link>
       </DetailRow>
-      <DetailRow label="Failure class">{humanize(incident.failure_class)}</DetailRow>
-      <DetailRow label="First seen">
+      <DetailRow label={t("Failure class")}>{humanize(incident.failure_class, t)}</DetailRow>
+      <DetailRow label={t("First seen")}>
         <Timestamp iso={incident.opened_at} />
       </DetailRow>
-      <DetailRow label="Last seen">
+      <DetailRow label={t("Last seen")}>
         <Timestamp iso={incident.last_seen_at} />
       </DetailRow>
-      <DetailRow label="Occurrences">
+      <DetailRow label={t("Occurrences")}>
         <span className="data">{incident.occurrence_count}</span>
       </DetailRow>
-      <DetailRow label="Reopened">
+      <DetailRow label={t("Reopened")}>
         <span className="data">{incident.reopen_count}</span>
       </DetailRow>
-      <DetailRow label="Fingerprint">
+      <DetailRow label={t("Fingerprint")}>
         <span className="data" translate="no" title={incident.fingerprint}>
           {incident.fingerprint.slice(0, 8)}
         </span>
-        <CopyButton value={incident.fingerprint} label="Copy fingerprint" />
+        <CopyButton value={incident.fingerprint} label={t("Copy fingerprint")} />
       </DetailRow>
-      <DetailRow label="Impacted">
+      <DetailRow label={t("Impacted")}>
         {incident.impacted.length === 0 ? (
-          <span className="text-text-muted">none</span>
+          <span className="text-text-muted">{t("none")}</span>
         ) : (
           incident.impacted.map((impact) => (
             <Link
@@ -136,10 +142,10 @@ function Details({ incident }: { incident: IncidentDetail }) {
       </DetailRow>
       {incident.resolved_at !== null && (
         <>
-          <DetailRow label="Resolved">
+          <DetailRow label={t("Resolved")}>
             <Timestamp iso={incident.resolved_at} />
           </DetailRow>
-          <DetailRow label="Resolution">{humanize(incident.resolution ?? "")}</DetailRow>
+          <DetailRow label={t("Resolution")}>{humanize(incident.resolution ?? "", t)}</DetailRow>
         </>
       )}
     </dl>
@@ -147,6 +153,7 @@ function Details({ incident }: { incident: IncidentDetail }) {
 }
 
 export function IncidentPage() {
+  const t = useT();
   const { incidentId = "" } = useParams();
   const query = useIncident(incidentId);
   const incident = query.data;
@@ -180,7 +187,7 @@ export function IncidentPage() {
   if (query.isPending) {
     return (
       <div aria-busy="true">
-        <h1 className="sr-only">Incident</h1>
+        <h1 className="sr-only">{t("Incident")}</h1>
         <SkeletonRows rows={6} />
       </div>
     );
@@ -188,9 +195,9 @@ export function IncidentPage() {
   if (incident === undefined) {
     return (
       <>
-        <h1 className="text-display font-semibold">Incident</h1>
-        <Card title="Incident" titleId="incident-error-title">
-          <LoadError what="this incident" query={query} />
+        <h1 className="text-display font-semibold">{t("Incident")}</h1>
+        <Card title={t("Incident")} titleId="incident-error-title">
+          <LoadError what={t("this incident")} query={query} />
         </Card>
       </>
     );
@@ -202,23 +209,32 @@ export function IncidentPage() {
       <div className="grid grid-cols-[minmax(0,1fr)_336px] items-start gap-4 max-xl:grid-cols-1">
         <div className="flex min-w-0 flex-col gap-4">
           <IncidentSignal incident={incident} activeSample={activeSample} />
-          {missing && selected.isPending && <p role="status">Loading cited evidence…</p>}
-          {missing && selected.isError && <LoadError what="the cited evidence" query={selected} />}
+          {missing && selected.isPending && <p role="status">{t("Loading cited evidence…")}</p>}
+          {missing && selected.isError && (
+            <LoadError what={t("the cited evidence")} query={selected} />
+          )}
           {missing && selected.data?.items.length === 0 && (
-            <p role="status">This citation is not attached to the incident.</p>
+            <p role="status">{t("This citation is not attached to the incident.")}</p>
           )}
           <EvidenceChain incident={{ ...incident, evidence: [...byId.values()] }} active={active} />
           <DiagnosisPanel incidentId={incident.id} focus={focus} />
         </div>
-        <aside className="flex flex-col gap-4 xl:sticky xl:top-4" aria-label="Incident context">
+        <aside
+          className="flex flex-col gap-4 xl:sticky xl:top-4"
+          aria-label={t("Incident context")}
+        >
           <Card
-            title="Details"
+            title={t("Details")}
             titleId="details-title"
             meta={<RefreshMeta updatedAt={query.dataUpdatedAt} failed={query.isError} />}
           >
             <Details incident={incident} />
           </Card>
-          <Card title="Timeline" titleId="timeline-title" meta={<span>Times shown in UTC</span>}>
+          <Card
+            title={t("Timeline")}
+            titleId="timeline-title"
+            meta={<span>{t("Times shown in UTC")}</span>}
+          >
             <InvestigationTimeline key={incident.id} incident={incident} />
           </Card>
         </aside>

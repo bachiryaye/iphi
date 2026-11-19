@@ -1,3 +1,4 @@
+import { useT } from "@/shared/i18n/context";
 import { useMemo } from "react";
 
 import { useHealthRules, useMetricSeries } from "@/shared/api/queries";
@@ -21,6 +22,7 @@ export function IncidentSignal({
   incident: IncidentDetail;
   activeSample: number | null;
 }) {
+  const t = useT();
   const rules = useHealthRules();
   const platformNow = usePlatformNow(60_000);
   const ruleKey = incident.condition[0]?.rule.key;
@@ -58,17 +60,21 @@ export function IncidentSignal({
   );
   const markers = useMemo(
     () => [
-      { at: incident.opened_at, label: `${incident.reference} opened` },
-      ...(incident.resolved_at === null ? [] : [{ at: incident.resolved_at, label: "resolved" }]),
+      { at: incident.opened_at, label: `${incident.reference} ${t("Opened")}` },
+      ...(incident.resolved_at === null
+        ? []
+        : [{ at: incident.resolved_at, label: t("Resolved") }]),
     ],
-    [incident],
+    [incident, t],
   );
 
   if (rules.data !== undefined && metric === null) return null;
   return (
     <Card
       title={
-        metric === null ? "Signal" : `Signal: ${incident.component.key} ${metricLabel(metric)}`
+        metric === null
+          ? t("Signal")
+          : `Signal: ${incident.component.key} ${metricLabel(metric, t)}`
       }
       titleId="signal-title"
       busy={series.isPending}
@@ -76,7 +82,7 @@ export function IncidentSignal({
     >
       {series.isPending && <SkeletonRows rows={4} />}
       {series.isError && series.data === undefined && (
-        <LoadError what="the signal" query={series} />
+        <LoadError what={t("the signal")} query={series} />
       )}
       {series.data !== undefined && (
         <MetricChart

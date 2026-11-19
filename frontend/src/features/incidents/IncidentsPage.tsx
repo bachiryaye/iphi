@@ -1,3 +1,4 @@
+import { useT } from "@/shared/i18n/context";
 import { Link, useSearchParams } from "react-router";
 
 import { type IncidentFilters, useIncidents } from "@/shared/api/queries";
@@ -23,6 +24,7 @@ const CLASSES: readonly FailureClass[] = [
 const PAGE_SIZE = 25;
 
 export function IncidentsPage() {
+  const t = useT();
   const [params, setParams] = useSearchParams();
   const [status, setStatus] = useSearchFilter("status", STATUSES);
   const [severity, setSeverity] = useSearchFilter("severity", SEVERITIES);
@@ -48,29 +50,29 @@ export function IncidentsPage() {
 
   return (
     <>
-      <h1 className="text-display font-semibold">Incidents</h1>
+      <h1 className="text-display font-semibold">{t("Incidents")}</h1>
       <div className="flex flex-wrap items-center gap-4">
-        <FilterSelect label="Status" value={status} options={STATUSES} onChange={setStatus} />
+        <FilterSelect label={t("Status")} value={status} options={STATUSES} onChange={setStatus} />
         <FilterSelect
-          label="Severity"
+          label={t("Severity")}
           value={severity}
           options={SEVERITIES}
           onChange={setSeverity}
         />
         <FilterSelect
-          label="Failure class"
+          label={t("Failure class")}
           value={failureClass}
           options={CLASSES}
           onChange={setFailureClass}
         />
       </div>
       <Card
-        title="Incidents"
+        title={t("Incidents")}
         titleId="incidents-title"
         busy={incidents.isPending}
         meta={
           <>
-            <span>most recently opened first</span>
+            <span>{t("most recently opened first")}</span>
             <SimTag />
             <RefreshMeta updatedAt={incidents.dataUpdatedAt} failed={incidents.isError} />
           </>
@@ -79,25 +81,27 @@ export function IncidentsPage() {
         {incidents.isPending && <SkeletonRows rows={6} />}
         {incidents.isError && page === undefined && (
           <LoadError
-            what="incidents"
+            what={t("incidents")}
             query={incidents}
-            stillWorking="Detection continues on the server; only this list is not updating."
+            stillWorking={t("Detection continues on the server; only this list is not updating.")}
           />
         )}
         {page !== undefined && page.items.length === 0 && (
           <EmptyState
-            title={filtered ? "No incident matches these filters." : "No incident recorded."}
+            title={filtered ? t("No incident matches these filters.") : t("No incident recorded.")}
             action={
               filtered ? undefined : (
                 <Link to="/scenarios" className="text-link">
-                  Open scenarios
+                  {t("Open scenarios")}
                 </Link>
               )
             }
           >
             {filtered
-              ? "Clear a filter to widen the list."
-              : "Incidents open when a rule stays in Warning or Critical past its debounce. Start a fault scenario to produce one."}
+              ? t("Clear a filter to widen the list.")
+              : t(
+                  "Incidents open when a rule stays in Warning or Critical past its debounce. Start a fault scenario to produce one.",
+                )}
           </EmptyState>
         )}
         {page !== undefined && page.items.length > 0 && (
@@ -105,18 +109,18 @@ export function IncidentsPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th scope="col">Severity</th>
-                  <th scope="col">Incident</th>
-                  <th scope="col">Component</th>
-                  <th scope="col">Class</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Opened</th>
-                  <th scope="col">Last seen</th>
+                  <th scope="col">{t("Severity")}</th>
+                  <th scope="col">{t("Incident")}</th>
+                  <th scope="col">{t("Component")}</th>
+                  <th scope="col">{t("Class")}</th>
+                  <th scope="col">{t("Status")}</th>
+                  <th scope="col">{t("Opened")}</th>
+                  <th scope="col">{t("Last seen")}</th>
                   <th scope="col" className="num">
-                    Occurrences
+                    {t("Occurrences")}
                   </th>
                   <th scope="col" className="num">
-                    Evidence
+                    {t("Evidence")}
                   </th>
                 </tr>
               </thead>
@@ -144,7 +148,7 @@ export function IncidentsPage() {
                         {incident.component.key}
                       </Link>
                     </td>
-                    <td className="text-text-muted">{humanize(incident.failure_class)}</td>
+                    <td className="text-text-muted">{humanize(incident.failure_class, t)}</td>
                     <td>
                       <IncidentStatusLabel
                         status={incident.status}
@@ -173,7 +177,7 @@ export function IncidentsPage() {
                 goTo(null);
               }}
             >
-              First page
+              {t("First page")}
             </Button>
             <Button
               disabled={page.next_cursor === null}
@@ -181,7 +185,7 @@ export function IncidentsPage() {
                 goTo(page.next_cursor);
               }}
             >
-              Next page
+              {t("Next page")}
             </Button>
           </div>
         )}

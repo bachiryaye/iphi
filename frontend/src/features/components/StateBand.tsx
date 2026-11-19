@@ -1,3 +1,4 @@
+import { useT } from "@/shared/i18n/context";
 import { useState } from "react";
 
 import { useEvaluationHistory } from "@/shared/api/queries";
@@ -34,6 +35,7 @@ function segmentAt(lane: HistoryLane, at: number) {
 }
 
 function Evaluations({ history, filter }: { history: StateHistory; filter: EvaluationSelection }) {
+  const t = useT();
   const query = useEvaluationHistory({
     componentId: history.component.id,
     from: filter.from,
@@ -43,25 +45,25 @@ function Evaluations({ history, filter }: { history: StateHistory; filter: Evalu
   return (
     <div className="border-t border-border">
       <p className="px-4 py-2 text-small text-text-muted">
-        Stored evaluations · {filter.lane} · <Timestamp iso={filter.from} /> to{" "}
-        <Timestamp iso={filter.to} /> · newest 50
+        {t("Stored evaluations ·")} {filter.lane} · <Timestamp iso={filter.from} /> {t("to")}{" "}
+        <Timestamp iso={filter.to} /> {t("· newest 50")}
       </p>
       {query.isPending && (
         <p className="p-4" role="status">
-          Loading evaluations…
+          {t("Loading evaluations…")}
         </p>
       )}
-      {query.isError && <LoadError what="recorded evaluations" query={query} />}
+      {query.isError && <LoadError what={t("recorded evaluations")} query={query} />}
       {query.data !== undefined && (
         <div className="max-h-64 overflow-auto">
           <table className="data-table">
-            <caption className="sr-only">Filtered stored evaluations</caption>
+            <caption className="sr-only">{t("Filtered stored evaluations")}</caption>
             <thead>
               <tr>
                 <th scope="col">UTC</th>
-                <th scope="col">Rule</th>
-                <th scope="col">State</th>
-                <th scope="col">Explanation / proof</th>
+                <th scope="col">{t("Rule")}</th>
+                <th scope="col">{t("State")}</th>
+                <th scope="col">{t("Explanation / proof")}</th>
               </tr>
             </thead>
             <tbody>
@@ -73,10 +75,11 @@ function Evaluations({ history, filter }: { history: StateHistory; filter: Evalu
                   <td className="data">
                     {e.rule.key} v{String(e.rule.version)}
                   </td>
-                  <td>{title(e.state)}</td>
+                  <td>{t.label(title(e.state))}</td>
                   <td>
-                    {e.explanation} · evaluation #{String(e.id)} · {e.evidence.sample_ids.length}{" "}
-                    samples, {e.evidence.log_ids.length} logs
+                    {e.explanation} {t("· evaluation #")}
+                    {String(e.id)} · {e.evidence.sample_ids.length} {t("samples,")}{" "}
+                    {e.evidence.log_ids.length} {t("logs")}
                   </td>
                 </tr>
               ))}
@@ -84,13 +87,14 @@ function Evaluations({ history, filter }: { history: StateHistory; filter: Evalu
           </table>
           {query.data.items.length === 0 && (
             <p className="p-4 text-text-muted">
-              No evaluation in this interval. The band may carry an earlier proof until the next
-              recorded watermark.
+              {t(
+                "No evaluation in this interval. The band may carry an earlier proof until the next recorded watermark.",
+              )}
             </p>
           )}
           {query.data.next_cursor !== null && (
             <p className="p-4 text-small text-text-muted">
-              More evaluations exist; select a narrower interval to inspect them.
+              {t("More evaluations exist; select a narrower interval to inspect them.")}
             </p>
           )}
         </div>
@@ -100,6 +104,7 @@ function Evaluations({ history, filter }: { history: StateHistory; filter: Evalu
 }
 
 export function StateBand({ history, series, cursor, onCursor, markers, scenarios }: Props) {
+  const t = useT();
   const [table, setTable] = useState(false);
   const start = ms(history.from),
     end = ms(history.to),
@@ -114,14 +119,16 @@ export function StateBand({ history, series, cursor, onCursor, markers, scenario
   const inspect = cursor === null ? null : Math.min(end - 1, Math.max(start, cursor));
   const description =
     inspect === null
-      ? "Use Left and Right arrows to inspect time; Shift moves one minute. Home, End and Escape are available."
-      : `${formatUtcDateTime(new Date(inspect))} UTC. ${lanes.map((lane) => `${lane.key}: ${title(segmentAt(lane, inspect)?.state ?? "unknown")}`).join(". ")}. Metric: ${cursorValue(series, inspect)}.`;
+      ? t(
+          "Use Left and Right arrows to inspect time; Shift moves one minute. Home, End and Escape are available.",
+        )
+      : `${formatUtcDateTime(new Date(inspect))}. ${lanes.map((lane) => `${lane.key}: ${t.label(title(segmentAt(lane, inspect)?.state ?? "unknown"))}`).join(". ")}. ${t("Metric")}: ${cursorValue(series, inspect, t)}.`;
   return (
-    <section aria-label="Recorded health history" className="border-b border-border">
+    <section aria-label={t("Recorded health history")} className="border-b border-border">
       <div className="flex flex-wrap items-center gap-2 px-4 py-2">
-        <h3 className="font-medium">Recorded states</h3>
+        <h3 className="font-medium">{t("Recorded states")}</h3>
         <span className="text-small text-text-muted">
-          Neutral Healthy · hatched Unknown · server evaluations
+          {t("Neutral Healthy · hatched Unknown · server evaluations")}
         </span>
         <Button
           variant="quiet"
@@ -131,7 +138,7 @@ export function StateBand({ history, series, cursor, onCursor, markers, scenario
             setTable((v) => !v);
           }}
         >
-          View states as table
+          {t("View states as table")}
         </Button>
       </div>
       <div className="overflow-x-auto px-2">
@@ -173,7 +180,7 @@ export function StateBand({ history, series, cursor, onCursor, markers, scenario
                         width: `${String(percent(ms(s.to)) - percent(ms(s.from)))}%`,
                         minWidth: 2,
                       }}
-                      title={`${lane.key}: ${title(s.state)}; ${s.from} to ${s.to}${s.contains_unknown ? "; includes Unknown coverage" : ""}`}
+                      title={`${lane.key}: ${t.label(title(s.state))}; ${s.from} ${t("to")} ${s.to}${s.contains_unknown ? t("; includes Unknown coverage") : ""}`}
                       onClick={() => {
                         choose(lane.key, s);
                       }}
@@ -181,7 +188,7 @@ export function StateBand({ history, series, cursor, onCursor, markers, scenario
                       {index === 0 &&
                         s.state !== "healthy" &&
                         (ms(s.to) - ms(s.from)) / duration > 0.15 && (
-                          <span className="px-1 text-small">{title(s.state)}</span>
+                          <span className="px-1 text-small">{t.label(title(s.state))}</span>
                         )}
                     </button>
                   ))}
@@ -193,7 +200,7 @@ export function StateBand({ history, series, cursor, onCursor, markers, scenario
                   )}
                 </div>
                 <span className="pl-2 text-small text-text-muted">
-                  {lane.aggregated ? "peak bins" : ""}
+                  {lane.aggregated ? t("peak bins") : ""}
                 </span>
               </div>
             ))}
@@ -219,7 +226,7 @@ export function StateBand({ history, series, cursor, onCursor, markers, scenario
               max={end - 1}
               step={1}
               value={inspect ?? start}
-              aria-label="History time inspector"
+              aria-label={t("History time inspector")}
               aria-valuetext={description}
               className="h-5 w-full accent-accent"
               onChange={(event) => {
@@ -250,7 +257,7 @@ export function StateBand({ history, series, cursor, onCursor, markers, scenario
             <div
               key={run.label}
               className="ml-[150px] mr-[112px] mb-1"
-              title={`${run.from} to ${run.to}`}
+              title={`${run.from} ${t("to")} ${run.to}`}
             >
               <div
                 className="truncate border-x border-t border-border-strong px-1 text-small text-text-muted"
@@ -268,13 +275,13 @@ export function StateBand({ history, series, cursor, onCursor, markers, scenario
       {scenarios.length > 0 && (
         <details className="px-4 py-2 text-small text-text-muted">
           <summary className="cursor-pointer">
-            Scenario runs in this window ({scenarios.length})
-            {scenarios.length > 6 ? " · latest six drawn" : ""}
+            {t("Scenario runs in this window (")}
+            {scenarios.length}){scenarios.length > 6 ? t(" · latest six drawn") : ""}
           </summary>
           <ul className="mt-2 flex flex-col gap-1">
             {scenarios.map((run) => (
               <li key={run.label}>
-                {run.label} · <Timestamp iso={run.from} /> to <Timestamp iso={run.to} />
+                {run.label} · <Timestamp iso={run.from} /> {t("to")} <Timestamp iso={run.to} />
               </li>
             ))}
           </ul>
@@ -285,7 +292,7 @@ export function StateBand({ history, series, cursor, onCursor, markers, scenario
       </p>
       {markers.length > 0 && (
         <p className="px-4 pb-2 text-small text-text-muted">
-          Incident markers (latest labeled on the chart):{" "}
+          {t("Incident markers (latest labeled on the chart):")}{" "}
           {markers.map((m) => (
             <span key={`${m.at}-${m.label}`}>
               {m.label} <Timestamp iso={m.at} />;{" "}
@@ -296,14 +303,14 @@ export function StateBand({ history, series, cursor, onCursor, markers, scenario
       {table && (
         <div className="max-h-72 overflow-auto border-t border-border">
           <table className="data-table">
-            <caption className="sr-only">Recorded state transitions</caption>
+            <caption className="sr-only">{t("Recorded state transitions")}</caption>
             <thead>
               <tr>
-                <th scope="col">Lane / version</th>
-                <th scope="col">From (UTC)</th>
-                <th scope="col">To (UTC)</th>
-                <th scope="col">State</th>
-                <th scope="col">Evaluations</th>
+                <th scope="col">{t("Lane / version")}</th>
+                <th scope="col">{t("From (UTC)")}</th>
+                <th scope="col">{t("To (UTC)")}</th>
+                <th scope="col">{t("State")}</th>
+                <th scope="col">{t("Evaluations")}</th>
               </tr>
             </thead>
             <tbody>
@@ -320,11 +327,11 @@ export function StateBand({ history, series, cursor, onCursor, markers, scenario
                       <Timestamp iso={s.to} />
                     </td>
                     <td>
-                      {title(s.state)}
+                      {t.label(title(s.state))}
                       {s.contains_unknown && s.state !== "unknown"
-                        ? " (also Unknown coverage)"
+                        ? t(" (also Unknown coverage)")
                         : ""}
-                      {lane.aggregated ? " · peak bin" : ""}
+                      {lane.aggregated ? t(" · peak bin") : ""}
                     </td>
                     <td>
                       <button
@@ -335,8 +342,8 @@ export function StateBand({ history, series, cursor, onCursor, markers, scenario
                         }}
                       >
                         {s.evaluation_ids.length === 0
-                          ? "Inspect interval"
-                          : `Inspect #${s.evaluation_ids.join(", #")}`}
+                          ? t("Inspect interval")
+                          : t("Inspect #{ids}", { ids: s.evaluation_ids.join(", #") })}
                       </button>
                     </td>
                   </tr>
@@ -355,7 +362,7 @@ export function StateBand({ history, series, cursor, onCursor, markers, scenario
               clear();
             }}
           >
-            Clear evaluation filter
+            {t("Clear evaluation filter")}
           </Button>
           <Evaluations history={history} filter={filter} />
         </>

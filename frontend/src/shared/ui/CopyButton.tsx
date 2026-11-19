@@ -1,3 +1,4 @@
+import { useT } from "@/shared/i18n/context";
 import { Copy } from "@carbon/icons-react";
 import { useState } from "react";
 
@@ -5,6 +6,7 @@ const COPIED_FEEDBACK_MS = 2000;
 
 /** Icon button copying an identifier, with a polite "Copied" confirmation. */
 export function CopyButton({ value, label }: { value: string; label: string }) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     await navigator.clipboard.writeText(value);
@@ -24,7 +26,7 @@ export function CopyButton({ value, label }: { value: string; label: string }) {
         <Copy size={16} aria-hidden="true" />
       </button>
       <span aria-live="polite" className="text-small text-text-muted">
-        {copied ? "Copied" : ""}
+        {copied ? t("Copied") : ""}
       </span>
     </>
   );

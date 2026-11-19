@@ -1,3 +1,4 @@
+import { useT } from "@/shared/i18n/context";
 import { useState } from "react";
 
 import type { IncidentDetail, IncidentEvidence } from "@/shared/api/types";
@@ -20,6 +21,7 @@ function isKey(item: IncidentEvidence): boolean {
 }
 
 export function EvidenceChain({ incident, active }: EvidenceChainProps) {
+  const t = useT();
   const [showAll, setShowAll] = useState(false);
   const all = incident.evidence;
   const items = showAll ? all : all.filter((item) => isKey(item) || item.id === active);
@@ -27,48 +29,50 @@ export function EvidenceChain({ incident, active }: EvidenceChainProps) {
   const trigger = items.find((e) => e.role === "trigger" && e.evaluation !== null)?.evaluation;
   return (
     <Card
-      title="Evidence chain"
+      title={t("Evidence chain")}
       titleId="evidence-title"
       meta={
         <span>
-          {incident.evidence_count} {incident.evidence_count === 1 ? "item" : "items"}, immutable
+          {incident.evidence_count} {incident.evidence_count === 1 ? "item" : "items"}
+          {t(", immutable")}
         </span>
       }
     >
       {trigger != null && (
         <p className="flex flex-wrap items-center gap-x-2 border-b border-border px-4 py-2.5 text-small">
-          <span className="text-text-muted">Rule</span>
+          <span className="text-text-muted">{t("Rule")}</span>
           <span className="data">
             {trigger.rule.key} v{trigger.rule.version}
           </span>
           <span aria-hidden="true" className="text-text-muted">
             ›
           </span>
-          <span className="text-text-muted">Evaluation</span>
+          <span className="text-text-muted">{t("Evaluation")}</span>
           <span className="data">#{trigger.id}</span>
           <span aria-hidden="true" className="text-text-muted">
             ›
           </span>
           <span className="text-text-muted">
-            {trigger.evidence.sample_ids.length} samples, {trigger.evidence.log_ids.length} logs
+            {trigger.evidence.sample_ids.length} {t("samples,")} {trigger.evidence.log_ids.length}{" "}
+            {t("logs")}
           </span>
         </p>
       )}
       {all.length === 0 ? (
-        <p className="px-4 py-3 text-text-muted">No evidence stored for this incident.</p>
+        <p className="px-4 py-3 text-text-muted">{t("No evidence stored for this incident.")}</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="data-table">
             <thead>
               <tr>
                 <th scope="col">ID</th>
-                <th scope="col">Kind</th>
-                <th scope="col">Observation</th>
-                <th scope="col">Component</th>
-                <th scope="col">Time (UTC)</th>
-                <th scope="col">Role</th>
+                <th scope="col">{t("Kind")}</th>
+                <th scope="col">{t("Observation")}</th>
+                <th scope="col">{t("Component")}</th>
+                <th scope="col">{t("Time (UTC)")}</th>
+                <th scope="col">{t("Role")}</th>
                 <th scope="col">
-                  <span className="sr-only">Source</span>
+                  <span className="sr-only">{t("Source")}</span>
                 </th>
               </tr>
             </thead>
@@ -101,8 +105,8 @@ export function EvidenceChain({ incident, active }: EvidenceChainProps) {
       {(hidden > 0 || showAll) && (
         <div className="flex items-center gap-3 border-t border-border px-4 py-2.5 text-small text-text-muted">
           {showAll
-            ? "Showing every item."
-            : `${String(hidden)} samples cited by supporting evaluations are hidden.`}
+            ? t("Showing every item.")
+            : t("{count} samples cited by supporting evaluations are hidden.", { count: hidden })}
           <Button
             variant="quiet"
             className="h-7"
@@ -111,14 +115,16 @@ export function EvidenceChain({ incident, active }: EvidenceChainProps) {
               setShowAll((v) => !v);
             }}
           >
-            {showAll ? "Show key items only" : `Show all ${String(all.length)} items`}
+            {showAll
+              ? t("Show key items only")
+              : t("Show all {count} items", { count: all.length })}
           </Button>
         </div>
       )}
       {incident.evidence_next_cursor !== null && (
         <p className="border-t border-border px-4 py-2.5 text-small text-text-muted">
-          Loaded {all.length} of {incident.evidence_count} items. Choose a citation to load its
-          evidence.
+          {t("Loaded")} {all.length} {t("of")} {incident.evidence_count}{" "}
+          {t("items. Choose a citation to load its evidence.")}
         </p>
       )}
     </Card>

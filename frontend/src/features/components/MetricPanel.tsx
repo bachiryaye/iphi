@@ -1,3 +1,4 @@
+import { useT } from "@/shared/i18n/context";
 import { useMemo, useState } from "react";
 
 import {
@@ -37,6 +38,7 @@ interface MetricPanelProps {
 }
 
 export function MetricPanel({ detail, rules }: MetricPanelProps) {
+  const t = useT();
   const metrics = [
     ...new Set(rules.flatMap((r) => (r.rule.metric_name === null ? [] : [r.rule.metric_name]))),
   ];
@@ -77,10 +79,10 @@ export function MetricPanel({ detail, rules }: MetricPanelProps) {
     () =>
       incidents.data?.items
         .flatMap((i) => [
-          { at: i.opened_at, label: `${i.reference} opened` },
+          { at: i.opened_at, label: `${i.reference} ${t("Opened")}` },
           ...(i.resolved_at === null
             ? []
-            : [{ at: i.resolved_at, label: `${i.reference} resolved` }]),
+            : [{ at: i.resolved_at, label: `${i.reference} ${t("Resolved")}` }]),
         ])
         .filter(
           (m) =>
@@ -90,7 +92,7 @@ export function MetricPanel({ detail, rules }: MetricPanelProps) {
         )
         .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
         .map((marker, index) => ({ ...marker, showLabel: index === 0 })) ?? [],
-    [incidents.data, historyRequest],
+    [incidents.data, historyRequest, t],
   );
   const spans =
     runs.data?.items
@@ -107,8 +109,8 @@ export function MetricPanel({ detail, rules }: MetricPanelProps) {
           Date.parse(r.to) > Date.parse(historyRequest.from),
       ) ?? [];
   const thresholds = useMemo(
-    () => (metric === null ? [] : thresholdsFor(metric, rules)),
-    [metric, rules],
+    () => (metric === null ? [] : thresholdsFor(metric, rules, t)),
+    [metric, rules, t],
   );
   const aligned =
     history.data === undefined ||
@@ -118,21 +120,21 @@ export function MetricPanel({ detail, rules }: MetricPanelProps) {
 
   return (
     <Card
-      title="Metric history"
+      title={t("Metric history")}
       titleId="metric-title"
       busy={series.isPending && request !== null}
       meta={
         <>
           {metrics.length > 1 && metric !== null && (
             <Segmented
-              label="Metric"
-              options={metrics.map((m) => ({ value: m, label: metricLabel(m) }))}
+              label={t("Metric")}
+              options={metrics.map((m) => ({ value: m, label: metricLabel(m, t) }))}
               value={metric}
               onChange={setChosen}
             />
           )}
           <Segmented
-            label="Time window"
+            label={t("Time window")}
             options={WINDOWS}
             value={windowKey}
             onChange={setWindowKey}
@@ -145,11 +147,11 @@ export function MetricPanel({ detail, rules }: MetricPanelProps) {
     >
       {historyRequest !== null && history.isPending && <SkeletonRows rows={3} />}
       {history.isError && history.data === undefined && (
-        <LoadError what="recorded state history" query={history} />
+        <LoadError what={t("recorded state history")} query={history} />
       )}
       {!aligned && (
         <p className="px-4 py-2 text-small text-text-muted" role="status">
-          Aligning the recorded states and metric window…
+          {t("Aligning the recorded states and metric window…")}
         </p>
       )}
       {history.data !== undefined && aligned && (
@@ -166,23 +168,25 @@ export function MetricPanel({ detail, rules }: MetricPanelProps) {
       )}
       {(incidents.isError || runs.isError) && (
         <p className="px-4 py-2 text-small text-text-muted">
-          Some investigation annotations could not be refreshed.
+          {t("Some investigation annotations could not be refreshed.")}
         </p>
       )}
       {(incidents.data?.next_cursor != null || runs.data?.next_cursor != null) && (
         <p className="px-4 py-2 text-small text-text-muted">
-          Annotations cover the latest 100 incidents and scenario runs. Older items remain available
-          in their lists.
+          {t(
+            "Annotations cover the latest 100 incidents and scenario runs. Older items remain available in their lists.",
+          )}
         </p>
       )}
       {metric === null && (
-        <EmptyState title="No measured metric.">
-          No rule on {detail.key} measures a metric yet; rules appear after the first evaluation.
+        <EmptyState title={t("No measured metric.")}>
+          {t("No rule on")} {detail.key}{" "}
+          {t("measures a metric yet; rules appear after the first evaluation.")}
         </EmptyState>
       )}
       {metric !== null && series.isPending && <SkeletonRows rows={5} />}
       {series.isError && series.data === undefined && (
-        <LoadError what="the metric history" query={series} />
+        <LoadError what={t("the metric history")} query={series} />
       )}
       {series.data !== undefined && aligned && (
         <div className={staleClass(series.isError)}>

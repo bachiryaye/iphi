@@ -26,3 +26,7 @@ Il faut des installations reproductibles, des vérifications rapides et une lang
 
 - Les termes d'interface sont fixés dans `docs/04-design-system.md` §10.
 - Décision réversible : l'interface peut être traduite plus tard (textes centralisés).
+
+## Évolution du 19 novembre 2026
+
+La décision de langue de l’interface est remplacée par l’[ADR 0027](0027-bilingual-help.md) : présentation anglais/français à la demande du propriétaire. API, code et commits restent anglais ; README anglais avec point d’entrée français.

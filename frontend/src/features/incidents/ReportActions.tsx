@@ -1,3 +1,4 @@
+import { useT } from "@/shared/i18n/context";
 import { Download } from "@carbon/icons-react";
 import { useMutation } from "@tanstack/react-query";
 
@@ -47,6 +48,7 @@ export function ReportActions({
   incidentId: string;
   reference: string;
 }) {
+  const t = useT();
   const download = useMutation({
     mutationFn: (format: Format) => report(incidentId, format),
     onSuccess: (blob, format) => {
@@ -58,7 +60,7 @@ export function ReportActions({
     <div className="flex flex-col items-end gap-2 max-xl:items-start">
       <div
         role="group"
-        aria-label="Incident report"
+        aria-label={t("Incident report")}
         className="flex flex-wrap gap-2"
         aria-busy={download.isPending}
       >
@@ -72,21 +74,21 @@ export function ReportActions({
             }}
           >
             {download.isPending && download.variables === format
-              ? "Generating…"
-              : `Export ${format.toUpperCase()}`}
+              ? t("Generating…")
+              : t("Export {format}", { format: format.toUpperCase() })}
           </Button>
         ))}
       </div>
       {download.isSuccess && (
         <p role="status" className="text-small text-text-muted">
-          Report ready. Your browser handles the download.
+          {t("Report ready. Your browser handles the download.")}
         </p>
       )}
       {error !== null && (
         <div role="alert" className="max-w-[60ch] border-l-[3px] border-border-strong px-3 py-2">
-          <p className="font-medium">Could not export the report.</p>
+          <p className="font-medium">{t("Could not export the report.")}</p>
           <p className="text-text-muted">
-            <ApiErrorSummary error={error} /> Monitoring continues. Retry the export.
+            <ApiErrorSummary error={error} /> {t("Monitoring continues. Retry the export.")}
           </p>
           {error instanceof ApiError && error.correlationId !== null && (
             <CorrelationId value={error.correlationId} />

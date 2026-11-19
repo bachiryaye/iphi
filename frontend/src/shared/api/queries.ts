@@ -1,3 +1,4 @@
+import { useT } from "@/shared/i18n/context";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useSession } from "@/shared/identity/session";
@@ -266,11 +267,21 @@ export function useSystemStatus() {
 
 /** ADR 0007 guard as the API reports it; `undefined` until the status has loaded. */
 export function useMutationGuard(required: "engineer" | "admin" = "engineer") {
+  const t = useT();
   const mutations = useSystemStatus().data?.mutations;
   const user = useSession().data?.user;
   const roleAllowed =
     user?.role === "admin" || (required === "engineer" && user?.role === "engineer");
-  return { allowed: mutations?.enabled === true && roleAllowed, reason: mutations?.reason };
+  return {
+    allowed: mutations?.enabled === true && roleAllowed,
+    reason:
+      t.language === "fr" && user && !roleAllowed
+        ? t("Your role is {role}. This action requires {required}.", {
+            role: t.label(user.role),
+            required: t.label(required),
+          })
+        : mutations?.reason,
+  };
 }
 
 export function useScenarios() {

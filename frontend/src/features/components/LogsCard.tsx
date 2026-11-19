@@ -1,3 +1,4 @@
+import { useT } from "@/shared/i18n/context";
 import { useLogs } from "@/shared/api/queries";
 import type { LogEntry } from "@/shared/api/types";
 import { SimTag } from "@/shared/status/SimTag";
@@ -17,26 +18,27 @@ const SEVERITY_TONE: Record<LogEntry["severity"], string> = {
 };
 
 export function LogsCard({ componentId }: { componentId: string }) {
+  const t = useT();
   const logs = useLogs(componentId, "warning");
   const groups = logs.data === undefined ? [] : groupLogs(logs.data.items);
   return (
     <Card
-      title="Recent logs"
+      title={t("Recent logs")}
       titleId="logs-title"
       busy={logs.isPending}
       meta={
         <>
-          <span>warning and above, last hour, grouped by fingerprint</span>
+          <span>{t("warning and above, last hour, grouped by fingerprint")}</span>
           <SimTag />
           <RefreshMeta updatedAt={logs.dataUpdatedAt} failed={logs.isError} />
         </>
       }
     >
       {logs.isPending && <SkeletonRows rows={3} />}
-      {logs.isError && logs.data === undefined && <LoadError what="logs" query={logs} />}
+      {logs.isError && logs.data === undefined && <LoadError what={t("logs")} query={logs} />}
       {logs.data !== undefined && groups.length === 0 && (
         <p className="px-4 py-3 text-text-muted">
-          No warning or error log in the last hour of platform time.
+          {t("No warning or error log in the last hour of platform time.")}
         </p>
       )}
       {groups.length > 0 && (
@@ -44,13 +46,13 @@ export function LogsCard({ componentId }: { componentId: string }) {
           <table className="data-table">
             <thead>
               <tr>
-                <th scope="col">Latest (UTC)</th>
-                <th scope="col">Severity</th>
-                <th scope="col">Message</th>
+                <th scope="col">{t("Latest (UTC)")}</th>
+                <th scope="col">{t("Severity")}</th>
+                <th scope="col">{t("Message")}</th>
                 <th scope="col" className="num">
-                  Count
+                  {t("Count")}
                 </th>
-                <th scope="col">Fingerprint</th>
+                <th scope="col">{t("Fingerprint")}</th>
               </tr>
             </thead>
             <tbody>
@@ -75,7 +77,7 @@ export function LogsCard({ componentId }: { componentId: string }) {
       )}
       {logs.data?.next_cursor != null && (
         <p className="border-t border-border px-4 py-2.5 text-small text-text-muted">
-          Grouped from the latest 100 entries; older ones are not shown.
+          {t("Grouped from the latest 100 entries; older ones are not shown.")}
         </p>
       )}
     </Card>

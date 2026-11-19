@@ -1,3 +1,4 @@
+import { useT } from "@/shared/i18n/context";
 import { lazy, Suspense } from "react";
 import { Link } from "react-router";
 
@@ -15,13 +16,14 @@ const TopologyGraph = lazy(() =>
 );
 
 function Legend() {
+  const t = useT();
   return (
     <ul className="flex flex-wrap gap-x-5 gap-y-1 border-t border-border px-4 py-2.5 text-small text-text-muted">
       <li className="inline-flex items-center gap-2">
         <svg width="28" height="8" aria-hidden="true">
           <line x1="0" y1="4" x2="28" y2="4" strokeWidth="1.5" className="stroke-border-strong" />
-        </svg>
-        data flow
+        </svg>{" "}
+        {t("data flow")}
       </li>
       <li className="inline-flex items-center gap-2">
         <svg width="28" height="8" aria-hidden="true">
@@ -34,8 +36,8 @@ function Legend() {
             strokeDasharray="5 4"
             className="stroke-border-strong"
           />
-        </svg>
-        runtime dependency
+        </svg>{" "}
+        {t("runtime dependency")}
       </li>
       <li className="inline-flex items-center gap-2">
         <svg width="28" height="8" aria-hidden="true">
@@ -47,26 +49,27 @@ function Legend() {
             strokeWidth="2"
             className="stroke-status-critical opacity-60"
           />
-        </svg>
-        impact path from a Critical or Unknown component
+        </svg>{" "}
+        {t("impact path from a Critical or Unknown component")}
       </li>
-      <li>Arrows follow the data, from a dependency to its dependent.</li>
+      <li>{t("Arrows follow the data, from a dependency to its dependent.")}</li>
     </ul>
   );
 }
 
 function DependencyTable({ topology }: { topology: Topology }) {
+  const t = useT();
   const keys = new Map(topology.nodes.map((n) => [n.id, n.key]));
   return (
     <div className="overflow-x-auto border-t border-border">
       <table className="data-table">
-        <caption className="sr-only">Components and their dependencies</caption>
+        <caption className="sr-only">{t("Components and their dependencies")}</caption>
         <thead>
           <tr>
-            <th scope="col">Component</th>
-            <th scope="col">State</th>
-            <th scope="col">Depends on</th>
-            <th scope="col">Impacted by</th>
+            <th scope="col">{t("Component")}</th>
+            <th scope="col">{t("State")}</th>
+            <th scope="col">{t("Depends on")}</th>
+            <th scope="col">{t("Impacted by")}</th>
           </tr>
         </thead>
         <tbody>
@@ -86,7 +89,7 @@ function DependencyTable({ topology }: { topology: Topology }) {
               <td className="text-text-muted">
                 {topology.edges
                   .filter((e) => e.dependent_id === node.id)
-                  .map((e) => `${keys.get(e.dependency_id) ?? "?"} (${humanize(e.kind)})`)
+                  .map((e) => `${keys.get(e.dependency_id) ?? "?"} (${humanize(e.kind, t)})`)
                   .join(", ") || "none"}
               </td>
               <td className="text-text-muted">
@@ -101,20 +104,21 @@ function DependencyTable({ topology }: { topology: Topology }) {
 }
 
 export function TopologyPage() {
+  const t = useT();
   const platforms = usePlatforms();
   const platformId = platforms.data?.items[0]?.id;
   const topology = useTopology(platformId);
   const error = platforms.error ?? topology.error;
   return (
     <>
-      <h1 className="text-display font-semibold">Topology</h1>
+      <h1 className="text-display font-semibold">{t("Topology")}</h1>
       <Card
-        title="Dependency chain"
+        title={t("Dependency chain")}
         titleId="topology-title"
         busy={topology.isPending}
         meta={
           <>
-            <span>pan, zoom and select · arrows follow the data</span>
+            <span>{t("pan, zoom and select · arrows follow the data")}</span>
             <SimTag />
             <RefreshMeta updatedAt={topology.dataUpdatedAt} failed={topology.isError} />
           </>
@@ -122,11 +126,14 @@ export function TopologyPage() {
       >
         {topology.data === undefined && error === null && <SkeletonRows rows={4} />}
         {topology.data === undefined && error !== null && (
-          <LoadError what="the topology" query={platformId === undefined ? platforms : topology} />
+          <LoadError
+            what={t("the topology")}
+            query={platformId === undefined ? platforms : topology}
+          />
         )}
         {platforms.data !== undefined && platformId === undefined && (
-          <EmptyState title="No platform configured.">
-            The bootstrap seeds the simulated platform.
+          <EmptyState title={t("No platform configured.")}>
+            {t("The bootstrap seeds the simulated platform.")}
           </EmptyState>
         )}
         {topology.data !== undefined && (

@@ -1,3 +1,4 @@
+import { useT } from "@/shared/i18n/context";
 import { Renew, Time, WarningAlt } from "@carbon/icons-react";
 import type { ReactNode } from "react";
 
@@ -13,19 +14,21 @@ import { CopyButton } from "./CopyButton";
 const REFRESH_S = REFRESH_MS / 1000;
 
 export function CorrelationId({ value }: { value: string }) {
+  const t = useT();
   return (
     <p className="flex items-center gap-2 text-small text-text-muted">
-      Correlation ID{" "}
+      {t("Correlation ID")}{" "}
       <span className="data text-text" translate="no">
         {value}
       </span>
-      <CopyButton value={value} label="Copy correlation ID" />
+      <CopyButton value={value} label={t("Copy correlation ID")} />
     </p>
   );
 }
 
 /** A refused mutation: what the API said, and that the server audited the attempt. */
 export function RefusedAlert({ action, error }: { action: string; error: Error | null }) {
+  const t = useT();
   if (error === null) return null;
   const apiError = error instanceof ApiError ? error : null;
   return (
@@ -33,10 +36,12 @@ export function RefusedAlert({ action, error }: { action: string; error: Error |
       role="alert"
       className="flex flex-col gap-1 border-l-[3px] border-border-strong bg-surface px-3 py-2"
     >
-      <p className="font-medium">{action} refused.</p>
+      <p className="font-medium">
+        {action} {t("refused.")}
+      </p>
       <p className="text-text-muted">
         <ApiErrorSummary error={error} />
-        {apiError?.status != null && " The attempt is recorded in the audit log."}
+        {apiError?.status != null && t(" The attempt is recorded in the audit log.")}
       </p>
       {apiError?.correlationId != null && <CorrelationId value={apiError.correlationId} />}
     </div>
@@ -45,19 +50,22 @@ export function RefusedAlert({ action, error }: { action: string; error: Error |
 
 /** One sentence on what the API said; shared by load errors and refused actions. */
 export function ApiErrorSummary({ error }: { error: Error }) {
+  const t = useT();
   const apiError = error instanceof ApiError ? error : null;
   if (apiError?.status == null) {
     return (
       <>
-        The API did not answer; it may be stopped. Start it with{" "}
+        {t("The API did not answer; it may be stopped. Start it with")}{" "}
         <code className="data">make up</code>.
       </>
     );
   }
   return (
     <>
-      The API answered {apiError.status} <span className="data">{apiError.code}</span>:{" "}
-      {apiError.message}
+      {t("The API answered")} {apiError.status} <span className="data">{apiError.code}</span>:{" "}
+      <span lang="en" translate="no">
+        {apiError.message}
+      </span>
     </>
   );
 }
@@ -78,6 +86,7 @@ interface LoadErrorProps {
 }
 
 export function LoadError({ what, query, stillWorking }: LoadErrorProps) {
+  const t = useT();
   const { error } = query;
   if (error === null) return null;
   const correlationId = error instanceof ApiError ? error.correlationId : null;
@@ -85,9 +94,11 @@ export function LoadError({ what, query, stillWorking }: LoadErrorProps) {
     <div role="alert" className="flex items-start gap-3 px-4 py-4">
       <WarningAlt size={20} aria-hidden="true" className="mt-0.5 flex-none text-text-muted" />
       <div className="flex flex-col gap-2">
-        <p className="font-semibold">Could not load {what}.</p>
+        <p className="font-semibold">
+          {t("Could not load")} {what}.
+        </p>
         <p className="text-text-muted">
-          <ApiErrorSummary error={error} /> Failed at{" "}
+          <ApiErrorSummary error={error} /> {t("Failed at")}{" "}
           <span className="data">{formatUtcTime(new Date(query.errorUpdatedAt))} UTC</span>.
           {stillWorking !== undefined && <> {stillWorking}</>}
         </p>
@@ -98,7 +109,7 @@ export function LoadError({ what, query, stillWorking }: LoadErrorProps) {
             disabled={query.isFetching}
             icon={<Renew size={16} aria-hidden="true" />}
           >
-            {query.isFetching ? "Retrying…" : "Retry"}
+            {query.isFetching ? t("Retrying…") : t("Retry")}
           </Button>
         </div>
       </div>
@@ -141,6 +152,7 @@ interface RefreshMetaProps {
 
 /** "Updated 4 s ago", or the stale-view notice once a refresh failed with data on screen. */
 export function RefreshMeta({ updatedAt, failed }: RefreshMetaProps) {
+  const t = useT();
   const now = useNow();
   const { mode } = useLiveState();
   if (updatedAt === 0) return null;
@@ -148,10 +160,16 @@ export function RefreshMeta({ updatedAt, failed }: RefreshMetaProps) {
   if (failed) {
     return (
       <span className="flex items-center gap-1.5">
-        <Time size={16} aria-hidden="true" />
-        Data from <span className="data">{formatUtcTime(at)} UTC</span>, {formatAge(at, now)};
-        refresh failed,{" "}
-        {mode === "live" ? "retrying on live updates." : <>retrying every {REFRESH_S}&nbsp;s.</>}
+        <Time size={16} aria-hidden="true" /> {t("Data from")}{" "}
+        <span className="data">{formatUtcTime(at)} UTC</span>, {formatAge(at, now, t)}
+        {t("; refresh failed,")}{" "}
+        {mode === "live" ? (
+          t("retrying on live updates.")
+        ) : (
+          <>
+            {t("retrying every")} {REFRESH_S}&nbsp;s.
+          </>
+        )}
       </span>
     );
   }
@@ -159,11 +177,11 @@ export function RefreshMeta({ updatedAt, failed }: RefreshMetaProps) {
     <span
       title={
         mode === "live"
-          ? "Refreshes on committed changes"
-          : `Refreshes every ${String(REFRESH_S)} s`
+          ? t("Refreshes on committed changes")
+          : t("Refreshes every {seconds} s", { seconds: REFRESH_S })
       }
     >
-      Updated <span className="data">{formatAge(at, now)}</span>
+      {t("Updated")} <span className="data">{formatAge(at, now, t)}</span>
     </span>
   );
 }

@@ -11,6 +11,8 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router";
 
+import { LanguageProvider } from "@/shared/i18n/LanguageProvider";
+
 import { routes } from "./app/routes";
 
 const root = document.getElementById("root");
@@ -23,7 +25,9 @@ const router = createBrowserRouter(routes);
 createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <LanguageProvider>
+        <RouterProvider router={router} />
+      </LanguageProvider>
     </QueryClientProvider>
   </StrictMode>,
 );

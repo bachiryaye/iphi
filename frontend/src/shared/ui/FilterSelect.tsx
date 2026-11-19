@@ -1,3 +1,4 @@
+import { useT } from "@/shared/i18n/context";
 import { useId } from "react";
 import { humanize } from "@/shared/format/labels";
 
@@ -15,8 +16,9 @@ export function FilterSelect<T extends string>({
   value,
   options,
   onChange,
-  format = humanize,
+  format = (option: T) => humanize(option),
 }: FilterSelectProps<T>) {
+  const t = useT();
   const id = useId();
   return (
     <span className="inline-flex items-center gap-2">
@@ -32,10 +34,10 @@ export function FilterSelect<T extends string>({
         }}
         className="h-8 rounded-control border border-border-strong bg-surface px-2 text-text"
       >
-        <option value="">All</option>
+        <option value="">{t("All")}</option>
         {options.map((option) => (
           <option key={option} value={option}>
-            {format(option)}
+            {t.label(format(option))}
           </option>
         ))}
       </select>

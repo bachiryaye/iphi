@@ -1,3 +1,4 @@
+import { useT } from "@/shared/i18n/context";
 import { Checkmark, DocumentView, UserFollow } from "@carbon/icons-react";
 import { useId, useState } from "react";
 
@@ -14,6 +15,7 @@ function newKey(): string {
 
 /** Acknowledge, resolve and diagnose; disabled with the reason when the API refuses them. */
 export function IncidentActions({ incident }: { incident: IncidentDetail }) {
+  const t = useT();
   const { allowed, reason } = useMutationGuard();
   const acknowledge = useAcknowledge(incident.id);
   const resolve = useResolve(incident.id);
@@ -24,9 +26,9 @@ export function IncidentActions({ incident }: { incident: IncidentDetail }) {
 
   const resolved = incident.status === "resolved";
   const failure =
-    (acknowledge.error && { action: "Acknowledge", error: acknowledge.error }) ||
-    (resolve.error && { action: "Resolve", error: resolve.error }) ||
-    (diagnose.error && { action: "Diagnose", error: diagnose.error }) ||
+    (acknowledge.error && { action: t("Acknowledge"), error: acknowledge.error }) ||
+    (resolve.error && { action: t("Resolve"), error: resolve.error }) ||
+    (diagnose.error && { action: t("Diagnose"), error: diagnose.error }) ||
     null;
 
   const submit = (event: { preventDefault: () => void }) => {
@@ -49,7 +51,7 @@ export function IncidentActions({ incident }: { incident: IncidentDetail }) {
             acknowledge.mutate();
           }}
         >
-          {incident.status === "acknowledged" ? "Acknowledged" : "Acknowledge"}
+          {incident.status === "acknowledged" ? t("Acknowledged") : t("Acknowledge")}
         </Button>
         <Button
           icon={<Checkmark size={16} aria-hidden="true" />}
@@ -60,11 +62,11 @@ export function IncidentActions({ incident }: { incident: IncidentDetail }) {
           }}
           title={
             !resolved && !incident.resolvable
-              ? "The condition is still active; the incident resolves itself once it clears."
+              ? t("The condition is still active; the incident resolves itself once it clears.")
               : undefined
           }
         >
-          Resolve…
+          {t("Resolve…")}
         </Button>
         <Button
           variant="primary"
@@ -74,20 +76,21 @@ export function IncidentActions({ incident }: { incident: IncidentDetail }) {
             diagnose.mutate(newKey());
           }}
         >
-          {diagnose.isPending ? "Diagnosing…" : "Diagnose"}
+          {diagnose.isPending ? t("Diagnosing…") : t("Diagnose")}
         </Button>
       </div>
       <AiDiagnosisAction incidentId={incident.id} />
       <ReportActions incidentId={incident.id} reference={incident.reference} />
       {reason !== undefined && !allowed && (
         <p className="max-w-[60ch] text-right text-small text-text-muted max-xl:text-left">
-          Incident changes are disabled: {reason} Reports remain available.
+          {t("Incident changes are disabled:")} {t.label(reason)} {t("Reports remain available.")}
         </p>
       )}
       {allowed && !resolved && !incident.resolvable && (
         <p className="max-w-[60ch] text-right text-small text-text-muted max-xl:text-left">
-          Resolve is unavailable while the condition is active; the incident resolves itself once
-          the rule clears.
+          {t(
+            "Resolve is unavailable while the condition is active; the incident resolves itself once the rule clears.",
+          )}
         </p>
       )}
       {resolving && (
@@ -96,7 +99,7 @@ export function IncidentActions({ incident }: { incident: IncidentDetail }) {
           className="flex w-full max-w-md flex-col gap-2 rounded-card border border-border bg-surface p-3"
         >
           <label htmlFor={commentId} className="font-medium">
-            Why is this incident closed?
+            {t("Why is this incident closed?")}
           </label>
           <textarea
             id={commentId}
@@ -111,21 +114,21 @@ export function IncidentActions({ incident }: { incident: IncidentDetail }) {
             }}
             className="rounded-control border border-border-strong bg-surface px-2 py-1.5 text-text"
           />
-          <p className="text-small text-text-muted">Kept in the incident timeline.</p>
+          <p className="text-small text-text-muted">{t("Kept in the incident timeline.")}</p>
           <div className="flex gap-2">
             <Button
               type="submit"
               variant="primary"
               disabled={comment.trim() === "" || resolve.isPending}
             >
-              {resolve.isPending ? "Resolving…" : "Resolve incident"}
+              {resolve.isPending ? t("Resolving…") : t("Resolve incident")}
             </Button>
             <Button
               onClick={() => {
                 setResolving(false);
               }}
             >
-              Cancel
+              {t("Cancel")}
             </Button>
           </div>
         </form>

@@ -1,8 +1,10 @@
+import { useT } from "@/shared/i18n/context";
 import { useDiagnose, useMutationGuard, useSystemStatus } from "@/shared/api/queries";
 import { Button } from "@/shared/ui/Button";
 import { RefusedAlert } from "@/shared/ui/QueryStates";
 
 export function AiDiagnosisAction({ incidentId }: { incidentId: string }) {
+  const t = useT();
   const { allowed } = useMutationGuard();
   const status = useSystemStatus().data?.ai_provider;
   const diagnosis = useDiagnose(incidentId, "llm");
@@ -15,14 +17,14 @@ export function AiDiagnosisAction({ incidentId }: { incidentId: string }) {
           diagnosis.mutate(globalThis.crypto.randomUUID());
         }}
       >
-        {diagnosis.isPending ? "Requesting AI diagnosis…" : "AI diagnosis"}
+        {diagnosis.isPending ? t("Requesting AI diagnosis…") : t("AI diagnosis")}
       </Button>
       {disabled && (
         <p className="text-small text-text-muted">
-          AI diagnosis off. Deterministic diagnosis remains available.
+          {t("AI diagnosis off. Deterministic diagnosis remains available.")}
         </p>
       )}
-      <RefusedAlert action="AI diagnosis" error={diagnosis.error} />
+      <RefusedAlert action={t("AI diagnosis")} error={diagnosis.error} />
     </div>
   );
 }

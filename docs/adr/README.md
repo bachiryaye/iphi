@@ -32,3 +32,5 @@ Format : contexte, décision, alternatives, conséquences. Statut de toutes les 
 | [0026](0026-mqtt-simulation-transport.md) | US-12: bounded MQTT simulation batches, real broker, transport selection and reset |
 
 Nouvelle ADR : copier le format, numéro suivant, statut *Proposée* jusqu'à validation.
+
+- [0027 — Bilingual presentation and beginner help](0027-bilingual-help.md)
