@@ -79,6 +79,8 @@ def test_ten_minute_batch_roundtrips_observations_quality_and_attribution() -> N
     "field_value",
     [
         ("version", 2),
+        ("version", True),
+        ("version", 1.0),
         ("environment", "production"),
         ("source", "simulation"),
         ("extra", "ignored"),

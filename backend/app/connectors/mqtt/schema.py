@@ -2,7 +2,15 @@ import uuid
 from collections.abc import Iterator
 from typing import Annotated, Literal
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, FiniteFloat, TypeAdapter
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    FiniteFloat,
+    TypeAdapter,
+    field_validator,
+)
 
 from app.connectors.domain import CollectionResult, ConnectorIssue, ObservedLog, ObservedSample
 from app.core.observation import LogSeverity, Quality, tick_of, tick_time
@@ -24,6 +32,13 @@ class Envelope(BaseModel):
     source: Literal["mqtt"] = "mqtt"
     request_id: uuid.UUID
     baseline_id: uuid.UUID
+
+    @field_validator("version", mode="before")
+    @classmethod
+    def integer_version(cls, value: object) -> object:
+        if not isinstance(value, int) or isinstance(value, bool):
+            raise ValueError("MQTT version must be an integer")
+        return value
 
 
 class CollectRequest(Envelope):

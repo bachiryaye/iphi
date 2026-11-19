@@ -80,6 +80,25 @@ different environments, not a before/after performance comparison. The historica
 An additional isolated local first-display attempt also timed out before completing
 its five loads while I/O pressure reached 99%; it provides no successful timing sample.
 
+## US-12 local transport validation
+
+The initial MQTT integration setup could not create its disposable broker within 120 s on
+this loaded host. A later run passed collector outage/evidence/API, publisher loss/recovery
+and reset/evidence holds; a separate broker-restart testcase passed but Docker removal
+exceeded the 120 s teardown limit, leaving that pytest invocation with an error. The owned
+container was subsequently confirmed removed. These are not reported as a green local suite.
+An initial reconnect fixture used a dynamically published port; it now reserves a stable
+loopback port across container restart. No business assertions or timeouts were weakened.
+
+The local Compose build also encountered an occupied PostgreSQL port 5435 belonging to
+another application. The MQTT Make targets accept independent port overrides; validation
+continued on 5438 without stopping that application. I/O pressure during these attempts was
+roughly 60–85%. These results do not establish a new performance baseline.
+
+PR #14 CI run 44538711480 passed all four real-broker integration tests and the complete
+MQTT walkthrough (114 s) and browser path (24.4 s), in addition to the existing regression
+suite. No new seven-day load test was run; the earlier measured target misses remain.
+
 ## Reading
 
 - The 7-day aggregated series misses its target on this host. PostgreSQL executes the query in 123 ms with every page in cache (parallel index-only scan of 120 k rows, sort, group by `date_bin`); the rest is contention with the host's I/O and CPU load, which also explains the spread between the two runs. The target is not reported as met.

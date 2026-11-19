@@ -21,6 +21,10 @@ in the ignored local `.env`; the broker has **no published port**. The usual `ip
 `iphi-demo` projects have separate databases/ports. Do not run competing builds of the shared
 local image while another demo is in progress.
 
+If a port is occupied, override `IPHI_MQTT_FRONTEND_PORT`, `IPHI_MQTT_API_PORT` or
+`IPHI_MQTT_DB_PORT` on every command for this project, for example:
+`make mqtt-up IPHI_MQTT_DB_PORT=5438`. Existing services on those ports are never stopped.
+
 In **Scenarios**, start `collector_down`. In **Overview**, collector-01 becomes Critical.
 In **Incidents**, open its single availability incident: the rule evaluations cite stored
 MQTT `up=0` samples, with source `mqtt` and the scenario UUID. Stop the scenario to observe
@@ -130,3 +134,10 @@ databases. Docker lifecycle waits are restricted to the transport boundary; busi
 manual and the seed fixed. Integration checks collector outage/evidence/API, lost publication
 and recovery, reset/evidence holds and broker reconnection. See [ADR 0026](adr/0026-mqtt-simulation-transport.md)
 for the design trade-offs and [demo guide](demo.md) for the shared walkthrough.
+
+PR #14 CI run 44538711480 completed all six jobs successfully: 692 backend tests (including
+the four real-broker integration tests), 102 frontend tests, the standard demo (110 s),
+12 browser regressions and the separate fake-provider test. The MQTT walkthrough passed
+in 114 s; the MQTT dashboard/evidence browser test passed in 24.4 s. The final strict-version
+regressions also pass locally (27 MQTT contract tests). Host startup/teardown limitations are
+recorded in [performance notes](performance.md#us-12-local-transport-validation).
