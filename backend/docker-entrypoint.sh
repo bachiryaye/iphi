@@ -24,6 +24,9 @@ case "$role" in
     migrate)
         exec python -m app.bootstrap "$@"
         ;;
+    mqtt-publisher)
+        exec python -m app.connectors.mqtt.publisher "$@"
+        ;;
     healthcheck)
         exec python -m app.healthcheck
         ;;

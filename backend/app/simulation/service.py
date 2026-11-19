@@ -8,7 +8,7 @@ import structlog
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.clock import Clock
-from app.core.observation import tick_time
+from app.core.observation import ObservationSource, tick_time
 from app.health.service import HealthHistory
 from app.identity.domain import AuditAction, AuditContext
 from app.identity.service import AuditDraft, AuditedMutations
@@ -200,7 +200,8 @@ class SimulationService:
             # Incidents outlive the history they stood on: they close, their evidence stays.
             closed = IncidentHistory(mutation.session).close_all(actor_of(context), started_at)
             holds = evidence_holds()
-            purged = ObservationHistory(mutation.session).purge_source(OBSERVATION_SOURCE, holds)
+            history = ObservationHistory(mutation.session)
+            purged = sum(history.purge_source(source, holds) for source in ObservationSource)
             # V1 platforms are simulated only: every health state derives from what was purged.
             evaluations = HealthHistory(mutation.session).clear(holds)
             mutation.audit.details.update(
@@ -269,6 +270,10 @@ class SimulationService:
 
     def coverage_start(self) -> datetime:
         """Start of the active baseline: no earlier sample slot belongs to the current history."""
+        return self.baseline().started_at
+
+    def baseline(self) -> ScenarioRun:
+        """Current simulation epoch, shared by both transports (ADR 0026)."""
         with self._session_factory() as session:
             baseline = next(
                 (r for r in self._runs(session).active() if r.scenario is ScenarioKey.BASELINE),
@@ -276,7 +281,7 @@ class SimulationService:
             )
         if baseline is None:
             raise SimulationNotInitializedError("No active baseline run; reset the simulation.")
-        return baseline.started_at
+        return baseline
 
     def observations(self, first_tick: int, last_tick: int) -> list[TickObservations]:
         """Simulated observations for ticks `first_tick`..`last_tick`, from persisted runs only."""

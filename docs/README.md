@@ -7,7 +7,8 @@
 | [03-backlog.md](03-backlog.md) | 1.1 | Epics, US-01…US-12, critères d'acceptation — **fait référence pour l'ordonnancement** |
 | [04-design-system.md](04-design-system.md) | 1.3 | Design system et écrans — normatif pour l'interface |
 | [design/inspirations.md](design/inspirations.md) | — | Moodboard annoté (sources, à reprendre / à écarter) — non normatif |
-| [adr/](adr/README.md) | — | Décisions d'architecture 0001–0020 |
+| [adr/](adr/README.md) | — | Décisions d'architecture 0001–0026 |
+| [mqtt.md](mqtt.md) | — | Connecteur MQTT simulé, lancement, topics, schéma et vérification (anglais) |
 | [demo.md](demo.md) | — | Guide de démonstration pour un évaluateur : commandes et résultats attendus (anglais) |
 | [case-study.md](case-study.md) | — | Étude de cas : problème, décisions, compromis, limites (anglais) |
 | [performance.md](performance.md) | — | Objectifs du §07.2 mesurés, méthode et machine (anglais) |

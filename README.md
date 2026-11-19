@@ -19,7 +19,7 @@ IPHI monitors the health of an **industrial data platform** — sources, gateway
 | US-09 | Incident PDF and CSV reports from stored evidence | Delivered (PR #9; main CI 44248348754 green) |
 | US-07 | Live updates, interactive topology, recorded state history and investigation comments | Delivered (PR #10; CI green on main) |
 | US-11 | Server sessions, roles, CSRF, audit and permission tests | Implemented (PR #12; CI green, [access guide](docs/access.md)) |
-| US-12 | MQTT adapter | Planned ([backlog](docs/03-backlog.md)) |
+| US-12 | MQTT adapter with a real broker and synthetic publisher | In progress ([MQTT guide](docs/mqtt.md)) |
 
 What runs today: PostgreSQL, a migration and seed job, the FastAPI API (`/health`, `/ready`, simulation, metrics, logs, health and system status endpoints, OpenAPI), a worker that holds the scheduler lock and, every cycle, collects the simulated observations, validates and stores them, evaluates the health rules, opens, updates and resolves incidents, purges data past retention and writes a heartbeat, and the operator dashboard described below.
 
@@ -174,6 +174,12 @@ cd backend && uv run python -m scripts.simulate collector_down --ticks 120
 
 ## Observations
 
+The optional [MQTT simulation](docs/mqtt.md) runs the same pipeline through a real Mosquitto
+broker and separate synthetic publisher: `make mqtt-up` opens its isolated dashboard on port
+8082, and `make mqtt-demo` runs the acceptance walkthrough through MQTT. Observations carry
+`source=mqtt`, always in `environment=simulation`. The default stack uses direct simulation;
+only one transport is selected at a time. No real industrial compatibility is claimed.
+
 Every cycle the worker collects each elapsed 5 s sample slot once (also in accelerated time), validates it and stores it in PostgreSQL, with `observed_at` (event time) and `received_at` (ingestion time), `source=simulation` and the scenario run that shaped it. Invalid observations are rejected and counted per code (unknown component or metric, wrong unit, out of range, more than 30 s in the future, more than 10 min late, oversized log); re-delivered ones are ignored and counted. A failing connector is recorded as a failed collection run without stopping the cycle. Observations older than `IPHI_RETENTION_DAYS` (7) are purged; `reset` purges the simulated history.
 
 ```sh
@@ -306,7 +312,7 @@ make check       # lint, type checks, tests, API client drift — what CI runs
 make help        # every target
 ```
 
-- Backend tests run against a real PostgreSQL (`make test-backend` starts the `db` service; each test gets a fresh database).
+- Backend tests run against real PostgreSQL (`make test-backend` starts `db`; each test gets a fresh database). MQTT integration tests also create a disposable Mosquitto container; Docker is required. `make test-mqtt` runs just the MQTT contract and integration tests.
 - Frontend tests use Vitest, Testing Library and axe-core (every screen is checked for serious accessibility violations).
 - End-to-end: `make test-e2e` runs Playwright (Chromium) against the demo stack (started clean when it is not running): all eight mandatory scenarios of the backlog, including viewer refusal and admin audit through the interface, and the first display of the Overview (once: `cd frontend && pnpm exec playwright install chromium`).
 - `make demo` is itself an executable acceptance test of the API path: it exits non-zero when an expected state, incident or diagnosis is not observed.

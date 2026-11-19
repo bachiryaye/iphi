@@ -19,6 +19,9 @@ READY_URL ?= $(DEMO_URL)
 DEMO_ARGS ?=
 DEMO_COMPOSE := IPHI_FRONTEND_PORT=$(IPHI_DEMO_FRONTEND_PORT) IPHI_API_PORT=$(IPHI_DEMO_API_PORT) \
 	IPHI_DB_PORT=$(IPHI_DEMO_DB_PORT) docker compose -p iphi-demo
+MQTT_URL := http://127.0.0.1:8082
+MQTT_COMPOSE := IPHI_FRONTEND_PORT=8082 IPHI_API_PORT=8002 IPHI_DB_PORT=5435 \
+	docker compose -p iphi-mqtt -f compose.yaml -f compose.mqtt.yaml --profile mqtt
 
 BACKEND := cd backend &&
 FRONTEND := cd frontend &&
@@ -26,6 +29,7 @@ FRONTEND := cd frontend &&
 .DEFAULT_GOAL := help
 .PHONY: help up down logs db install lint typecheck test test-backend test-frontend test-e2e \
 	api-client api-drift check demo demo-up demo-running demo-down perf screenshots wait-ready init-env
+.PHONY: mqtt-up mqtt-demo mqtt-down test-mqtt
 
 help: ## List targets
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
@@ -86,6 +90,19 @@ wait-ready: ## Wait up to 3 min for READY_URL/ready (default: the demo stack)
 
 init-env: ## Generate missing local demo credentials without printing them
 	python3 scripts/init_env.py
+
+mqtt-up: init-env ## Start the isolated MQTT simulation (UI 8082, API 8002, PostgreSQL 5435)
+	$(MQTT_COMPOSE) up --build -d
+	$(MAKE) --no-print-directory wait-ready READY_URL=$(MQTT_URL)
+
+mqtt-demo: mqtt-up ## Run the deterministic demonstration through the real MQTT broker
+	$(MQTT_COMPOSE) exec -T api python -m scripts.demo $(DEMO_ARGS)
+
+mqtt-down: ## Stop the MQTT simulation (data volume kept)
+	$(MQTT_COMPOSE) down
+
+test-mqtt: db ## MQTT contract + real-broker/PostgreSQL integration tests (Docker required)
+	$(BACKEND) uv run pytest tests/unit/test_mqtt.py tests/integration/test_mqtt.py -q
 
 demo-up: init-env demo-down ## Start a clean, seeded demo stack (fresh volume) and wait until it is ready
 	$(DEMO_COMPOSE) up --build -d

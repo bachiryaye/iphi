@@ -201,17 +201,21 @@ def _cycle_logs() -> AbstractContextManager[None]:
 
 
 def build_cycle_steps(
-    session_factory: sessionmaker[Session], wall: Clock, retention: timedelta
+    session_factory: sessionmaker[Session],
+    wall: Clock,
+    retention: timedelta,
+    settings: Settings | None = None,
 ) -> CycleSteps:
     simulation = build_simulation(session_factory, wall)
     policy = IngestionPolicy()
     topology = TopologyService(session_factory)
     collection = CollectionService(
-        build_connectors(simulation), topology, SIMULATED_PLATFORM.key, policy, wall
+        build_connectors(simulation, settings), topology, SIMULATED_PLATFORM.key, policy, wall
     )
     # Slots older than the lateness bound cannot receive observations any more (ADR 0015).
     health = HealthEvaluation(topology, SIMULATED_PLATFORM.key, policy.late_tolerance, simulation)
-    incidents = IncidentProcessing(topology, SIMULATED_PLATFORM.key, simulation, OBSERVATION_SOURCE)
+    source = OBSERVATION_SOURCE if settings is None else settings.connector_source
+    incidents = IncidentProcessing(topology, SIMULATED_PLATFORM.key, simulation, source)
     holds = evidence_holds()
 
     def observations(session: Session, cutoff: datetime, batch: int) -> int:
@@ -245,7 +249,7 @@ def main() -> int:
         HeartbeatService(session_factory),
         wall,
         settings.cycle_interval_s,
-        build_cycle_steps(session_factory, wall, timedelta(days=settings.retention_days)),
+        build_cycle_steps(session_factory, wall, timedelta(days=settings.retention_days), settings),
     )
     # The advisory lock lives as long as this connection: a second worker waits (ADR 0001).
     with engine.connect() as lock_connection:
