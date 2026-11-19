@@ -175,6 +175,19 @@ jobs:
         run: make demo DEMO_ARGS=--no-live-incident
       - name: End-to-end tests (make test-e2e)
         run: make test-e2e
+      - name: Capture the current bilingual documentation and sign-in
+        id: documentation-captures
+        working-directory: frontend
+        env:
+          IPHI_E2E_URL: http://127.0.0.1:8081
+        run: pnpm exec playwright test e2e/help.capture.ts --project=screenshots
+      - name: Keep the verified documentation captures
+        if: always() && steps.documentation-captures.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation-captures
+          path: docs/design/screenshots/finalization-*.png
+          retention-days: 7
       - name: Optional AI diagnosis with the local fake provider
         run: |
           IPHI_LLM_PROVIDER=fake IPHI_FRONTEND_PORT=8081 IPHI_API_PORT=8001 IPHI_DB_PORT=5434 \

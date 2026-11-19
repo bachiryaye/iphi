@@ -109,7 +109,7 @@ export const french = {
   "Not in the first evidence page.": "Absente de la première page de preuves.",
   "not in the first evidence page": "absente de la première page de preuves",
   since: "depuis",
-  for: "depuis",
+  for: "soit",
   by: "par",
   of: "sur",
   to: "à",
