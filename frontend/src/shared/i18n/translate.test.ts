@@ -17,6 +17,10 @@ describe("presentation translation boundaries", () => {
       "collector-01 unreachable <script>alert(1)</script>",
     );
   });
+  it("preserves prototype property names as unknown technical labels", () => {
+    for (const label of ["constructor", "__proto__", "toString", "hasOwnProperty"])
+      expect(fr.label(label)).toBe(label);
+  });
   it("reorders named values and formats relative age and numbers by locale", () => {
     expect(fr("{duration} ago", { duration: "4 min" })).toBe("il y a 4 min");
     expect(formatAge(new Date("2026-11-19T12:00:00Z"), new Date("2026-11-19T12:04:00Z"), fr)).toBe(

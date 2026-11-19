@@ -98,6 +98,17 @@ for (const language of ["en", "fr"] as const) {
       .getByRole("row")
       .filter({ has: page.getByRole("rowheader", { name: /^collector-01/ }) });
     await expect(collector).toContainText(labels.critical, { timeout: SEEN });
+    await collector.getByRole("link", { name: /^collector-01/ }).click();
+    await expect(
+      page.getByRole("region", { name: language === "fr" ? "Règles" : "Rules", exact: true }),
+    ).toContainText("R-AVAIL-001");
+    await expect(
+      page.getByRole("region", {
+        name: language === "fr" ? "Historique des métriques" : "Metric history",
+        exact: true,
+      }),
+    ).toBeVisible();
+    await page.getByRole("link", { name: labels.overview, exact: true }).click();
     const incidentLink = page.getByRole("link", { name: /collector-01 unreachable/ });
     await expect(incidentLink).toHaveCount(1, { timeout: SEEN });
     await incidentLink.click();
