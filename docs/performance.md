@@ -59,6 +59,27 @@ Two runs on the same stack, 2026-11-16: the first right after the backfill, the 
 
 Rebuilding the covering unique index on `metric_sample` took 109 s on 4.3 M samples, under a write lock: the worker waits for `migrate` to finish.
 
+### Authenticated dashboard (US-11, 2026-11-19)
+
+The same first-display test now starts with a real server session and an empty browser
+cache for each load. The performance assertion remains below 2 seconds for every load.
+
+| Environment | Five cold loads (ms) | Target met |
+|---|---|---|
+| Local, loaded host, run 1 | 2486, 2015, 1045, 1882, 879 | no |
+| Local, loaded host, run 2 | 1833, 1239, 2052, 911, 821 | no |
+| PR #12 CI, run 44483207714 | 272, 250, 254, 237, 245 | yes |
+
+Local I/O pressure reached 93%; PDF and worker-cycle waits also timed out in some
+browser scenarios. The first local suite finished with 9 passed, 3 failed and one
+optional skip; the second with 7 passed, 5 failed and one skip. The viewer-context
+and redirect waits were corrected separately; its final isolated local test passed.
+CI completed all 12 browser tests and the separate fake-provider test. These are
+different environments, not a before/after performance comparison. The historical
+7-day series target miss above remains unresolved.
+An additional isolated local first-display attempt also timed out before completing
+its five loads while I/O pressure reached 99%; it provides no successful timing sample.
+
 ## Reading
 
 - The 7-day aggregated series misses its target on this host. PostgreSQL executes the query in 123 ms with every page in cache (parallel index-only scan of 120 k rows, sort, group by `date_bin`); the rest is contention with the host's I/O and CPU load, which also explains the spread between the two runs. The target is not reported as met.
