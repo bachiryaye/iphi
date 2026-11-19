@@ -105,6 +105,8 @@ iphi_request http://127.0.0.1:8080/api/v1/auth/logout \
 Delete the temporary directory after sign-out. Never share cookie or header files.
 Playwright similarly creates disposable, ignored session files under
 `frontend/.playwright/`; they are not source files or screenshots.
+The frontend Docker context excludes these sessions, browser reports and local
+environment files. CI verifies the actual exported context using synthetic sentinels.
 
 See [ADR 0025](adr/0025-identity-sessions-us11.md) and the
 [identity threat model](security/identity-threat-model.md).

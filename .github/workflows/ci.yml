@@ -110,6 +110,19 @@ jobs:
       - uses: actions/checkout@v5
       - name: Configure disposable demo credentials
         run: make init-env
+      - name: Frontend build context excludes credentials and browser artifacts
+        run: |
+          mkdir -p frontend/.playwright frontend/test-results
+          printf 'not-a-credential\n' > frontend/.playwright/context-sentinel
+          printf 'not-a-credential\n' > frontend/test-results/context-sentinel
+          printf 'not-a-credential\n' > frontend/.env.context-probe
+          printf 'FROM scratch\nCOPY . /context\n' > "$RUNNER_TEMP/context.Dockerfile"
+          docker build -f "$RUNNER_TEMP/context.Dockerfile" \
+            --output "type=local,dest=$RUNNER_TEMP/frontend-context" frontend
+          test ! -e "$RUNNER_TEMP/frontend-context/context/.playwright"
+          test ! -e "$RUNNER_TEMP/frontend-context/context/test-results"
+          test ! -e "$RUNNER_TEMP/frontend-context/context/.env.context-probe"
+          test -f "$RUNNER_TEMP/frontend-context/context/src/main.tsx"
       - name: Build the Compose images
         run: docker compose build
       - name: Stack starts and becomes ready
