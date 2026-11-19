@@ -1,3 +1,4 @@
+import { useT } from "@/shared/i18n/context";
 import { CheckmarkOutline } from "@carbon/icons-react";
 
 import type { IncidentStatus as Status } from "@/shared/api/types";
@@ -15,11 +16,12 @@ interface IncidentStatusProps {
 
 /** Open: filled dot; Acknowledged: hollow dot and who; Resolved: check, muted text (§4). */
 export function IncidentStatusLabel({ status, acknowledgedBy }: IncidentStatusProps) {
+  const t = useT();
   if (status === "resolved") {
     return (
       <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-text-muted">
         <CheckmarkOutline size={16} aria-hidden="true" />
-        {LABEL.resolved}
+        {t.label(LABEL.resolved)}
       </span>
     );
   }
@@ -29,9 +31,11 @@ export function IncidentStatusLabel({ status, acknowledgedBy }: IncidentStatusPr
         aria-hidden="true"
         className={`size-2 rounded-full border-2 border-text ${status === "open" ? "bg-text" : ""}`}
       />
-      {LABEL[status]}
+      {t.label(LABEL[status])}
       {status === "acknowledged" && acknowledgedBy != null && (
-        <span className="text-small text-text-muted">by {acknowledgedBy}</span>
+        <span className="text-small text-text-muted">
+          {t("by")} {acknowledgedBy}
+        </span>
       )}
     </span>
   );

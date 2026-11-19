@@ -1,3 +1,4 @@
+import { useT } from "@/shared/i18n/context";
 import { Branch } from "@carbon/icons-react";
 import { Link } from "react-router";
 
@@ -12,12 +13,13 @@ import { Timestamp } from "@/shared/status/Timestamp";
 const ORDER: readonly HealthState[] = ["healthy", "warning", "critical", "unknown"];
 
 function Since({ iso }: { iso: string }) {
+  const t = useT();
   const now = usePlatformClock();
   return (
     <span>
-      since <Timestamp iso={iso} />{" "}
+      {t("since")} <Timestamp iso={iso} />{" "}
       <span className="text-text-muted">
-        for {formatDuration((now.getTime() - new Date(iso).getTime()) / 1000)}
+        {t("for")} {formatDuration((now.getTime() - new Date(iso).getTime()) / 1000)}
       </span>
     </span>
   );
@@ -30,6 +32,7 @@ interface PlatformHealthCardProps {
 
 /** Answers "is everything fine, if not where and since when" with the API's own rationale. */
 export function PlatformHealthCard({ platform, components }: PlatformHealthCardProps) {
+  const t = useT();
   const health = platform.health;
   const impacted = components.filter((c) => c.impacted_by.length > 0);
   return (
@@ -41,7 +44,7 @@ export function PlatformHealthCard({ platform, components }: PlatformHealthCardP
       <p>{health.rationale}</p>
       {health.decided_by.length > 0 && (
         <p className="flex flex-wrap gap-x-2 text-small text-text-muted">
-          Open the component behind this state:
+          {t("Open the component behind this state:")}{" "}
           {health.decided_by.map((ref) => (
             <Link key={ref.id} to={`/components/${ref.id}`} className="text-link">
               {ref.key}
@@ -50,7 +53,7 @@ export function PlatformHealthCard({ platform, components }: PlatformHealthCardP
         </p>
       )}
       <ul
-        aria-label="Components by state"
+        aria-label={t("Components by state")}
         className="grid grid-cols-4 rounded-control border border-border"
       >
         {ORDER.map((state) => {
@@ -62,7 +65,7 @@ export function PlatformHealthCard({ platform, components }: PlatformHealthCardP
             >
               <span className="inline-flex items-center gap-1.5 text-small text-text-muted">
                 <StatusIndicator state={state} size="sm" />
-                {STATE_LABEL[state]}
+                {t.label(STATE_LABEL[state])}
               </span>
               <span
                 className={`font-mono text-kpi font-medium ${count === 0 ? "text-text-muted" : STATE_TEXT[state]}`}
@@ -77,8 +80,8 @@ export function PlatformHealthCard({ platform, components }: PlatformHealthCardP
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-small text-text-muted">
           <Branch size={16} aria-hidden="true" />
           {impacted.length === 1
-            ? "1 component impacted:"
-            : `${String(impacted.length)} components impacted:`}
+            ? t("1 component impacted:")
+            : t("{count} components impacted:", { count: impacted.length })}
           {impacted.map((c) => (
             <Link key={c.id} to={`/components/${c.id}`} className="text-link whitespace-nowrap">
               {c.key}

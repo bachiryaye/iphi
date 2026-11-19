@@ -4,6 +4,8 @@ import axe from "axe-core";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { vi } from "vitest";
 
+import { LanguageProvider } from "@/shared/i18n/LanguageProvider";
+
 import { routes } from "@/app/routes";
 import { setCsrfToken } from "@/shared/api/client";
 import type { Session } from "@/shared/identity/session";
@@ -45,7 +47,9 @@ export function renderApp(
   const router = createMemoryRouter(routes, { initialEntries: [path] });
   return render(
     <QueryClientProvider client={client}>
-      <RouterProvider router={router} />
+      <LanguageProvider>
+        <RouterProvider router={router} />
+      </LanguageProvider>
     </QueryClientProvider>,
   );
 }

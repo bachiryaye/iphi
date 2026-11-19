@@ -345,7 +345,7 @@ Référence visuelle : `docs/design/mockups/states.html`. Règle commune : les �
 
 ## 10. Rédaction
 
-- Interface en anglais (ADR 0010). Phrases courtes, verbes d'action sur les boutons (*Acknowledge*, *Resolve*, *Start scenario*).
+- Interface en anglais par défaut et en français (ADR 0027, évolution de l’ADR 0010). Phrases courtes, verbes d'action sur les boutons (*Acknowledge*, *Resolve*, *Start scenario*).
 - Vocabulaire fixe : *component*, *platform*, *incident*, *evidence*, *rule*, *evaluation*, *scenario run*, *impacted*. Jamais « alert » et « incident » comme synonymes.
 - Dates : `2026-11-12 10:42:07 UTC` ; relatif toujours doublé de l'absolu (info-bulle).
 - On ne surestime jamais : « correlated with », pas « caused by », sauf preuve explicite.
@@ -389,3 +389,9 @@ Ces visuels n'affichent que des données calculées par le serveur ; ils suppose
 | 1.3 | 2026-11-12 | Maquettes Component et États d'interface : §6.3 réécrit (en-tête, *Health over time* avec réticule commun et clavier, règles, logs, dépendances, incidents), lignes de règles à 14 px sans libellé interne, token `--band-healthy`, §8 réécrit (états d'interface neutres, moniteur bloqué, plateforme Unknown). |
 | 1.2 | 2026-11-12 | Maquettes : indicateurs d'état d'après Hollifield (carré / triangle / cercle pointillé, plus de pastilles pleines), Healthy neutre, icônes Carbon au lieu de Lucide, compteurs neutres, tokens `--on-*`, `--meter-normal`, `--highlight`, graphique *Probe result* sur Incident, exemples ASCII alignés sur les maquettes (data-api-01 en Warning via R-ERR-001, INC-0007 non acquitté). |
 | 1.1 | 2026-11-12 | Après l'étude d'inspirations (`design/inspirations.md`) : `RangeMeter` sur Overview, `StateBand` sur Component, Incident en deux colonnes avec *Details* + `IncidentTimeline` (déduplication visible), affirmations de diagnostic dépliables, placement des indicateurs, règles dataviz complémentaires, contrats d'API requis. |
+
+## Finalisation — langue et aide (ADR 0027)
+
+La présentation est disponible en anglais (défaut) et en français : navigation, contrôles, formulaires, états, erreurs d’interface, textes accessibles, catalogue et aide. Le sélecteur natif « Français / English » est disponible avant connexion et dans l’en-tête ; sa préférence persiste dans le navigateur. Les valeurs API, clés techniques, unités et preuves restent inchangées. Les textes enregistrés (journaux, explications, commentaires, diagnostics) gardent leur langue d’origine, signalée explicitement en français ; les exports restent anglais. Cette évolution autorisée remplace les mentions d’interface exclusivement anglaise du §10.
+
+Chaque écran, y compris connexion et adresse inconnue, propose « Help for this page / Aide pour cette page » via details/summary natif, avec un lien vers /help et l’étape suivante. L’aide publique suit un sommaire et une colonne de lecture ≤74ch, réutilise IBM Plex et les tokens existants, sans modifier la sémantique de santé. Les horodatages absolus restent UTC au format lisible existant ; les libellés relatifs et nombres suivent la langue.

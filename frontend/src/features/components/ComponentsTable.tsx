@@ -1,3 +1,4 @@
+import { useT } from "@/shared/i18n/context";
 import { Link } from "react-router";
 
 import type { Component } from "@/shared/api/types";
@@ -8,22 +9,23 @@ import { Timestamp } from "@/shared/status/Timestamp";
 
 /** One row per component, in the order the API lists them; every row leads to the Component view. */
 export function ComponentsTable({ components }: { components: readonly Component[] }) {
+  const t = useT();
   return (
     <div className="overflow-x-auto">
       <table className="data-table">
         <thead>
           <tr>
-            <th scope="col">Component</th>
-            <th scope="col">State</th>
+            <th scope="col">{t("Component")}</th>
+            <th scope="col">{t("State")}</th>
             <th scope="col" className="max-lg:hidden">
-              Criticality
+              {t("Criticality")}
             </th>
-            <th scope="col">Key metric</th>
+            <th scope="col">{t("Key metric")}</th>
             <th scope="col" className="max-lg:hidden">
-              Impact
+              {t("Impact")}
             </th>
             <th scope="col" className="num">
-              Last evaluation
+              {t("Last evaluation")}
             </th>
           </tr>
         </thead>
@@ -40,12 +42,12 @@ export function ComponentsTable({ components }: { components: readonly Component
                 >
                   {component.key}
                 </Link>
-                <span className="block text-small text-text-muted">{component.type}</span>
+                <span className="block text-small text-text-muted">{t.label(component.type)}</span>
               </th>
               <td>
                 <HealthBadge health={component.health} />
               </td>
-              <td className="text-text-muted max-lg:hidden">{component.criticality}</td>
+              <td className="text-text-muted max-lg:hidden">{t.label(component.criticality)}</td>
               <td>
                 <KeyMetricCell metric={component.key_metric} />
               </td>

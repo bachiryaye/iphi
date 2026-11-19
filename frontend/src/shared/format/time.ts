@@ -1,3 +1,5 @@
+import { english, type Translator } from "@/shared/i18n/translate";
+
 const utcTime = new Intl.DateTimeFormat("en-GB", {
   timeZone: "UTC",
   hour: "2-digit",
@@ -32,7 +34,8 @@ export const formatLocalTime = (date: Date): string => localTime.format(date);
 export const formatUtcDateTime = (date: Date): string =>
   `${utcDate.format(date)} ${utcTime.format(date)} UTC`;
 
-export const formatSeconds = (value: number): string => `${seconds.format(value)}\u00a0s`;
+export const formatSeconds = (value: number, t: Translator = english): string =>
+  `${t.language === "fr" ? value.toLocaleString("fr-FR", { maximumFractionDigits: 1 }) : seconds.format(value)}\u00a0s`;
 
 /** `2 min 15 s`, `14 min`, `3 h 05 min`: the largest two units, never a bare number. */
 export function formatDuration(totalSeconds: number): string {
@@ -52,9 +55,9 @@ export function formatDuration(totalSeconds: number): string {
 }
 
 /** `4 min ago`; always shown next to, or with a title holding, the absolute time (P6). */
-export const formatAge = (from: Date, now: Date): string =>
-  `${formatDuration((now.getTime() - from.getTime()) / 1000)} ago`;
+export const formatAge = (from: Date, now: Date, t: Translator = english): string =>
+  t("{duration} ago", { duration: formatDuration((now.getTime() - from.getTime()) / 1000) });
 
 /** `2026-11-12 10:42:07 UTC (11:42:07 local)` for titles. */
-export const formatFullTimestamp = (date: Date): string =>
-  `${formatUtcDateTime(date)} (${formatLocalTime(date)} local)`;
+export const formatFullTimestamp = (date: Date, t: Translator = english): string =>
+  `${formatUtcDateTime(date)} (${formatLocalTime(date)} ${t("local")})`;

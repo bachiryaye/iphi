@@ -1,3 +1,4 @@
+import { useT } from "@/shared/i18n/context";
 import { Catalog, Cube, Dashboard, Network_3, Play, Rule, WarningAlt } from "@carbon/icons-react";
 import { NavLink } from "react-router";
 
@@ -34,27 +35,30 @@ const NAV_ITEMS = [
   { to: "/components", label: "Components", Icon: Cube, end: false },
   { to: "/scenarios", label: "Scenarios", Icon: Play, end: false },
   { to: "/rules", label: "Rules", Icon: Rule, end: false },
+  { to: "/help", label: "Help", Icon: Catalog, end: false },
   { to: "/audit", label: "Audit", Icon: Catalog, end: false },
 ] as const;
 
 /** Neutral outline counter: red stays reserved for alarms (§4). */
 function ActiveCount() {
+  const t = useT();
   const { data } = useActiveIncidents();
   if (data === undefined || data.items.length === 0) return null;
   return (
     <span className="ml-auto rounded-[3px] border border-border-strong px-1 font-mono text-micro text-text-muted max-lg:absolute max-lg:top-0.5 max-lg:right-0.5 max-lg:bg-surface">
       {data.items.length}
       {data.more && "+"}
-      <span className="sr-only"> active</span>
+      <span className="sr-only"> {t("active")}</span>
     </span>
   );
 }
 
 export function Sidebar() {
+  const t = useT();
   const session = useSession();
   return (
     <nav
-      aria-label="Main"
+      aria-label={t("Main")}
       className="sticky top-0 flex h-[calc(100vh-28px)] flex-col border-r border-border bg-surface px-3 py-4 max-lg:px-2"
     >
       <NavLink
@@ -80,11 +84,11 @@ export function Sidebar() {
             <NavLink
               to={to}
               end={end}
-              title={label}
+              title={t.label(label)}
               className="relative flex h-9 items-center gap-2.5 rounded-control px-2.5 text-text-muted hover:bg-surface-sunken hover:text-text aria-[current=page]:bg-surface-sunken aria-[current=page]:font-medium aria-[current=page]:text-text aria-[current=page]:shadow-[inset_2px_0_0_var(--text)] max-lg:justify-center max-lg:px-0"
             >
               <Icon size={16} aria-hidden="true" />
-              <span className="max-lg:sr-only">{label}</span>
+              <span className="max-lg:sr-only">{t.label(label)}</span>
               {to === "/incidents" && <ActiveCount />}
             </NavLink>
           </li>
@@ -94,7 +98,7 @@ export function Sidebar() {
         <span className="inline-flex h-5 items-center rounded-[3px] border border-border-strong px-1.5 font-mono text-micro font-medium tracking-[.03em]">
           SIM
         </span>
-        <p className="mt-2">Synthetic telemetry only. No real plant is connected.</p>
+        <p className="mt-2">{t("Synthetic telemetry only. No real plant is connected.")}</p>
       </div>
     </nav>
   );

@@ -1,3 +1,4 @@
+import { useT } from "@/shared/i18n/context";
 import { useQueryClient } from "@tanstack/react-query";
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 
@@ -42,11 +43,18 @@ function isNotice(value: unknown): value is Notice {
 }
 
 export function LiveUpdatesProvider({ children }: { children: ReactNode }) {
+  const t = useT();
   const client = useQueryClient();
   const [mode, setMode] = useState<LiveState["mode"]>(() =>
     typeof globalThis.EventSource === "undefined" ? "paused" : "connecting",
   );
-  const [announcement, setAnnouncement] = useState("");
+  const [incidentTime, setIncidentTime] = useState<string | null>(null);
+  const announcement =
+    incidentTime === null
+      ? ""
+      : t("New incident detected at {time} UTC. Updating the current view.", {
+          time: incidentTime,
+        });
   const [attempt, setAttempt] = useState(0);
   const reconnect = useCallback(() => {
     setAttempt((value) => value + 1);
@@ -74,9 +82,7 @@ export function LiveUpdatesProvider({ children }: { children: ReactNode }) {
       lastMessage = performance.now();
       setMode("live");
       if (value.type === "incident.opened") {
-        setAnnouncement(
-          `New incident detected at ${formatUtcTime(new Date(value.platform_time))} UTC. Updating the current view.`,
-        );
+        setIncidentTime(formatUtcTime(new Date(value.platform_time)));
       }
       if (refresh === undefined) {
         refresh = window.setTimeout(() => {
@@ -119,6 +125,7 @@ export function LiveUpdatesProvider({ children }: { children: ReactNode }) {
 }
 
 export function LiveUpdatesBanner() {
+  const t = useT();
   const { mode, announcement, reconnect } = useLiveState();
   const supported = typeof globalThis.EventSource !== "undefined";
   return (
@@ -130,15 +137,15 @@ export function LiveUpdatesBanner() {
         <div className="flex flex-wrap items-center justify-between gap-2 border-l-[3px] border-border-strong bg-surface px-4 py-2 text-small text-text-muted">
           <p>
             {!supported
-              ? "Live updates are unavailable in this browser."
+              ? t("Live updates are unavailable in this browser.")
               : mode === "connecting"
-                ? "Connecting live updates…"
-                : "Live updates paused. Reconnecting…"}{" "}
-            This page refreshes every 30 s meanwhile.
+                ? t("Connecting live updates…")
+                : t("Live updates paused. Reconnecting…")}{" "}
+            {t("This page refreshes every 30 s meanwhile.")}
           </p>
           {supported && (
             <Button variant="quiet" onClick={reconnect}>
-              Retry live updates
+              {t("Retry live updates")}
             </Button>
           )}
         </div>

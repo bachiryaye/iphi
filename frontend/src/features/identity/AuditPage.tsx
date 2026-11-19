@@ -1,3 +1,4 @@
+import { useT } from "@/shared/i18n/context";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useSearchParams } from "react-router";
@@ -32,6 +33,7 @@ const ACTIONS: readonly Action[] = [
 const OUTCOMES: readonly Outcome[] = ["allowed", "denied", "failed"];
 
 export function AuditPage() {
+  const t = useT();
   const session = useSession();
   const [params, setParams] = useSearchParams();
   const [action, setAction] = useSearchFilter("action", ACTIONS);
@@ -62,61 +64,67 @@ export function AuditPage() {
   if (session.data?.user.role !== "admin") {
     return (
       <>
-        <h1 className="text-display font-semibold">Audit</h1>
+        <h1 className="text-display font-semibold">{t("Audit")}</h1>
         <p>
-          The audit journal requires the admin role. Your role is{" "}
-          {session.data?.user.role ?? "unavailable"}.
+          {t("The audit journal requires the admin role. Your role is")}{" "}
+          {t.label(session.data?.user.role ?? "Unavailable")}.
         </p>
       </>
     );
   }
   return (
     <>
-      <h1 className="text-display font-semibold">Audit journal</h1>
+      <h1 className="text-display font-semibold">{t("Audit journal")}</h1>
       <p className="text-text-muted">
-        Wall-clock UTC. Sensitive actions and refused attempts in the last 24 hours; simulation
-        resets preserve this journal.
+        {t(
+          "Wall-clock UTC. Sensitive actions and refused attempts in the last 24 hours; simulation resets preserve this journal.",
+        )}
       </p>
       <div className="flex flex-wrap items-center gap-4">
-        <FilterSelect label="Action" value={action} options={ACTIONS} onChange={setAction} />
-        <FilterSelect label="Outcome" value={outcome} options={OUTCOMES} onChange={setOutcome} />
+        <FilterSelect label={t("Action")} value={action} options={ACTIONS} onChange={setAction} />
+        <FilterSelect
+          label={t("Outcome")}
+          value={outcome}
+          options={OUTCOMES}
+          onChange={setOutcome}
+        />
         <Button
           onClick={() => {
             goTo(null);
             setAnchor(Date.now());
           }}
         >
-          Refresh latest
+          {t("Refresh latest")}
         </Button>
       </div>
       <Card
-        title="Audit events"
+        title={t("Audit events")}
         titleId="audit-title"
         busy={query.isPending}
         meta={<RefreshMeta updatedAt={query.dataUpdatedAt} failed={query.isError} />}
       >
         {query.isPending && <SkeletonRows rows={6} />}
-        {query.isError && <LoadError what="the audit journal" query={query} />}
+        {query.isError && <LoadError what={t("the audit journal")} query={query} />}
         {query.data?.items.length === 0 && (
-          <EmptyState title="No matching audit events.">
-            Choose another action or outcome, or refresh the current interval.
+          <EmptyState title={t("No matching audit events.")}>
+            {t("Choose another action or outcome, or refresh the current interval.")}
           </EmptyState>
         )}
         {query.data !== undefined && query.data.items.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <caption className="sr-only">
-                Audit events, newest first. Timestamps use wall-clock UTC.
+                {t("Audit events, newest first. Timestamps use wall-clock UTC.")}
               </caption>
               <thead className="text-small text-text-muted">
                 <tr>
                   {[
-                    "Time (UTC)",
-                    "Actor",
-                    "Action",
-                    "Target",
-                    "Outcome",
-                    "Correlation / details",
+                    t("Time (UTC)"),
+                    t("Actor"),
+                    t("Action"),
+                    t("Target"),
+                    t("Outcome"),
+                    t("Correlation / details"),
                   ].map((title) => (
                     <th
                       key={title}
@@ -141,10 +149,10 @@ export function AuditPage() {
                       <br />
                       {event.target_id}
                     </td>
-                    <td className="border-b border-border px-4 py-3">{event.outcome}</td>
+                    <td className="border-b border-border px-4 py-3">{t.label(event.outcome)}</td>
                     <td className="max-w-72 border-b border-border px-4 py-3">
                       <details>
-                        <summary className="cursor-pointer">Inspect event</summary>
+                        <summary className="cursor-pointer">{t("Inspect event")}</summary>
                         <p className="data break-all">
                           {event.correlation_id ?? "No correlation ID"}
                         </p>
@@ -166,7 +174,7 @@ export function AuditPage() {
                 goTo(null);
               }}
             >
-              First page
+              {t("First page")}
             </Button>
           )}
           {query.data?.next_cursor && (
@@ -175,7 +183,7 @@ export function AuditPage() {
                 goTo(query.data.next_cursor);
               }}
             >
-              Next page
+              {t("Next page")}
             </Button>
           )}
         </div>

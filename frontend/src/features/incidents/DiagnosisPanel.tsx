@@ -1,3 +1,4 @@
+import { useT } from "@/shared/i18n/context";
 import { useDiagnostics } from "@/shared/api/queries";
 import type { Diagnostic } from "@/shared/api/types";
 import { Timestamp } from "@/shared/status/Timestamp";
@@ -8,13 +9,14 @@ import { staleClass } from "@/shared/ui/stale";
 import { DiagnosisBody, type EvidenceFocus } from "./DiagnosisCard";
 
 function Deterministic({ diagnostic, focus }: { diagnostic: Diagnostic; focus: EvidenceFocus }) {
+  const t = useT();
   return (
     <Card
-      title="Diagnosis: deterministic"
+      title={t("Diagnosis: deterministic")}
       titleId="deterministic-diagnosis-title"
       meta={
         <span>
-          Generated <Timestamp iso={diagnostic.created_at} />
+          {t("Generated")} <Timestamp iso={diagnostic.created_at} />
         </span>
       }
     >
@@ -30,6 +32,7 @@ export function DiagnosisPanel({
   incidentId: string;
   focus: EvidenceFocus;
 }) {
+  const t = useT();
   const query = useDiagnostics(incidentId);
   const latest = query.data?.items[0];
   const comparison = query.data?.items.find((item) => item.id === latest?.deterministic_id);
@@ -39,10 +42,10 @@ export function DiagnosisPanel({
       <Card
         title={
           latest === undefined
-            ? "Diagnosis"
+            ? t("Diagnosis")
             : latest.kind === "llm"
-              ? "Diagnosis: AI"
-              : "Diagnosis: deterministic"
+              ? t("Diagnosis: AI")
+              : t("Diagnosis: deterministic")
         }
         titleId="diagnosis-title"
         busy={query.isPending}
@@ -51,7 +54,7 @@ export function DiagnosisPanel({
             <RefreshMeta updatedAt={query.dataUpdatedAt} failed={query.isError} />
             {latest?.kind === "deterministic" && (
               <span>
-                Generated <Timestamp iso={latest.created_at} /> by {latest.created_by}
+                {t("Generated")} <Timestamp iso={latest.created_at} /> {t("by")} {latest.created_by}
               </span>
             )}
           </>
@@ -59,27 +62,30 @@ export function DiagnosisPanel({
       >
         {query.isPending && <SkeletonRows rows={4} />}
         {query.isError && query.data === undefined && (
-          <LoadError what="the diagnosis" query={query} />
+          <LoadError what={t("the diagnosis")} query={query} />
         )}
         {query.data !== undefined && latest === undefined && (
-          <EmptyState title="No diagnosis yet.">
-            Diagnose builds a deterministic reading of the stored evidence: facts, hypotheses with
-            their uncertainty, checks to run. It needs no AI provider.
+          <EmptyState title={t("No diagnosis yet.")}>
+            {t(
+              "Diagnose builds a deterministic reading of the stored evidence: facts, hypotheses with their uncertainty, checks to run. It needs no AI provider.",
+            )}
           </EmptyState>
         )}
         {latest !== undefined && (
           <>
             {latest.kind === "llm" && (
               <div className="border-b border-border px-4 py-3 text-small text-text-muted">
-                <p className="font-medium text-text">AI-generated — verify against evidence</p>
+                <p className="font-medium text-text">
+                  {t("AI-generated — verify against evidence")}
+                </p>
                 <p className="data break-words">
                   {latest.model}
                   {latest.provider === "fake" && " · Local test provider; no language model called"}
                 </p>
                 <p>
-                  Generated <Timestamp iso={latest.created_at} /> · {latest.status}
+                  {t("Generated")} <Timestamp iso={latest.created_at} /> · {latest.status}
                 </p>
-                <p>Citations confirm references; they do not prove that a claim is true.</p>
+                <p>{t("Citations confirm references; they do not prove that a claim is true.")}</p>
               </div>
             )}
             {failed && (
@@ -87,8 +93,9 @@ export function DiagnosisPanel({
                 role="status"
                 className="border-l-[3px] border-border-strong bg-surface-sunken px-4 py-3"
               >
-                AI diagnosis unavailable or rejected ({latest.error_code ?? latest.status}).
-                Monitoring continues. The deterministic diagnosis is shown below.
+                {t("AI diagnosis unavailable or rejected (")}
+                {latest.error_code ?? latest.status}
+                {t("). Monitoring continues. The deterministic diagnosis is shown below.")}
               </p>
             )}
             <DiagnosisBody diagnostic={latest} focus={focus} />
@@ -101,15 +108,16 @@ export function DiagnosisPanel({
         ) : (
           <details className="rounded-card border border-border bg-surface">
             <summary className="cursor-pointer px-4 py-3 font-medium">
-              Compare with deterministic diagnosis
+              {t("Compare with deterministic diagnosis")}
             </summary>
             <Deterministic diagnostic={comparison} focus={focus} />
           </details>
         ))}
       {latest?.kind === "llm" && comparison === undefined && (
         <p className="text-text-muted">
-          The deterministic comparison could not be loaded. Use Diagnose to generate a deterministic
-          reading.
+          {t(
+            "The deterministic comparison could not be loaded. Use Diagnose to generate a deterministic reading.",
+          )}
         </p>
       )}
     </div>

@@ -1,3 +1,4 @@
+import { useT } from "@/shared/i18n/context";
 import { ChevronDown } from "@carbon/icons-react";
 import { type ReactNode, useId, useState } from "react";
 
@@ -14,6 +15,7 @@ export interface EvidenceFocus {
 }
 
 function Chips({ citations, focus }: { citations: readonly Citation[]; focus: EvidenceFocus }) {
+  const t = useT();
   return (
     <span className="inline-flex flex-wrap gap-1">
       {citations.map((c) => {
@@ -23,7 +25,7 @@ function Chips({ citations, focus }: { citations: readonly Citation[]; focus: Ev
             key={c.evidence_id}
             label={c.label}
             description={
-              item === undefined ? "not in the first evidence page" : evidenceSummary(item)
+              item === undefined ? t("not in the first evidence page") : evidenceSummary(item)
             }
             pressed={focus.active === c.evidence_id}
             onToggle={() => {
@@ -44,6 +46,7 @@ interface ClaimRowProps {
 
 /** A claim, its chips, and a separate toggle revealing the cited evidence in place (§6.4). */
 function ClaimRow({ text, citations, focus }: ClaimRowProps) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const id = useId();
   return (
@@ -56,7 +59,7 @@ function ClaimRow({ text, citations, focus }: ClaimRowProps) {
             type="button"
             aria-expanded={open}
             aria-controls={id}
-            aria-label={open ? "Hide cited evidence" : "Show cited evidence"}
+            aria-label={open ? t("Hide cited evidence") : t("Show cited evidence")}
             onClick={() => {
               setOpen((v) => !v);
             }}
@@ -83,7 +86,9 @@ function ClaimRow({ text, citations, focus }: ClaimRowProps) {
               >
                 <span className="data font-medium">{c.label}</span>
                 <span>
-                  {item === undefined ? "Not in the first evidence page." : evidenceSummary(item)}
+                  {item === undefined
+                    ? t("Not in the first evidence page.")
+                    : evidenceSummary(item)}
                 </span>
                 {item !== undefined && (
                   <span className="text-text-muted">
@@ -123,10 +128,11 @@ export function DiagnosisBody({
   diagnostic: Diagnostic;
   focus: EvidenceFocus;
 }) {
+  const t = useT();
   return (
     <div className="min-w-0 [overflow-wrap:anywhere]">
-      <Section title="Facts">{claims(diagnostic.observed_facts, focus)}</Section>
-      <Section title="Hypotheses">
+      <Section title={t("Facts")}>{claims(diagnostic.observed_facts, focus)}</Section>
+      <Section title={t("Hypotheses")}>
         {diagnostic.hypotheses.map((h, index) => (
           <ClaimRow
             key={index}
@@ -136,14 +142,14 @@ export function DiagnosisBody({
               <>
                 <em>{h.text}</em>
                 <span className="ml-1.5 inline-block rounded-[3px] border border-border px-1.5 text-small text-text-muted not-italic">
-                  Uncertainty: {h.uncertainty}
+                  {t("Uncertainty:")} {h.uncertainty}
                 </span>
               </>
             }
           />
         ))}
       </Section>
-      <Section title="Checks">
+      <Section title={t("Checks")}>
         <ol className="list-none">
           {diagnostic.recommended_checks.map((check, index) => (
             <li key={index} className="grid grid-cols-[20px_minmax(0,1fr)] gap-2">
@@ -153,7 +159,7 @@ export function DiagnosisBody({
           ))}
         </ol>
       </Section>
-      <Section title="Limitations">
+      <Section title={t("Limitations")}>
         <ul className="border-l-2 border-border-strong bg-surface-sunken/50 px-3 py-2 text-text-muted">
           {diagnostic.limitations.map((limit, index) => (
             <li key={index}>{limit}</li>
@@ -161,8 +167,8 @@ export function DiagnosisBody({
         </ul>
       </Section>
       {diagnostic.validation.removed.length > 0 && (
-        <Section title="Removed">
-          <p className="text-small text-text-muted">Unsupported by evidence:</p>
+        <Section title={t("Removed")}>
+          <p className="text-small text-text-muted">{t("Unsupported by evidence:")}</p>
           <ul className="list-disc pl-5 text-text-muted">
             {diagnostic.validation.removed.map((text, index) => (
               <li key={index}>{text}</li>

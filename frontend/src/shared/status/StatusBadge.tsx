@@ -1,3 +1,5 @@
+import { useT } from "@/shared/i18n/context";
+
 import { STATE_LABEL, STATE_TEXT } from "./stateText";
 import { type IndicatorState, StatusIndicator } from "./StatusIndicator";
 
@@ -10,6 +12,7 @@ interface StatusBadgeProps {
 
 /** Single rendering of a state: indicator shape, then text, coloured on both (§4). */
 export function StatusBadge({ state, label, size = "sm" }: StatusBadgeProps) {
+  const t = useT();
   return (
     <span
       className={`inline-flex items-center whitespace-nowrap ${STATE_TEXT[state]} ${state === "healthy" ? "" : "font-semibold"} ${
@@ -17,7 +20,7 @@ export function StatusBadge({ state, label, size = "sm" }: StatusBadgeProps) {
       }`}
     >
       <StatusIndicator state={state} size={size} />
-      {label ?? STATE_LABEL[state]}
+      {t.label(label ?? STATE_LABEL[state])}
     </span>
   );
 }

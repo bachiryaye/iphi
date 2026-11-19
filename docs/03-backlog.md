@@ -285,5 +285,11 @@ Aucune réalisation n'invente d'API AVEVA PI ni n'annonce une compatibilité non
 
 Le statut n'est mis à jour que sur preuve (commandes et résultats).
 
+## Finalisation demandée après US-12
+
+Demande du propriétaire du 19 novembre 2026 : après MQTT, réaliser une tâche finale réunissant un README facile à parcourir (lancement, démo, tests), une page Aide / Documentation avec parcours débutant inspirée de Mintlify, une aide contextuelle sur chaque page et une bascule français / anglais. Le périmètre et les critères d'acceptation sont enregistrés dans le [plan de finalisation](portfolio-finalization.md).
+
+**Statut :** implémenté, validation finale en cours (ADR 0027). README, aide publique/contextuelle et présentation EN/FR ; vérifications statiques et démo sur base neuve réussies. Les parcours navigateur, captures et CI restent à confirmer dans le [plan de finalisation](portfolio-finalization.md). Ce lot conserve les identifiants US-01…US-12.
+
 ---
 *Pied de page du document source : IPHI — Document de travail | Backlog et livraison incrémentale (v1.0 indiquait par erreur « Architecture et livraison incrémentale »)*

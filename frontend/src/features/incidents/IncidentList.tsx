@@ -1,3 +1,5 @@
+import type { Translator } from "@/shared/i18n/translate";
+import { useT } from "@/shared/i18n/context";
 import { Link } from "react-router";
 
 import type { Incident } from "@/shared/api/types";
@@ -6,7 +8,8 @@ import { StatusBadge } from "@/shared/status/StatusBadge";
 import { Timestamp } from "@/shared/status/Timestamp";
 import { humanize } from "@/shared/format/labels";
 
-const plural = (n: number, word: string) => `${String(n)} ${word}${n === 1 ? "" : "s"}`;
+const plural = (n: number, word: string, t: Translator) =>
+  `${String(n)} ${t.label(`${word}${n === 1 ? "" : "s"}`)}`;
 
 interface IncidentListProps {
   incidents: readonly Incident[];
@@ -15,6 +18,7 @@ interface IncidentListProps {
 }
 
 function CompactRow({ incident }: { incident: Incident }) {
+  const t = useT();
   return (
     <Link
       to={`/incidents/${incident.id}`}
@@ -29,8 +33,8 @@ function CompactRow({ incident }: { incident: Incident }) {
       </span>
       <span className="truncate font-medium">{incident.title}</span>
       <span className="text-small text-text-muted">
-        {humanize(incident.failure_class)}, opened{" "}
-        <Timestamp iso={incident.opened_at} format="age" />
+        {humanize(incident.failure_class, t)}
+        {t(", opened")} <Timestamp iso={incident.opened_at} format="age" />
       </span>
     </Link>
   );
@@ -38,6 +42,7 @@ function CompactRow({ incident }: { incident: Incident }) {
 
 /** Incident rows (Overview, Component): severity, reference, title, status, age. */
 export function IncidentList({ incidents, compact = false }: IncidentListProps) {
+  const t = useT();
   return (
     <ul>
       {incidents.map((incident) => (
@@ -56,9 +61,9 @@ export function IncidentList({ incidents, compact = false }: IncidentListProps) 
                   <span className="truncate">{incident.title}</span>
                 </span>
                 <span className="flex flex-wrap gap-x-4 text-small text-text-muted">
-                  <span>{humanize(incident.failure_class)}</span>
-                  <span>{plural(incident.occurrence_count, "occurrence")}</span>
-                  <span>{plural(incident.evidence_count, "evidence item")}</span>
+                  <span>{humanize(incident.failure_class, t)}</span>
+                  <span>{plural(incident.occurrence_count, "occurrence", t)}</span>
+                  <span>{plural(incident.evidence_count, "evidence item", t)}</span>
                 </span>
               </span>
               <span className="flex flex-col items-end gap-0.5 text-data">

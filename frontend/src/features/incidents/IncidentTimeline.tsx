@@ -1,3 +1,5 @@
+import type { Translator } from "@/shared/i18n/translate";
+import { useT } from "@/shared/i18n/context";
 import {
   Branch,
   Chat,
@@ -21,31 +23,46 @@ const str = (value: unknown): string => (typeof value === "string" ? value : "")
 const isSeverity = (value: unknown): value is IncidentSeverity =>
   value === "warning" || value === "critical";
 
-function describe(event: IncidentEvent): string {
+function describe(event: IncidentEvent, t: Translator): string {
   const p = event.payload;
   switch (event.type) {
     case "opened":
-      return `Opened as ${str(p.severity)} (${str(p.rule_key)})`;
+      return t("Opened as {severity} ({rule})", {
+        severity: t.label(str(p.severity)),
+        rule: str(p.rule_key),
+      });
     case "severity_changed":
-      return `Severity ${str(p.from)} to ${str(p.to)} (${str(p.rule_key)})`;
+      return t("Severity {from} to {to} ({rule})", {
+        from: t.label(str(p.from)),
+        to: t.label(str(p.to)),
+        rule: str(p.rule_key),
+      });
     case "acknowledged":
-      return "Acknowledged";
+      return t("Acknowledged");
     case "commented":
-      return "Comment added";
+      return t("Comment added");
     case "resolved":
       return str(p.resolution) === "auto_recovered"
-        ? "Resolved: condition cleared"
+        ? t("Resolved: condition cleared")
         : str(p.resolution) === "reset"
-          ? "Resolved by simulation reset"
-          : "Resolved manually";
+          ? t("Resolved by simulation reset")
+          : t("Resolved manually");
     case "reopened":
-      return `Reopened as ${str(p.severity)}`;
+      return t("Reopened as {severity}", { severity: t.label(str(p.severity)) });
     case "reclassified":
-      return `Reclassified ${str(p.from)} to ${str(p.to)}`;
+      return t("Reclassified {from} to {to}", {
+        from: t.label(str(p.from)),
+        to: t.label(str(p.to)),
+      });
     case "downstream_suppressed":
-      return `${str(p.component_key)} ${str(p.failure_class)} attached here, no new incident`;
+      return t("{component} {failure} attached here, no new incident", {
+        component: str(p.component_key),
+        failure: t.label(str(p.failure_class).replaceAll("_", " ")),
+      });
     case "diagnostic_added":
-      return `${str(p.kind) === "llm" ? "AI" : "Deterministic"} diagnosis added`;
+      return t("{kind} diagnosis added", {
+        kind: t.label(str(p.kind) === "llm" ? "AI" : "Deterministic"),
+      });
     default:
       return event.type;
   }
@@ -97,6 +114,7 @@ function Row({
 }
 
 function Occurrences({ events }: { events: IncidentEvent[] }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const first = events[0];
   const last = events[events.length - 1];
@@ -111,7 +129,9 @@ function Occurrences({ events }: { events: IncidentEvent[] }) {
         }}
         className="inline-flex cursor-pointer items-center gap-1.5 text-left"
       >
-        {events.length === 1 ? "1 occurrence" : `${String(events.length)} occurrences grouped`}
+        {events.length === 1
+          ? t("1 occurrence")
+          : t("{count} occurrences grouped", { count: events.length })}
         <ChevronDown
           size={16}
           aria-hidden="true"
@@ -119,8 +139,9 @@ function Occurrences({ events }: { events: IncidentEvent[] }) {
         />
       </button>
       <p className="text-small text-text-muted">
-        {formatUtcTime(new Date(first.occurred_at))} to {formatUtcTime(new Date(last.occurred_at))},
-        same fingerprint
+        {formatUtcTime(new Date(first.occurred_at))} {t("to")}{" "}
+        {formatUtcTime(new Date(last.occurred_at))}
+        {t(", same fingerprint")}
       </p>
       {open && (
         <ul className="mt-1 text-small text-text-muted">
@@ -131,7 +152,8 @@ function Occurrences({ events }: { events: IncidentEvent[] }) {
                 className="text-small text-text-muted"
                 iso={e.occurred_at}
               />{" "}
-              {str(e.payload.rule_key)} evaluation #{String(e.payload.evaluation_id ?? "")}
+              {str(e.payload.rule_key)} {t("evaluation #")}
+              {String(e.payload.evaluation_id ?? "")}
             </li>
           ))}
         </ul>
@@ -142,6 +164,7 @@ function Occurrences({ events }: { events: IncidentEvent[] }) {
 
 /** Chronological, oldest first, in UTC (§6.4, IncidentTimeline). */
 export function IncidentTimeline({ events }: { events: readonly IncidentEvent[] }) {
+  const t = useT();
   const entries = groupTimeline(events);
   return (
     <ol className="px-4 py-3">
@@ -154,7 +177,7 @@ export function IncidentTimeline({ events }: { events: readonly IncidentEvent[] 
             time={entry.event.occurred_at}
             icon={<Icon event={entry.event} />}
           >
-            <p>{describe(entry.event)}</p>
+            <p>{describe(entry.event, t)}</p>
             <p className="text-small text-text-muted">{entry.event.actor_label}</p>
             {typeof entry.event.payload.comment === "string" && (
               <p className="mt-0.5 text-small">“{entry.event.payload.comment}”</p>

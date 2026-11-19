@@ -33,7 +33,7 @@ Pourquoi : simplifier le développement, les tests et la démonstration tout en 
 | IA | Adaptateur LLM + schéma JSON validé; diagnostic déterministe toujours disponible | Fournisseur interchangeable et garde-fous | 0006 |
 | Packaging | Docker Compose / GitHub Actions | Reproductibilité et CI | 0010 |
 | Outillage | `uv` (Python), `pnpm` (frontend), Ruff, mypy strict, pytest, Vitest, Playwright | Rapide, reproductible, lockfiles | 0010 |
-| Langue | Interface et API en anglais ; documentation de conception en français ; README en anglais avec résumé français | Vocabulaire standard de l'industrie, audience internationale | 0010 |
+| Langue | Interface anglais/français (ADR 0027), API/code en anglais ; documentation de conception en français ; README en anglais avec entrée française | Vocabulaire standard de l'industrie, audience internationale | 0010, 0027 |
 
 ## 02 — Vue des composants
 

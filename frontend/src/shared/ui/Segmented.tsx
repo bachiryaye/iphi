@@ -1,3 +1,4 @@
+import { useT } from "@/shared/i18n/context";
 interface SegmentedProps<T extends string> {
   label: string;
   options: readonly { value: T; label: string }[];
@@ -12,6 +13,7 @@ export function Segmented<T extends string>({
   value,
   onChange,
 }: SegmentedProps<T>) {
+  const t = useT();
   return (
     <div
       role="group"
@@ -30,7 +32,7 @@ export function Segmented<T extends string>({
             index > 0 ? "border-l border-border" : ""
           }`}
         >
-          {option.label}
+          {t.label(option.label)}
         </button>
       ))}
     </div>

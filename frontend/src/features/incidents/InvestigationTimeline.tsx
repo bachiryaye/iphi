@@ -1,3 +1,4 @@
+import { useT } from "@/shared/i18n/context";
 import { useId, useState } from "react";
 
 import { useComment, useIncidentEvents, useMutationGuard } from "@/shared/api/queries";
@@ -8,16 +9,17 @@ import { LoadError, RefusedAlert } from "@/shared/ui/QueryStates";
 import { IncidentTimeline } from "./IncidentTimeline";
 
 function TimelinePage({ id, cursor }: { id: string; cursor: string }) {
+  const t = useT();
   const page = useIncidentEvents(id, cursor, true);
   const [expanded, setExpanded] = useState(false);
   return (
     <>
       {page.isPending && (
         <p className="p-4" role="status">
-          Loading more events…
+          {t("Loading more events…")}
         </p>
       )}
-      {page.isError && <LoadError what="more timeline events" query={page} />}
+      {page.isError && <LoadError what={t("more timeline events")} query={page} />}
       {page.data !== undefined && (
         <>
           <IncidentTimeline events={page.data.items} />
@@ -31,7 +33,7 @@ function TimelinePage({ id, cursor }: { id: string; cursor: string }) {
                   setExpanded(true);
                 }}
               >
-                Load more events
+                {t("Load more events")}
               </Button>
             ))}
         </>
@@ -41,6 +43,7 @@ function TimelinePage({ id, cursor }: { id: string; cursor: string }) {
 }
 
 export function InvestigationTimeline({ incident }: { incident: IncidentDetail }) {
+  const t = useT();
   const [expanded, setExpanded] = useState(false);
   const [text, setText] = useState("");
   const [saved, setSaved] = useState(false);
@@ -54,7 +57,8 @@ export function InvestigationTimeline({ incident }: { incident: IncidentDetail }
       {incident.events_next_cursor !== null && (
         <>
           <p className="border-t border-border px-4 py-2.5 text-small text-text-muted">
-            Showing the first {incident.events.length} of {incident.event_count} events.
+            {t("Showing the first")} {incident.events.length} {t("of")} {incident.event_count}{" "}
+            {t("events.")}
           </p>
           {expanded ? (
             <TimelinePage id={incident.id} cursor={incident.events_next_cursor} />
@@ -65,7 +69,7 @@ export function InvestigationTimeline({ incident }: { incident: IncidentDetail }
                 setExpanded(true);
               }}
             >
-              Load more events
+              {t("Load more events")}
             </Button>
           )}
         </>
@@ -83,7 +87,7 @@ export function InvestigationTimeline({ incident }: { incident: IncidentDetail }
         }}
       >
         <label htmlFor={fieldId} className="font-medium">
-          Investigation comment
+          {t("Investigation comment")}
         </label>
         <textarea
           id={fieldId}
@@ -103,18 +107,18 @@ export function InvestigationTimeline({ incident }: { incident: IncidentDetail }
         />
         <p id={helpId} className="text-small text-text-muted">
           {guard.allowed
-            ? "Saved with actor and platform UTC in this timeline. Up to 4,000 characters."
-            : guard.reason}
+            ? t("Saved with actor and platform UTC in this timeline. Up to 4,000 characters.")
+            : t.label(guard.reason ?? "")}
         </p>
         <Button type="submit" disabled={!guard.allowed || text.trim() === "" || comment.isPending}>
-          {comment.isPending ? "Saving comment…" : "Add comment"}
+          {comment.isPending ? t("Saving comment…") : t("Add comment")}
         </Button>
         {saved && (
           <p role="status" className="text-small">
-            Comment saved in the timeline.
+            {t("Comment saved in the timeline.")}
           </p>
         )}
-        {comment.error !== null && <RefusedAlert action="Add comment" error={comment.error} />}
+        {comment.error !== null && <RefusedAlert action={t("Add comment")} error={comment.error} />}
       </form>
     </>
   );

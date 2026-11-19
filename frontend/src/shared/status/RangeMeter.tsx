@@ -1,3 +1,5 @@
+import type { Translator } from "@/shared/i18n/translate";
+import { useT } from "@/shared/i18n/context";
 import type { HealthState, KeyMetric } from "@/shared/api/types";
 import { formatNumber, formatValue, metricLabel, unitLabel } from "@/shared/format/number";
 import { formatUtcTime } from "@/shared/format/time";
@@ -7,43 +9,48 @@ import { meterPosition, zones } from "./rangeScale";
 import { STATE_LABEL, STATE_TEXT } from "./stateText";
 import { StatusIndicator } from "./StatusIndicator";
 
-function normalBound(metric: KeyMetric): string {
+function normalBound(metric: KeyMetric, t: Translator): string {
   const bound = metric.warning_threshold ?? metric.critical_threshold;
-  return bound === null ? "" : `normal below ${formatValue(bound, metric.unit)}`;
+  return bound === null
+    ? ""
+    : t("normal below {value}", { value: formatValue(bound, metric.unit, t) });
 }
 
 function MeterDetails({ metric }: { metric: KeyMetric }) {
+  const t = useT();
   const evaluated = new Date(metric.evaluated_at);
   return (
     <dl className="grid grid-cols-[auto_auto] gap-x-3 gap-y-0.5">
-      <dt className="text-text-muted">Value</dt>
+      <dt className="text-text-muted">{t("Value")}</dt>
       <dd className="data">
-        {metric.value === null ? "no samples in window" : formatValue(metric.value, metric.unit)}
+        {metric.value === null
+          ? t("no samples in window")
+          : formatValue(metric.value, metric.unit, t)}
       </dd>
-      <dt className="text-text-muted">Measure</dt>
+      <dt className="text-text-muted">{t("Measure")}</dt>
       <dd className="data">
         {metric.aggregation}({metric.name}, {metric.window_seconds}&nbsp;s)
       </dd>
-      <dt className="text-text-muted">Evaluated</dt>
+      <dt className="text-text-muted">{t("Evaluated")}</dt>
       <dd className="data">{formatUtcTime(evaluated)} UTC</dd>
       {metric.warning_threshold !== null && (
         <>
-          <dt className="text-text-muted">Warning threshold</dt>
-          <dd className="data">{formatValue(metric.warning_threshold, metric.unit)}</dd>
+          <dt className="text-text-muted">{t("Warning threshold")}</dt>
+          <dd className="data">{formatValue(metric.warning_threshold, metric.unit, t)}</dd>
         </>
       )}
       {metric.critical_threshold !== null && (
         <>
-          <dt className="text-text-muted">Critical threshold</dt>
-          <dd className="data">{formatValue(metric.critical_threshold, metric.unit)}</dd>
+          <dt className="text-text-muted">{t("Critical threshold")}</dt>
+          <dd className="data">{formatValue(metric.critical_threshold, metric.unit, t)}</dd>
         </>
       )}
-      <dt className="text-text-muted">Rule</dt>
+      <dt className="text-text-muted">{t("Rule")}</dt>
       <dd className="data">
         {metric.rule.key} v{metric.rule.version}
       </dd>
-      <dt className="text-text-muted">Source</dt>
-      <dd>IPHI simulator</dd>
+      <dt className="text-text-muted">{t("Source")}</dt>
+      <dd>{t("IPHI simulator")}</dd>
     </dl>
   );
 }
@@ -57,7 +64,8 @@ const POINTER_TONE: Record<HealthState, string> = {
 
 /** Where the value sits against the normal range, before its number (§6.1). */
 export function RangeMeter({ metric }: { metric: KeyMetric }) {
-  const label = metricLabel(metric.name);
+  const t = useT();
+  const label = metricLabel(metric.name, t);
   const value = metric.value;
   const unit = unitLabel(metric.unit);
   const all = zones(metric);
@@ -72,15 +80,22 @@ export function RangeMeter({ metric }: { metric: KeyMetric }) {
           role="img"
           aria-label={
             value === null
-              ? `${label}: no samples in the last ${String(metric.window_seconds)} s, ${STATE_LABEL[metric.state]}`
-              : `${label}: no current value, ${STATE_LABEL[metric.state]}`
+              ? t("{label}: no samples in the last {seconds} s, {state}", {
+                  label,
+                  seconds: metric.window_seconds,
+                  state: t.label(STATE_LABEL[metric.state]),
+                })
+              : t("{label}: no current value, {state}", {
+                  label,
+                  state: t.label(STATE_LABEL[metric.state]),
+                })
           }
           className="flex items-center gap-3"
         >
           <span className="relative h-4 w-30 flex-none" aria-hidden="true">
             <span className="absolute inset-x-0 top-[7px] border-t-2 border-dashed border-border-strong" />
           </span>
-          <span className="data w-18 text-right text-status-unknown">no data</span>
+          <span className="data w-18 text-right text-status-unknown">{t("no data")}</span>
         </span>
       </Tooltip>
     );
@@ -97,7 +112,11 @@ export function RangeMeter({ metric }: { metric: KeyMetric }) {
         aria-valuemin={metric.display_min}
         aria-valuemax={metric.display_max}
         aria-valuenow={Math.min(Math.max(value, metric.display_min), metric.display_max)}
-        aria-valuetext={[formatValue(value, metric.unit), normalBound(metric), STATE_LABEL[state]]
+        aria-valuetext={[
+          formatValue(value, metric.unit, t),
+          normalBound(metric, t),
+          t.label(STATE_LABEL[state]),
+        ]
           .filter((part) => part !== "")
           .join(", ")}
         className="flex items-center gap-3"
@@ -129,7 +148,7 @@ export function RangeMeter({ metric }: { metric: KeyMetric }) {
           className={`data inline-flex w-20 items-center justify-end gap-1 whitespace-nowrap ${STATE_TEXT[state]}`}
         >
           {abnormal && <StatusIndicator state={state} size="sm" />}
-          {formatNumber(value)}
+          {formatNumber(value, t)}
           {unit !== "" && <span className={abnormal ? "" : "text-text-muted"}>{unit}</span>}
         </span>
       </span>

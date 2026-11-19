@@ -1,3 +1,5 @@
+import { english, type Translator } from "@/shared/i18n/translate";
+
 import type { MetricSeries } from "@/shared/api/types";
 import { formatValue, unitLabel } from "@/shared/format/number";
 import { formatUtcDateTime, formatUtcTime } from "@/shared/format/time";
@@ -67,7 +69,10 @@ export function isProbe(series: MetricSeries): boolean {
 }
 
 /** ECharts option for one metric on one Y axis, thresholds dashed and labelled (§7). */
-export function metricChartOption(input: MetricChartInput): ChartOption {
+export function metricChartOption(
+  input: MetricChartInput,
+  translate: Translator = english,
+): ChartOption {
   const { series, colors } = input;
   const unit = unitLabel(series.unit);
   const probe = isProbe(series);
@@ -105,7 +110,9 @@ export function metricChartOption(input: MetricChartInput): ChartOption {
         color: colors.muted,
         fontFamily: "IBM Plex Mono, monospace",
         fontSize: 11,
-        formatter: probe ? (v: number) => (v >= 1 ? "up" : "down") : undefined,
+        formatter: probe
+          ? (v: number) => (v >= 1 ? translate("up") : translate("down"))
+          : undefined,
       },
     },
     tooltip: {
@@ -114,7 +121,7 @@ export function metricChartOption(input: MetricChartInput): ChartOption {
       backgroundColor: colors.surface,
       borderColor: colors.grid,
       textStyle: { color: colors.text, fontSize: 12 },
-      formatter: (params: { data: unknown[] }[]) => tooltipHtml(params, series),
+      formatter: (params: { data: unknown[] }[]) => tooltipHtml(params, series, translate),
     },
   };
 
@@ -126,7 +133,7 @@ export function metricChartOption(input: MetricChartInput): ChartOption {
       width: 1,
     },
     label: {
-      formatter: `${t.level} ${formatValue(t.value, series.unit)}\n${t.basis}`,
+      formatter: `${translate.label(t.level)} ${formatValue(t.value, series.unit, translate)}\n${t.basis}`,
       position: "end",
       color: colors.muted,
       fontSize: 11,
@@ -249,51 +256,64 @@ export function metricChartOption(input: MetricChartInput): ChartOption {
   };
 }
 
-function tooltipHtml(params: { data: unknown[] }[], series: MetricSeries): string {
+function tooltipHtml(params: { data: unknown[] }[], series: MetricSeries, t: Translator): string {
   const first = params[0];
   if (first === undefined) return "";
-  const t = first.data[0];
-  if (typeof t !== "number") return "";
-  const at = `<div style="font-family:IBM Plex Mono,monospace">${escapeHtml(formatUtcDateTime(new Date(t)))}</div>`;
+  const atMs = first.data[0];
+  if (typeof atMs !== "number") return "";
+  const at = `<div style="font-family:IBM Plex Mono,monospace">${escapeHtml(formatUtcDateTime(new Date(atMs)))}</div>`;
   if (series.mode === "raw") {
     const value = first.data[1];
-    if (typeof value !== "number") return `${at}<div>no data</div>`;
-    const point = series.points.find((p) => ms(p.observed_at) === t);
+    if (typeof value !== "number") return `${at}<div>${escapeHtml(t("no data"))}</div>`;
+    const point = series.points.find((p) => ms(p.observed_at) === atMs);
     const meta =
       point === undefined
         ? ""
-        : `<div>quality ${escapeHtml(point.quality)}, sample #${String(point.sample_id)}, simulated</div>`;
-    return `${at}<div><b>${escapeHtml(formatValue(value, series.unit))}</b></div>${meta}`;
+        : `<div>${escapeHtml(t("Quality"))} ${escapeHtml(t.label(point.quality))}, ${escapeHtml(t("sample"))} #${String(point.sample_id)}, ${escapeHtml(t("simulated"))}</div>`;
+    return `${at}<div><b>${escapeHtml(formatValue(value, series.unit, t))}</b></div>${meta}`;
   }
-  const bucket = series.buckets.find((b) => ms(b.bucket_start) === t);
-  if (bucket === undefined) return `${at}<div>no data</div>`;
+  const bucket = series.buckets.find((b) => ms(b.bucket_start) === atMs);
+  if (bucket === undefined) return `${at}<div>${escapeHtml(t("no data"))}</div>`;
   return (
-    `${at}<div>avg <b>${escapeHtml(formatValue(bucket.avg, series.unit))}</b></div>` +
-    `<div>min ${escapeHtml(formatValue(bucket.min, series.unit))}, max ${escapeHtml(formatValue(bucket.max, series.unit))}</div>` +
-    `<div>${String(bucket.count)} samples, quality ${escapeHtml(bucket.worst_quality)}, simulated</div>`
+    `${at}<div>${escapeHtml(t("Average"))} <b>${escapeHtml(formatValue(bucket.avg, series.unit, t))}</b></div>` +
+    `<div>min ${escapeHtml(formatValue(bucket.min, series.unit, t))}, max ${escapeHtml(formatValue(bucket.max, series.unit, t))}</div>` +
+    `<div>${String(bucket.count)} ${escapeHtml(t("samples,"))} ${escapeHtml(t("Quality"))} ${escapeHtml(t.label(bucket.worst_quality))}, ${escapeHtml(t("simulated"))}</div>`
   );
 }
 
 /** Text equivalent of the chart for its accessible name (§9). */
-export function chartSummary(series: MetricSeries, thresholds: readonly Threshold[]): string {
+export function chartSummary(
+  series: MetricSeries,
+  thresholds: readonly Threshold[],
+  translate: Translator = english,
+): string {
   const values =
     series.mode === "raw" ? series.points.map((p) => p.value) : series.buckets.map((b) => b.avg);
-  const parts = [`${series.metric_name} for ${series.component_key}`];
+  const parts = [
+    translate("{metric} for {component}", {
+      metric: series.metric_name,
+      component: series.component_key,
+    }),
+  ];
   if (values.length === 0) {
-    parts.push("no samples in this window");
+    parts.push(translate("no samples in this window"));
   } else {
     const latest = values[values.length - 1] ?? 0;
     parts.push(
-      `latest ${formatValue(latest, series.unit)}`,
-      `min ${formatValue(Math.min(...values), series.unit)}`,
-      `max ${formatValue(Math.max(...values), series.unit)}`,
+      translate("latest {value}", { value: formatValue(latest, series.unit, translate) }),
+      `min ${formatValue(Math.min(...values), series.unit, translate)}`,
+      `max ${formatValue(Math.max(...values), series.unit, translate)}`,
     );
   }
   for (const t of thresholds)
-    parts.push(`${t.level} ${formatValue(t.value, series.unit)} (${t.basis})`);
+    parts.push(
+      `${translate.label(t.level)} ${formatValue(t.value, series.unit, translate)} (${t.basis})`,
+    );
   if (series.gaps.length > 0) {
     parts.push(
-      `${String(series.gaps.length)} gap${series.gaps.length === 1 ? "" : "s"} without data`,
+      series.gaps.length === 1
+        ? translate("1 gap without data")
+        : translate("{count} gaps without data", { count: series.gaps.length }),
     );
   }
   return parts.join(", ");

@@ -1,6 +1,10 @@
+import { useT } from "@/shared/i18n/context";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Navigate, useNavigate, useSearchParams } from "react-router";
+
+import { LanguageSelect } from "@/shared/i18n/LanguageSelect";
+import { PageHelp } from "@/shared/help/PageHelp";
 
 import { SimulatedBanner } from "@/app/AppShell";
 import { MonitorStatus } from "@/app/MonitorStatus";
@@ -11,6 +15,7 @@ import { RefusedAlert } from "@/shared/ui/QueryStates";
 import { safeReturnTo, useSession } from "@/shared/identity/session";
 
 export function LoginPage() {
+  const t = useT();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [params] = useSearchParams();
@@ -46,15 +51,18 @@ export function LoginPage() {
           <p className="font-mono text-heading font-semibold" translate="no">
             IPHI
           </p>
-          <h1 className="text-display font-semibold">Sign in to platform health</h1>
+          <LanguageSelect />
+          <h1 className="text-display font-semibold">{t("Sign in to platform health")}</h1>
           <p className="max-w-[42ch] text-text-muted">
-            Inspect simulated infrastructure, trace incidents to stored evidence and review platform
-            health.
+            {t(
+              "Inspect simulated infrastructure, trace incidents to stored evidence and review platform health.",
+            )}
           </p>
           <p className="text-small text-text-muted">
-            Synthetic data only. No real plant is connected.
+            {t("Synthetic data only. No real plant is connected.")}
           </p>
           <MonitorStatus />
+          <PageHelp page="login" />
         </div>
         <form
           method="post"
@@ -65,8 +73,8 @@ export function LoginPage() {
             login.mutate();
           }}
         >
-          <h2 className="text-heading font-semibold">Your account</h2>
-          <label htmlFor="sign-in-username">Username</label>
+          <h2 className="text-heading font-semibold">{t("Your account")}</h2>
+          <label htmlFor="sign-in-username">{t("Username")}</label>
           <input
             id="sign-in-username"
             name="username"
@@ -82,7 +90,7 @@ export function LoginPage() {
             }}
             className="h-10 rounded-control border border-border-strong bg-surface px-3"
           />
-          <label htmlFor="sign-in-password">Password</label>
+          <label htmlFor="sign-in-password">{t("Password")}</label>
           <input
             id="sign-in-password"
             name="password"
@@ -102,12 +110,13 @@ export function LoginPage() {
             disabled={login.isPending}
             className="mt-2 justify-center"
           >
-            {login.isPending ? "Signing in…" : "Sign in"}
+            {login.isPending ? t("Signing in…") : t("Sign in")}
           </Button>
-          <RefusedAlert action="Sign in" error={login.error} />
+          <RefusedAlert action={t("Sign in")} error={login.error} />
           <p className="text-small text-text-muted">
-            Use the account supplied by the demo owner. Viewer access is read-only; engineer and
-            admin actions are recorded.
+            {t(
+              "Use the account supplied by the demo owner. Viewer access is read-only; engineer and admin actions are recorded.",
+            )}
           </p>
         </form>
       </main>

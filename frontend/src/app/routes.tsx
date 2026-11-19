@@ -1,5 +1,7 @@
 import type { RouteObject } from "react-router";
 
+import { HelpPage } from "@/features/help/HelpPage";
+
 import { AuthGate } from "@/features/identity/AuthGate";
 import { LoginPage } from "@/features/identity/LoginPage";
 import { AuditPage } from "@/features/identity/AuditPage";
@@ -17,6 +19,7 @@ import { AppShell } from "./AppShell";
 import { NotFoundPage } from "./NotFoundPage";
 
 export const routes: RouteObject[] = [
+  { path: "help", element: <HelpPage /> },
   { path: "login", element: <LoginPage /> },
   {
     element: <AuthGate />,

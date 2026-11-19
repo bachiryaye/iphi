@@ -1,3 +1,4 @@
+import { useT } from "@/shared/i18n/context";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { api, toApiError } from "@/shared/api/client";
@@ -7,6 +8,7 @@ import { RefusedAlert } from "@/shared/ui/QueryStates";
 import { clearSession, useSession } from "@/shared/identity/session";
 
 export function UserMenu() {
+  const t = useT();
   const session = useSession();
   const client = useQueryClient();
   const logout = useMutation({
@@ -23,11 +25,11 @@ export function UserMenu() {
   return (
     <details className="relative text-small">
       <summary className="cursor-pointer whitespace-nowrap rounded-control border border-border-strong px-2 py-1.5">
-        {user.username} · {user.role}
+        {user.username} · {t.label(user.role)}
       </summary>
       <div className="absolute right-0 z-20 mt-2 flex w-60 flex-col gap-3 rounded-card border border-border-strong bg-surface p-4 shadow-sm">
         <p>
-          Signed in as {user.display_name}. Role: {user.role}.
+          {t("Signed in as")} {user.display_name}. {t("Role")}: {t.label(user.role)}.
         </p>
         <Button
           onClick={() => {
@@ -35,9 +37,9 @@ export function UserMenu() {
           }}
           disabled={logout.isPending}
         >
-          {logout.isPending ? "Signing out…" : "Sign out"}
+          {logout.isPending ? t("Signing out…") : t("Sign out")}
         </Button>
-        <RefusedAlert action="Sign out" error={logout.error} />
+        <RefusedAlert action={t("Sign out")} error={logout.error} />
       </div>
     </details>
   );

@@ -1,3 +1,4 @@
+import { useT } from "@/shared/i18n/context";
 import {
   type CheckName,
   type Readiness,
@@ -28,19 +29,22 @@ function CheckStatusCell({
   status: ReadinessCheck["status"];
   optional: boolean;
 }) {
-  if (status === "unknown") return <StatusBadge state="unknown" label="Unverified" />;
-  if (status === "failed" && optional) return <span className="text-text-muted">Unavailable</span>;
-  if (status === "ok") return <StatusBadge state="healthy" label="OK" />;
-  if (status === "failed") return <StatusBadge state="critical" label="Failed" />;
+  const t = useT();
+  if (status === "unknown") return <StatusBadge state="unknown" label={t("Unverified")} />;
+  if (status === "failed" && optional)
+    return <span className="text-text-muted">{t("Unavailable")}</span>;
+  if (status === "ok") return <StatusBadge state="healthy" label={t("OK")} />;
+  if (status === "failed") return <StatusBadge state="critical" label={t("Failed")} />;
   return (
     <span className="inline-flex items-center gap-1.5 text-text-muted">
       <span aria-hidden="true" className="w-3.5" />
-      Off
+      {t("Off")}
     </span>
   );
 }
 
 function Verdict({ readiness }: { readiness: Readiness }) {
+  const t = useT();
   const ready = readiness.status === "ready";
   const failed = readiness.checks.filter(
     (check) => check.status === "failed" && check.name !== "ai_provider",
@@ -49,12 +53,12 @@ function Verdict({ readiness }: { readiness: Readiness }) {
     <div className="flex items-center gap-2 px-4 py-4">
       <StatusBadge
         state={ready ? "healthy" : "critical"}
-        label={ready ? "API ready" : "API not ready"}
+        label={ready ? t("API ready") : t("API not ready")}
         size="lg"
       />
       {!ready && (
         <p className="text-text-muted">
-          {failed === 1 ? "1 check failed." : `${String(failed)} checks failed.`}
+          {failed === 1 ? t("1 check failed.") : t("{count} checks failed.", { count: failed })}
         </p>
       )}
     </div>
@@ -62,22 +66,23 @@ function Verdict({ readiness }: { readiness: Readiness }) {
 }
 
 function ChecksTable({ checks }: { checks: readonly ReadinessCheck[] }) {
+  const t = useT();
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse">
         <thead>
           <tr className="text-left text-small text-text-muted">
             <th scope="col" className="border-y border-border py-2 pr-3 pl-4 font-medium">
-              Check
+              {t("Check")}
             </th>
             <th scope="col" className="border-y border-border px-3 py-2 font-medium">
-              Status
+              {t("Status")}
             </th>
             <th scope="col" className="border-y border-border px-3 py-2 font-medium">
-              Detail
+              {t("Detail")}
             </th>
             <th scope="col" className="border-y border-border py-2 pr-4 pl-3 font-medium">
-              Evidence time
+              {t("Evidence time")}
             </th>
           </tr>
         </thead>
@@ -95,7 +100,7 @@ function ChecksTable({ checks }: { checks: readonly ReadinessCheck[] }) {
                 scope="row"
                 className="h-11 border-b border-border py-0 pr-3 pl-4 text-left font-medium whitespace-nowrap"
               >
-                {CHECK_LABEL[check.name]}
+                {t.label(CHECK_LABEL[check.name])}
               </th>
               <td className="border-b border-border px-3 whitespace-nowrap">
                 <CheckStatusCell status={check.status} optional={check.name === "ai_provider"} />
@@ -107,7 +112,7 @@ function ChecksTable({ checks }: { checks: readonly ReadinessCheck[] }) {
                 ) : (
                   <span className="text-text-muted">
                     <span aria-hidden="true">—</span>
-                    <span className="sr-only">No evidence time</span>
+                    <span className="sr-only">{t("No evidence time")}</span>
                   </span>
                 )}
               </td>
@@ -120,6 +125,7 @@ function ChecksTable({ checks }: { checks: readonly ReadinessCheck[] }) {
 }
 
 export function ReadinessPanel() {
+  const t = useT();
   const readiness = useReadiness();
   const { data, isPending, isError, dataUpdatedAt } = readiness;
   const stale = isError && data !== undefined;
@@ -129,15 +135,17 @@ export function ReadinessPanel() {
       <RefreshMeta updatedAt={dataUpdatedAt} failed />
     ) : (
       <span>
-        Checked <span className="data">{formatUtcTime(new Date(data.checked_at))} UTC</span>,
-        refreshes every {REFRESH_S}&nbsp;s
+        {t("Checked")} <span className="data">{formatUtcTime(new Date(data.checked_at))} UTC</span>
+        {t(", refreshes every")} {REFRESH_S}&nbsp;s
       </span>
     );
 
   return (
-    <Card title="Monitor readiness" titleId="readiness-title" meta={meta} busy={isPending}>
+    <Card title={t("Monitor readiness")} titleId="readiness-title" meta={meta} busy={isPending}>
       {isPending && <SkeletonRows />}
-      {isError && data === undefined && <LoadError what="monitor readiness" query={readiness} />}
+      {isError && data === undefined && (
+        <LoadError what={t("monitor readiness")} query={readiness} />
+      )}
       {data !== undefined && (
         <div className={staleClass(stale)}>
           <Verdict readiness={data} />

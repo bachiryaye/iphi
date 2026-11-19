@@ -1,3 +1,4 @@
+import { useT } from "@/shared/i18n/context";
 import { formatAge, formatFullTimestamp, formatUtcTime } from "@/shared/format/time";
 import { usePlatformClock } from "@/shared/hooks/usePlatformNow";
 
@@ -13,15 +14,17 @@ interface TimestampProps {
 }
 
 export function Timestamp({ iso, format = "time", suffix = true, className = "" }: TimestampProps) {
+  const t = useT();
   const at = new Date(iso);
   return (
-    <time dateTime={iso} title={formatFullTimestamp(at)} className={`data ${className}`}>
+    <time dateTime={iso} title={formatFullTimestamp(at, t)} className={`data ${className}`}>
       {format === "age" ? <Age at={at} /> : `${formatUtcTime(at)}${suffix ? " UTC" : ""}`}
     </time>
   );
 }
 
 function Age({ at }: { at: Date }) {
+  const t = useT();
   const now = usePlatformClock();
-  return <>{formatAge(at, now)}</>;
+  return <>{formatAge(at, now, t)}</>;
 }
