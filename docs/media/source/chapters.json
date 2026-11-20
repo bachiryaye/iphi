@@ -1,0 +1,42 @@
+[
+  {
+    "title": "Comprendre la plateforme",
+    "text": "IPHI surveille sept composants simulés : source, passerelle, collecteur, historisation, base de données, API et analyse. La santé de la plateforme et celle du moniteur sont distinctes.",
+    "note": "Captures réelles de l’application. Aucun équipement industriel connecté."
+  },
+  {
+    "title": "Provoquer une panne",
+    "text": "Un scénario arrête les réponses du collecteur. Le catalogue annonce le résultat attendu. Les rôles engineer et admin peuvent agir ; viewer peut consulter.",
+    "note": "Le scénario modifie uniquement les données de la simulation."
+  },
+  {
+    "title": "Expliquer l’état critique",
+    "text": "Le collecteur devient Critique après confirmation par les règles. Un incident regroupe les signaux répétés et décrit les dépendances affectées. L’état global suit une priorité explicite.",
+    "note": "Inconnu signifie preuves insuffisantes, jamais Sain par défaut."
+  },
+  {
+    "title": "Relier mesures et règles",
+    "text": "La fiche composant réunit les métriques avec leurs unités et les évaluations enregistrées. Chaque règle expose sa fenêtre, son seuil et les preuves expliquant son résultat.",
+    "note": "Les graphiques montrent les échantillons réellement stockés."
+  },
+  {
+    "title": "Retrouver les preuves",
+    "text": "L’incident conserve son signal, sa chronologie et sa chaîne de preuves. Les références permettent de retrouver les évaluations, journaux et mesures qui étayent l’investigation.",
+    "note": "Prendre en compte un incident ne répare pas la panne."
+  },
+  {
+    "title": "Diagnostiquer et exporter",
+    "text": "Le diagnostic déterministe sépare faits, hypothèse, vérifications et limites. Il fonctionne sans fournisseur IA. L’export CSV reprend les preuves enregistrées et signale leur origine simulée.",
+    "note": "Les preuves gardent leur langue d’origine. Les exports restent anglais."
+  },
+  {
+    "title": "Observer le rétablissement",
+    "text": "Le scénario est arrêté puis l’horloge de plateforme accélérée à ×30. L’incident se résout après une période stable. Les preuves et l’historique restent consultables.",
+    "note": "Temps simulé accéléré visible dans l’interface. Coupes de montage signalées dans la transcription."
+  },
+  {
+    "title": "Continuer avec l’aide",
+    "text": "L’aide publique détaille les étapes, les résultats attendus, les rôles et le dépannage. Le sélecteur Français / English traduit l’interface et conserve le choix après rechargement.",
+    "note": "Démonstrateur local : aucune remédiation ni validation en usine réelle."
+  }
+]

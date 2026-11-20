@@ -2,6 +2,8 @@
 
 IPHI (Industrial Platform Health Intelligence) is a personal project: a monitoring and diagnostics application for an industrial **data platform**. It runs entirely on a simulated infrastructure. This page explains the problem it addresses, the decisions that shaped it, what they cost, and where it stops.
 
+[Recorded demonstration: three minutes, French explanations](media/iphi-demo-fr.mp4) · [Transcript and chapter guide](video-demo.md)
+
 ## The problem
 
 A plant's process data travels through a chain: field sources, an edge gateway, a collector, a historian and its database, then the APIs and analytics that consume it. When a trend goes flat on a screen, the first question is not about the process. It is whether the value is true or whether the chain broke: a collector that stopped, a gateway that answers slowly, a historian that is up but serves old data, a component nobody hears from any more.
@@ -17,7 +19,7 @@ IPHI is built around those four points.
 
 ## What it does
 
-A worker collects metrics and logs from seven simulated components every 5 seconds, validates and stores them in PostgreSQL, evaluates nine versioned health rules, and maintains incidents. A FastAPI service exposes the results; a React dashboard shows them. Nine fault scenarios (outage, latency ramp, stale data, intermittent loss, error burst, resource pressure, backlog growth, telemetry blackout, plus the nominal baseline) can be started from the interface or the API, and the outcome of each is announced in advance and tested.
+A worker collects metrics and logs from seven simulated components every 5 seconds, validates and stores them in PostgreSQL, evaluates nine versioned health rules, and maintains incidents. A FastAPI service exposes the results; a React dashboard shows them. Nine scenarios (outage, latency ramp, stale data, intermittent loss, error burst, resource pressure, backlog growth, telemetry blackout, plus the nominal baseline) can be started from the interface or the API, and the outcome of each is announced in advance and tested.
 
 `make demo` replays the main ones on a clean environment and checks every conclusion ([demo guide](demo.md)).
 
@@ -55,13 +57,13 @@ Every state cites a stored rule evaluation: rule version, window, threshold, obs
 
 ### 6. Diagnosis without AI first
 
-The deterministic diagnosis walks the dependency graph and the incident's evidence: observed facts, one hypothesis (the most upstream component in fault, worded as a correlation, never as a proven cause), and the checks recommended by the rules involved. Each claim cites evidence IDs that are validated against the incident's evidence set. The AI diagnosis planned next uses the same contract and the same validation, and stays optional: the full demonstration runs with no provider configured.
+The deterministic diagnosis walks the dependency graph and the incident's evidence: observed facts, one hypothesis (the most upstream component in fault, worded as a correlation, never as a proven cause), and the checks recommended by the rules involved. Each claim cites evidence IDs that are validated against the incident's evidence set. The implemented optional AI diagnosis uses bounded, redacted evidence and validates the provider's output and citations. If the provider is unavailable or its answer is rejected, the deterministic path remains available: the full demonstration runs with no provider configured ([diagnosis guide](diagnosis.md)).
 
-*Cost:* the deterministic text is plain. It is also reproducible, free, and cannot invent a fact.
+*Cost:* the deterministic text is plain and limited to versioned rule recommendations and stored observations. It is reproducible and needs no external provider. Citations establish traceability, not factual truth.
 
 ### 7. A modular monolith with one scheduler
 
-One PostgreSQL, one API process, one worker holding an advisory lock, one Compose file. Module boundaries (simulation, connectors, ingestion, health, incidents, diagnostics) are checked by import contracts in CI. No message broker, no time-series database, no microservices.
+One PostgreSQL, one API process, one worker holding an advisory lock, one Compose file. Module boundaries (simulation, connectors, ingestion, health, incidents, diagnostics) are checked by import contracts in CI. The default simulation requires no broker; the optional MQTT transport adds Mosquitto. No separate time-series database or microservice architecture is needed.
 
 *Cost:* it does not scale horizontally as is. For seven components and a week of history it does not need to, and the measured numbers say so. The connector port also carries the [MQTT simulation](mqtt.md): a real Mosquitto broker and separate synthetic publisher feed the same ingestion and health engine. This validates a transport boundary, not a real industrial source.
 
@@ -87,22 +89,25 @@ The dashboard follows a written design system inspired by high-performance HMI p
 
 ## Limits
 
-- **Everything is simulated.** No real protocol adapter exists yet; no compatibility with any commercial historian is claimed or implied. Thresholds are demonstration values, not industrial recommendations.
+- **Industrial observations are simulated.** The optional MQTT adapter uses a real local broker carrying synthetic observations; no plant, PLC or commercial historian is connected. No commercial compatibility is claimed or implied. Thresholds are demonstration values, not industrial recommendations.
 - **Local identity scope.** Server sessions, Argon2id, CSRF and viewer/engineer/admin roles protect the simulated platform; no public deployment or account-management interface is included.
 - **SSE resynchronizes on connection**, with an explicit 30 s polling fallback and no durable event replay.
 - **One platform, seven components, one worker.** Performance was measured at that size only, on a 2015 laptop with a spinning disk: every target is met except the 7-day aggregated series (p95 337 to 613 ms for a 300 ms target), whose query takes 123 ms in the database when the host is idle.
 - **Detection delay is bounded by the design**, not optimised: two failed probes at 5 s plus one worker cycle, so up to about 15 s in real time.
-- Known simplifications of the simulator and of late-data handling are listed in the README.
+- Simulator and late-data boundaries are described in the [architecture](02-architecture-technique.md) and [decision records](adr/README.md); measured host limits are in [performance.md](performance.md).
 
-## What I would do next
+## Delivered portfolio scope
 
 The optional MQTT adapter runs with a simulated publisher in an isolated Compose profile.
 Its versioned, bounded JSON batches preserve event time, measurement quality and scenario
 attribution; complete batches reach the existing engine, while transport loss remains missing
 evidence. Live updates, evidence-grounded diagnosis with a deterministic fallback, and
-PDF/CSV reports use the same stored observations. The next portfolio task is clearer beginner
-documentation and an English/French interface. No real plant connection is planned for this
-demonstrator.
+PDF/CSV reports use the same stored observations. Local sessions, role checks and audit
+protect the operational actions. The README, public beginner guide and contextual help
+are delivered, with a persistent English/French interface. Stored messages and diagnoses
+keep their original language; PDF/CSV reports remain English. The [beginner guide](getting-started.md)
+and [French guide](debuter.md) explain the complete investigation journey.
+No real plant connection or public deployment is included in this demonstrator.
 
 ## Résumé en français
 

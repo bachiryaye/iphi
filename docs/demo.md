@@ -2,6 +2,8 @@
 
 How to reproduce the IPHI demonstration on your own machine, and what you should observe at each step. Everything runs against a **simulated** platform: no plant, PLC, historian or network other than your loopback interface is contacted.
 
+For a quick preview, [watch the three-minute French recording](media/iphi-demo-fr.mp4) or read its [transcript and editing notes](video-demo.md). The recording covers the collector investigation journey; the checked script below exercises the additional fault cases.
+
 ## Prerequisites
 
 - Docker Engine with the Compose plugin (v2 or later), GNU Make, `curl`
