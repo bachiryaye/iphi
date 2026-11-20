@@ -6,9 +6,15 @@ IPHI helps an engineer answer: **which service in an industrial data platform is
 
 **Français :** IPHI supervise la santé d’une plateforme de données industrielles simulée. Pour installer et découvrir l’outil, suivez le [guide débutant en français](docs/debuter.md). L’interface et l’aide sont disponibles en français et en anglais ; choisissez **Français / English** dès la connexion. [English beginner guide](docs/getting-started.md).
 
-**Recorded demo:** [three-minute French walkthrough (MP4, written explanations, no audio)](docs/media/iphi-demo-fr.mp4) · [transcript and chapter guide](docs/video-demo.md).
+**Références industrielles :** [ISA-95, ISA-101, ISA-18.2 / IEC 62682, ISA/IEC 62443 et qualité OPC UA : principes utilisés, preuves et limites](docs/industrial-references.md).
 
-[![Play the recorded IPHI demonstration: real simulated-platform interface with French explanations](docs/media/iphi-demo-fr-poster.jpg)](docs/media/iphi-demo-fr.mp4)
+## Recorded demonstration
+
+Three-minute French walkthrough, with written explanations and no audio.
+
+https://github.com/user-attachments/assets/13ff5f84-f3f4-4a0b-9992-03905ca8d530
+
+[Transcript and chapter guide](docs/video-demo.md) · [Download the original MP4](docs/media/iphi-demo-fr.mp4)
 
 [French dashboard](docs/design/screenshots/finalization-overview-fr-light-1440.png) · [English beginner help](docs/design/screenshots/finalization-help-en-light-1440.png) · [French help on a dark tablet layout](docs/design/screenshots/finalization-help-fr-dark-768.png) · [Capture provenance and reproduction](docs/design/screenshots/README.md)
 
@@ -62,6 +68,21 @@ To provoke the fault yourself after recovery, open **Scenarios → Collector dow
 - Local sessions, role checks, CSRF protection, audit and one optional MQTT transport.
 
 US-01…US-12 are delivered; the [backlog](docs/03-backlog.md) and [decision records](docs/adr/README.md) describe the acceptance evidence and boundaries. For the portfolio narrative, read the [case study](docs/case-study.md) and [video script](docs/video-script.md).
+
+## Industrial design references
+
+| Reference | How it guides IPHI |
+|---|---|
+| ISA-95 / IEC 62264 | Functional vocabulary and dependencies along the simulated industrial-data chain |
+| ISA-101 | Readable HMI design, abnormal-state emphasis and shape/text/colour status coding |
+| ISA-18.2 / IEC 62682 | Explained rules, hysteresis, deduplication, acknowledgement and incident history |
+| ISA/IEC 62443 | OT boundary, least privilege, server-enforced roles and no automatic remediation |
+| OPC UA quality semantics | Preserve `good`/`uncertain`/`bad`; bad samples do not justify healthy evidence |
+
+These are **design references, not certifications or claims of full conformity**.
+The [industrial-reference guide](docs/industrial-references.md) maps each principle
+to code/tests and states its limits. In particular, quality labels do not imply an
+OPC UA adapter, and the seven simulated services are not seven ISA-95 levels.
 
 ## Architecture
 

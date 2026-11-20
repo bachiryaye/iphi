@@ -1,6 +1,6 @@
 # Three-minute English narration plan
 
-The [published French recording](media/iphi-demo-fr.mp4) is a silent browser walkthrough with written explanations. Its actual chapters, transcript and editing boundaries are in [video-demo.md](video-demo.md). The English script below is an optional narration plan for a separate recording of the wider scripted demo; it is not the soundtrack or a shot-for-shot transcript of the French film.
+The [published French recording in GitHub’s player](../README.md#recorded-demonstration) is a silent browser walkthrough with written explanations. Its actual chapters, transcript and editing boundaries are in [video-demo.md](video-demo.md). The English script below is an optional narration plan for a separate recording of the wider scripted demo; it is not the soundtrack or a shot-for-shot transcript of the French film.
 
 A recording plan for the IPHI demonstration: what is on screen, what is said, and how long each part lasts. It follows the scripted demo ([demo.md](demo.md)) so the recording shows the application as it runs, on simulated data.
 

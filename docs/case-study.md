@@ -2,7 +2,7 @@
 
 IPHI (Industrial Platform Health Intelligence) is a personal project: a monitoring and diagnostics application for an industrial **data platform**. It runs entirely on a simulated infrastructure. This page explains the problem it addresses, the decisions that shaped it, what they cost, and where it stops.
 
-[Recorded demonstration: three minutes, French explanations](media/iphi-demo-fr.mp4) · [Transcript and chapter guide](video-demo.md)
+[Watch the recorded demonstration on GitHub](../README.md#recorded-demonstration) · [Transcript and chapter guide](video-demo.md)
 
 ## The problem
 
@@ -22,6 +22,16 @@ IPHI is built around those four points.
 A worker collects metrics and logs from seven simulated components every 5 seconds, validates and stores them in PostgreSQL, evaluates nine versioned health rules, and maintains incidents. A FastAPI service exposes the results; a React dashboard shows them. Nine scenarios (outage, latency ramp, stale data, intermittent loss, error burst, resource pressure, backlog growth, telemetry blackout, plus the nominal baseline) can be started from the interface or the API, and the outcome of each is announced in advance and tested.
 
 `make demo` replays the main ones on a clean environment and checks every conclusion ([demo guide](demo.md)).
+
+## Industrial references behind the design
+
+ISA-95 / IEC 62264 informs functional vocabulary; ISA-101 informs the HMI;
+ISA-18.2 / IEC 62682 informs selected alarm-management ideas used for incidents;
+ISA/IEC 62443 informs the OT boundary and least-privilege approach. OPC UA supplies
+the vocabulary for observation quality, without an OPC UA adapter. These are design
+references, not a certification or a claim of full standards conformity. The
+[reference guide](industrial-references.md) links each choice to implementation and
+tests, with a French summary and explicit scope limits.
 
 ## Decisions and what they cost
 

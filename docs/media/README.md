@@ -1,6 +1,7 @@
 # Demonstration media and recording recipe
 
-- [Three-minute French MP4](iphi-demo-fr.mp4): H.264, 1920 × 1080, 20 fps, no audio.
+- [Watch in GitHub’s player](../../README.md#recorded-demonstration).
+- [Download the three-minute French MP4](iphi-demo-fr.mp4): H.264, 1920 × 1080, 20 fps, no audio.
 - [Poster](iphi-demo-fr-poster.jpg), extracted from the final movie.
 - [WebVTT text descriptions](iphi-demo-fr.vtt).
 - [Transcript, chapter times, provenance and editing limits](../video-demo.md).
@@ -17,6 +18,24 @@ The chapter panels are presentation graphics, rendered with Remotion 4.0.539; th
 do not replace the UI or calculate health states. Stored evidence stays in its
 original language. No video, voice or model service is required. The application
 has no new package or runtime dependency for these media files.
+
+## Publish the GitHub player
+
+A repository MP4 link is a file download; it does not embed the native player.
+The README and transcript therefore use a GitHub video attachment. To publish a
+replacement, use [GitHub CLI attachments](https://docs.github.com/en/github-cli/github-cli/attaching-files-with-github-cli)
+with CLI version 2.99.0 or later and an authorized repository account:
+
+```sh
+gh pr edit <PR-number> --body-file /absolute/path/to/pr-body.md \
+  --attach docs/media/iphi-demo-fr.mp4
+```
+
+Preserve the existing PR description in the body file. Copy the resulting stable
+`https://github.com/user-attachments/assets/...` URL into its own paragraph in the
+README and transcript. Keep the original MP4 as a separate download. Do not copy
+the expiring signed CDN URL from the rendered player. Verify playback and seeking
+on the published GitHub page in a browser without signing in.
 
 ## Capture the interface
 

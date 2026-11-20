@@ -106,3 +106,5 @@ make demo-down
 ```
 
 **`make demo` also recreates the demo volume on every run.** Development data is separate. Use `make up IPHI_LLM_PROVIDER=none` (UI 8080) and `make down` for persistent development history. See [access and roles](access.md), [MQTT](mqtt.md), [performance and limits](performance.md).
+
+For a project presentation, read the [industrial design references](industrial-references.md): applied principles, code/test evidence and scope limits.
