@@ -58,6 +58,13 @@ To provoke the fault yourself after recovery, open **Scenarios → Collector dow
 
 **Understanding the labels:** `Unknown` means missing, stale or insufficient evidence, never Healthy. A failed active probe (`up = 0`) differs from missing telemetry. `data_age_s` tracks process-data freshness even when a service answers. Charts keep gaps visible and show units; UTC and browser-local time are identified. Switching language translates the interface, catalog and help, while technical keys, stored logs, explanations and diagnosis text keep their original language. **PDF/CSV reports remain English.**
 
+The in-app **Help** offers sixteen topics and six beginner exercises with numbered
+actions and an expected result at each step. It also covers roles, each screen,
+rules, platform time, symptom-based troubleshooting, a glossary, industrial design
+references and an interview walkthrough. Its reading typography reflows on tablet
+and supports enlarged text; the contents can be collapsed. See an
+[actual French exercise](docs/design/screenshots/novice-help-fr-exercise-dark-1440.png).
+
 ## What it demonstrates
 
 - Seven dependent components, reproducible seeded scenarios and a controllable platform clock.

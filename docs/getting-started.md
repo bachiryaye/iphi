@@ -22,6 +22,12 @@ IPHI monitors an industrial data platform: seven simulated services move data fr
 
 **What to expect :** Overview shows seven components, a platform state and the monitor status. Viewer can inspect and export; engineer can run scenarios, change the clock, comment and manage incidents; admin can also reset the simulation and read Audit.
 
+In the application, **Help** provides sixteen topics and six numbered exercises,
+with an expected result after each action. Follow that in-app path on your first
+visit; collapsible contents, vocabulary and symptom-based troubleshooting remain
+available throughout. Rules, clock, audit, industrial references and presentation
+sections extend the quick reference below.
+
 ## Read the platform state
 
 Healthy means the available evidence satisfies the rules. Warning and Critical mean a named rule crossed a threshold after its confirmation period. Unknown means evidence is missing, stale or insufficient; it never means Healthy. Impact is an annotation from dependencies, not a change to the component’s own state.

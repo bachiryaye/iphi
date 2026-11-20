@@ -6,7 +6,11 @@ This is an edited recording of the actual IPHI browser interface, with French ex
 
 https://github.com/user-attachments/assets/13ff5f84-f3f4-4a0b-9992-03905ca8d530
 
-Application source: `83b87b3` (the delivered application on `main`). Recorded on 19 November 2026 against a separate, seeded local Compose project, with the AI provider set to `none`. Remotion renders the explanatory panels; FFmpeg combines them with the browser footage. No observation, chart, status or diagnostic text was replaced.
+Application source: `83b87b3` (the recording baseline). Recorded on 19 November 2026 against a separate, seeded local Compose project, with the AI provider set to `none`. Remotion renders the explanatory panels; FFmpeg combines them with the browser footage. No observation, chart, status or diagnostic text was replaced.
+
+The in-app beginner guide was expanded on 20 November, including larger reading
+typography and numbered exercises. The film preserves the earlier interface;
+[current Help captures](design/screenshots/README.md) show the updated guide.
 
 **Editing and time:** the eight chapters retain their chronological order. Pauses, loading and waiting periods are cut; the film is not a continuous three-minute runtime or a detection-performance measurement. The platform clock is changed to ×30 during recovery, as shown in the interface. The monitor, stored evidence and simulation limitations remain those of the application.
 

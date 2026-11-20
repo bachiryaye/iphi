@@ -97,6 +97,16 @@ Contrastes calculés selon la formule WCAG 2.x (luminance relative) le 2026-11-1
 
 Polices sous licence SIL OFL, auto-hébergées (`@fontsource`), aucun appel à un CDN tiers. Nombres alignés à droite dans les tableaux, unités toujours affichées (`ms`, `%`, `s`, `msg`).
 
+**Lecture longue — guide débutant (demande propriétaire du 20 novembre, ADR 0027) :**
+le guide conserve IBM Plex Sans et dispose de tokens dédiés : `guide` 1rem / 1.625,
+`guide-title` 1.75rem / 1.3, `guide-heading` 1.25rem / 1.4 et `guide-nav`
+0.875rem / 1.5. Le corps correspond à 16 px avec une racine navigateur de 16 px,
+sans imposer cette taille à la racine. Paragraphes alignés à gauche, colonne limitée
+à 70ch, étapes et résultats espacés, définitions en listes sémantiques. Pas de hauteur
+fixe sur les textes ni de réduction de police sur tablette ; vérifier repli à 320 px,
+zoom 200 %, espacement de texte accru et thèmes clair/sombre. Les tableaux de bord
+conservent leur densité et leurs tokens existants.
+
 ### 3.4 Espacement, formes, élévation
 
 - Grille de 4 px ; espacements usuels 4 / 8 / 12 / 16 / 24 / 32.

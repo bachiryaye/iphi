@@ -14,7 +14,9 @@ export function SimulatedBanner() {
       role="note"
       className="sim-banner relative flex h-7 items-center justify-center gap-3 border-b border-border bg-surface-sunken px-44 text-small max-md:px-4"
     >
-      <strong className="font-mono font-medium tracking-[.04em]">{t("SIMULATED DATA")}</strong>
+      <strong className="flex-none font-mono font-medium tracking-[.04em] whitespace-nowrap">
+        {t("SIMULATED DATA")}
+      </strong>
       <span className="truncate max-md:hidden">
         {t("synthetic telemetry, not connected to any real plant")}
       </span>
