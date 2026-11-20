@@ -106,3 +106,5 @@ make demo-down
 ```
 
 **`make demo` recrée aussi le volume de démo à chaque lancement.** Il ne supprime pas les données du projet de développement. Pour un usage persistant : `make up IPHI_LLM_PROVIDER=none` (interface 8080), puis `make down` conserve son volume. Voir [accès et rôles](access.md), [MQTT](mqtt.md), [performances et limites](performance.md).
+
+Pour préparer votre présentation, consultez les [références industrielles utilisées dans la conception](industrial-references.md) : principes, preuves dans le code/tests et limites, avec un résumé en français.

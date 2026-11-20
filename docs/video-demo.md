@@ -1,8 +1,10 @@
 # Recorded demonstration — French, three minutes
 
-[Download / play the MP4](media/iphi-demo-fr.mp4) · [French text track](media/iphi-demo-fr.vtt) · [Recording and edit sources](media/README.md)
+[Watch the GitHub player](../README.md#recorded-demonstration) · [Download the original MP4](media/iphi-demo-fr.mp4) · [French text track](media/iphi-demo-fr.vtt) · [Recording and edit sources](media/README.md)
 
 This is an edited recording of the actual IPHI browser interface, with French explanatory panels and no audio. It follows one simulated collector failure through metrics, evidence, deterministic diagnosis, a real CSV download and recovery. It ends with the public English/French guide. No terminal, login form, password or session token is recorded.
+
+https://github.com/user-attachments/assets/13ff5f84-f3f4-4a0b-9992-03905ca8d530
 
 Application source: `83b87b3` (the delivered application on `main`). Recorded on 19 November 2026 against a separate, seeded local Compose project, with the AI provider set to `none`. Remotion renders the explanatory panels; FFmpeg combines them with the browser footage. No observation, chart, status or diagnostic text was replaced.
 
