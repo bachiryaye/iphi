@@ -1,0 +1,50 @@
+[
+  {
+    "file": "01-overview.webm",
+    "cuts": [[0, 18]]
+  },
+  {
+    "file": "02-scenario.webm",
+    "cuts": [[35.3, 18]]
+  },
+  {
+    "file": "03-critical.webm",
+    "cuts": [[8, 18]]
+  },
+  {
+    "file": "04-metrics.webm",
+    "cuts": [
+      [8, 10],
+      [40, 10]
+    ]
+  },
+  {
+    "file": "05-evidence.webm",
+    "cuts": [
+      [8, 8],
+      [49, 12]
+    ]
+  },
+  {
+    "file": "06-diagnosis.webm",
+    "cuts": [
+      [8, 6],
+      [78, 22],
+      [106.55, 8]
+    ]
+  },
+  {
+    "file": "07-recovery.webm",
+    "cuts": [
+      [43, 23],
+      [143, 5]
+    ]
+  },
+  {
+    "file": "08-help.webm",
+    "cuts": [
+      [34, 14],
+      [60, 8]
+    ]
+  }
+]

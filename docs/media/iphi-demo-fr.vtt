@@ -1,0 +1,47 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:18.000
+La vue d’ensemble affiche sept composants sains et un moniteur actif. Captures
+réelles de l’application. Aucun équipement industriel connecté.
+
+2
+00:00:18.000 --> 00:00:36.000
+Le catalogue est ouvert et le scénario collector_down est démarré sur
+collector-01. Le scénario modifie uniquement les données de la simulation.
+
+3
+00:00:36.000 --> 00:00:54.000
+La vue d’ensemble montre collector-01 critique et un seul incident actif.
+Inconnu signifie preuves insuffisantes, jamais Sain par défaut.
+
+4
+00:00:54.000 --> 00:01:14.000
+La fiche collector-01 montre le graphique de disponibilité, la bande d’états
+et les lignes de règles. Les graphiques montrent les échantillons réellement
+stockés.
+
+5
+00:01:14.000 --> 00:01:34.000
+La page INC-0001 montre le signal puis les évaluations et les échantillons de
+sa chaîne de preuves. Prendre en compte un incident ne répare pas la panne.
+
+6
+00:01:34.000 --> 00:02:10.000
+Le diagnostic est demandé. Les faits et leurs citations sont affichés, une
+preuve est sélectionnée, puis Exporter CSV déclenche le téléchargement du
+rapport. Les preuves gardent leur langue d’origine. Les exports restent
+anglais.
+
+7
+00:02:10.000 --> 00:02:38.000
+Le scénario collector_down est arrêté, la vitesse est réglée sur 30, puis
+Accélérer est choisi. Après une coupe d’attente, l’incident affiche Résolu et
+la plateforme est saine. Temps simulé accéléré visible dans l’interface.
+Coupes de montage signalées dans la transcription.
+
+8
+00:02:38.000 --> 00:03:00.000
+La page Aide est ouverte, le sélecteur passe à English puis à Français. La
+page rechargée conserve le français. Démonstrateur local : aucune remédiation
+ni validation en usine réelle.
