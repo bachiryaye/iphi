@@ -63,3 +63,36 @@ La source applicative `812a307` a passé les six contrôles de la [CI 4458046193
 **Limites conservées :** les journaux, explications et diagnostics enregistrés restent dans leur langue d’origine ; les rapports PDF/CSV restent anglais. Aucun calcul métier, contrat API, schéma persistant ou connecteur n’est modifié par ce lot. Le seuil p95 sur sept jours et les blocages I/O de la machine locale restent documentés dans [performance.md](performance.md). Les captures de livraison ont été produites par la CI après des expirations locales DNS/Chromium ; aucune attente ni assertion métier n’a été assouplie.
 
 **Livraison :** [PR 15 et ses contrôles](https://github.com/bachiryaye/iphi/pull/15). Les identifiants US-01…US-12 et leurs dépendances restent inchangés.
+
+## Complément demandé le 20 novembre — autonomie du débutant et lisibilité
+
+Le propriétaire demande un guide embarqué permettant à un novice d'utiliser l'outil
+très facilement, avec les détails du parcours, des explications simples et une
+typographie lisible. Ce complément conserve les routes, les règles métier et les
+contrats existants. Il ne réouvre pas les critères déjà livrés comme s'ils avaient
+été invalidés ; les preuves ci-dessus décrivent la livraison initiale.
+
+- Transformer le parcours principal en six exercices avec actions numérotées et
+  résultat observable à chaque étape ; expliciter les rôles et les boutons désactivés.
+- Expliquer chaque écran, les règles, l'horloge, la récupération, les téléchargements,
+  l'audit et les différences santé/statut/criticité/qualité/fraîcheur.
+- Fournir un glossaire avec exemples, un dépannage par symptôme, les références
+  industrielles et un parcours de présentation avec ses limites.
+- Conserver l'anglais et le français, les anciennes ancres et l'accès avant connexion.
+- Employer une police de lecture existante, des tailles relatives, un interligne
+  aéré et une largeur limitée ; vérifier clavier, contrastes, tablette, repli et zoom.
+
+**Preuves locales du complément :** `make lint typecheck` PASS ; 21 tests de l'aide
+PASS (dont axe, navigation clavier, ancres, rôles et langues). Chrome réel sans
+connexion : seize sujets, quatre actions pour la panne du collecteur, focus sur
+la section choisie, IBM Plex Sans chargé, corps 16 px / 26 px à 1440 et 768 px.
+Texte agrandi à 200 % : 32 px / 52 px sans débordement ; repli à 320 px sans
+défilement horizontal. Les [captures actualisées](design/screenshots/README.md)
+montrent l'introduction et les instructions réelles dans les deux langues/thèmes.
+
+Les vérifications de livraison, notamment les parcours réels complets EN/FR,
+figurent dans les [exécutions CI de la branche du complément](https://github.com/bachiryaye/iphi/actions?query=branch%3Adocs%2Fnovice-guide).
+Les premières tentatives locales ont subi une forte pression disque, une expiration
+à la création de page navigateur et une interruption de fermeture Vite ; ces
+tentatives ne sont pas comptées comme des parcours réussis. Les attentes et
+assertions métier sont conservées.

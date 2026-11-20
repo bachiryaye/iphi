@@ -17,7 +17,7 @@ export const pageGuidance = {
     fr: "Lisez l’état global et sa règle décisive, puis comparez les composants et incidents actifs. L’état du moniteur décrit IPHI lui-même. Ouvrez un composant ou incident pour les preuves ; les scénarios exigent engineer/admin.",
   },
   topology: {
-    topic: "metrics",
+    topic: "tour",
     en: "Arrows follow data from a dependency to its dependent. Select a node to inspect it; use the table for keyboard navigation. Impact annotates dependency relationships without changing the server’s component state. All roles can inspect.",
     fr: "Les flèches suivent les données d’une dépendance vers le composant qui en dépend. Sélectionnez un nœud ; le tableau permet aussi la navigation clavier. L’impact annote les dépendances sans changer l’état propre calculé par le serveur. Tous les rôles peuvent consulter.",
   },
@@ -28,8 +28,8 @@ export const pageGuidance = {
   },
   component: {
     topic: "metrics",
-    en: "Compare the stored health evaluations with metric history and warning/error logs. Select a time or evidence chip to inspect a proof; gaps mean missing samples, and thresholds apply to rule aggregates. All roles can inspect. Stored explanations and logs keep their original language.",
-    fr: "Comparez les évaluations enregistrées à l’historique des métriques et aux journaux d’avertissement/erreur. Sélectionnez un instant ou une citation ; une lacune signifie un échantillon absent, et les seuils portent sur les agrégats. Tous les rôles peuvent consulter. Explications et journaux gardent leur langue d’origine.",
+    en: "Compare stored health evaluations with metric history and warning/error logs. Select a time or evidence chip to inspect a proof. A gap means missing samples; a rule may combine several measurements over a period. All roles can inspect. Stored explanations and logs keep their original language.",
+    fr: "Comparez les évaluations enregistrées à l’historique des métriques et aux journaux d’avertissement/erreur. Sélectionnez un instant ou une citation pour la preuve. Un trou indique des mesures absentes ; une règle peut combiner plusieurs mesures sur une période. Tous les rôles peuvent consulter. Explications et journaux gardent leur langue d’origine.",
   },
   incidents: {
     topic: "incidents",
@@ -47,12 +47,12 @@ export const pageGuidance = {
     fr: "Choisissez une panne du catalogue et sa cible ; engineer/admin peut démarrer, arrêter et changer l’horloge. Une durée vide signifie jusqu’à l’arrêt. Consultez Vue d’ensemble, examinez l’incident, puis Arrêter pour observer le rétablissement. Réinitialiser exige admin, efface les observations simulées et conserve les preuves d’incident.",
   },
   rules: {
-    topic: "states",
+    topic: "rules",
     en: "Read the version, metric, aggregation window, thresholds and raise/clear confirmation counts. These are demonstration values. Unknown does not pass a rule. All roles can read; rules cannot be edited here. Stored rationale and recommendations retain their original language.",
     fr: "Lisez version, métrique, fenêtre d’agrégation, seuils et nombres de confirmations de déclenchement/rétablissement. Ce sont des valeurs de démonstration. Inconnu ne valide pas une règle. Tous les rôles peuvent lire ; aucune édition ici. Les justifications et recommandations enregistrées gardent leur langue d’origine.",
   },
   audit: {
-    topic: "troubleshooting",
+    topic: "audit",
     en: "Admin only: inspect sensitive actions and denied attempts, filter by action/outcome and UTC interval, then page through results. Audit uses real wall-clock UTC rather than simulated platform time. Reset preserves this journal. Technical action codes and details keep their original values.",
     fr: "Admin uniquement : consultez les actions sensibles et tentatives refusées, filtrez par action/résultat et intervalle UTC, puis parcourez les pages. Audit utilise l’UTC réel, distinct du temps simulé. Réinitialiser conserve ce journal. Les codes d’action et détails techniques gardent leurs valeurs d’origine.",
   },

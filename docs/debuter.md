@@ -22,6 +22,12 @@ IPHI supervise une plateforme de données industrielles : sept services simulés
 
 **Résultat attendu :** La vue affiche sept composants, l’état de plateforme et celui du moniteur. Viewer peut consulter et exporter ; engineer peut lancer des scénarios, changer l’horloge, commenter et gérer les incidents ; admin peut aussi réinitialiser et consulter Audit.
 
+Dans l’outil, **Aide** propose seize sujets et six exercices numérotés, avec le
+résultat attendu après chaque action. Pour une première utilisation, suivez ce
+parcours embarqué ; le sommaire repliable, le glossaire et le dépannage restent
+accessibles à tout moment. Les sections Règles, Horloge, Audit, références
+industrielles et présentation approfondissent les repères ci-dessous.
+
 ## Comprendre l’état de plateforme
 
 Sain indique que les preuves disponibles satisfont les règles. Avertissement et Critique indiquent qu’une règle a dépassé un seuil après sa période de confirmation. Inconnu signifie que les preuves sont absentes, périmées ou insuffisantes ; cet état ne signifie jamais Sain. L’impact est une annotation des dépendances, sans changer l’état propre du composant.

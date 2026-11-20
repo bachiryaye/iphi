@@ -88,6 +88,14 @@
   --text-kpi--line-height: 32px;
   --text-micro: 11px;
   --text-micro--line-height: 14px;
+  --text-guide: 1rem;
+  --text-guide--line-height: 1.625;
+  --text-guide-title: 1.75rem;
+  --text-guide-title--line-height: 1.3;
+  --text-guide-heading: 1.25rem;
+  --text-guide-heading--line-height: 1.4;
+  --text-guide-nav: 0.875rem;
+  --text-guide-nav--line-height: 1.5;
 
   --radius-control: 4px;
   --radius-card: 6px;

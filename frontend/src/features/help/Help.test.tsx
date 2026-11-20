@@ -1,7 +1,7 @@
 import { QueryClient } from "@tanstack/react-query";
 import { screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { pageGuidance } from "@/shared/help/pageContent";
 import { sections } from "@/shared/help/content";
@@ -9,9 +9,14 @@ import { LANGUAGE_KEY } from "@/shared/i18n/LanguageProvider";
 import { COLLECTOR_ID, INCIDENT_ID, noIncidents, diagnostic } from "@/test/apiFixtures";
 import { renderApp, seriousViolations, sessionFixture, stubApi } from "@/test/render";
 
+beforeEach(() => {
+  vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
+});
+
 afterEach(() => {
   localStorage.removeItem(LANGUAGE_KEY);
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe("beginner help and language", () => {
@@ -27,10 +32,13 @@ describe("beginner help and language", () => {
       const nav = screen.getByRole("navigation", {
         name: language === "fr" ? "Sommaire du guide" : "Guide contents",
       });
-      expect(within(nav).getAllByRole("link")).toHaveLength(10);
+      await userEvent.click(
+        within(nav).getByText(language === "fr" ? "Sommaire : 16 sujets" : "Contents: 16 topics"),
+      );
+      expect(within(nav).getAllByRole("link")).toHaveLength(16);
       for (const entry of sections[language]) {
         const link = within(nav).getByRole("link", { name: entry.title });
-        expect(link).toHaveAttribute("href", `#${entry.id}`);
+        expect(link).toHaveAttribute("href", `/help#${entry.id}`);
         expect(document.getElementById(entry.id)).toHaveTextContent(entry.title);
       }
       expect(fetch.mock.calls).toHaveLength(0);
@@ -40,14 +48,14 @@ describe("beginner help and language", () => {
 
   const pages = [
     ["/", "states"],
-    ["/topology", "metrics"],
+    ["/topology", "tour"],
     ["/components", "metrics"],
     [`/components/${COLLECTOR_ID}`, "metrics"],
     ["/incidents", "incidents"],
     [`/incidents/${INCIDENT_ID}`, "incidents"],
     ["/scenarios", "scenarios"],
-    ["/rules", "states"],
-    ["/audit", "troubleshooting"],
+    ["/rules", "rules"],
+    ["/audit", "audit"],
     ["/missing", "start"],
   ];
   it.each(pages)(
@@ -181,4 +189,53 @@ describe("beginner help and language", () => {
       for (const guidance of Object.values(pageGuidance))
         expect(sections[language].some((section) => section.id === guidance.topic)).toBe(true);
   });
+
+  it.each(["en", "fr"] as const)(
+    "lets a novice find numbered fault instructions and keyboard navigation in %s",
+    async (language) => {
+      localStorage.setItem(LANGUAGE_KEY, language);
+      renderApp("/help", undefined, false);
+      const user = userEvent.setup();
+      const quickLink = screen.getByRole("link", {
+        name: language === "fr" ? "Je veux essayer la démo" : "I want to try the demo",
+      });
+      quickLink.focus();
+      await user.keyboard("{Enter}");
+      await waitFor(() => expect(document.getElementById("scenarios")).toHaveFocus());
+      const heading = document.getElementById("scenarios");
+      const chapter = heading?.closest("section");
+      if (!chapter) throw new Error("Missing scenario chapter");
+      const steps = within(chapter).getByRole("list", {
+        name: language === "fr" ? "Pas à pas" : "Step by step",
+      });
+      expect(within(steps).getAllByRole("listitem")).toHaveLength(4);
+      expect(steps).toHaveTextContent("collector_down");
+      expect(steps).toHaveTextContent("collector-01");
+      expect(steps).toHaveTextContent(language === "fr" ? "durée vide" : "duration empty");
+      expect(
+        within(steps).getAllByText(language === "fr" ? "Vous devez voir :" : "You should see:"),
+      ).toHaveLength(4);
+      const nav = screen.getByRole("navigation", {
+        name: language === "fr" ? "Sommaire du guide" : "Guide contents",
+      });
+      await user.click(
+        within(nav).getByText(language === "fr" ? "Sommaire : 16 sujets" : "Contents: 16 topics"),
+      );
+      await user.click(
+        within(nav).getByRole("link", {
+          name:
+            language === "fr"
+              ? "Les références industrielles de la conception"
+              : "Industrial references behind the design",
+        }),
+      );
+      await waitFor(() => expect(document.getElementById("standards")).toHaveFocus());
+      expect(document.getElementById("standards")?.closest("section")).toHaveTextContent(
+        "ISA/IEC 62443",
+      );
+      expect(document.getElementById("standards")?.closest("section")).toHaveTextContent(
+        language === "fr" ? "pas un connecteur OPC UA" : "not an OPC UA adapter",
+      );
+    },
+  );
 });

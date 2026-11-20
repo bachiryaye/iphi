@@ -73,6 +73,56 @@ for (const language of ["en", "fr"] as const) {
     await expect(page.getByLabel("Français / English")).toHaveValue(language);
     await expect(page.locator("html")).toHaveAttribute("lang", language);
 
+    // Long-form help must remain readable without horizontal scrolling or a login.
+    for (const width of [1440, 768, 320]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.goto("/help#scenarios", { waitUntil: "domcontentloaded" });
+      await expect(page.locator("#scenarios")).toBeFocused();
+      const paragraph = page.locator("#scenarios").locator("..").locator("p").first();
+      const reading = await paragraph.evaluate(
+        (element: {
+          ownerDocument: {
+            defaultView: null | {
+              getComputedStyle: (element: unknown) => { fontSize: string; lineHeight: string };
+            };
+          };
+        }) => {
+          const view = element.ownerDocument.defaultView;
+          if (!view) throw new Error("Missing browser window");
+          const style = view.getComputedStyle(element);
+          return {
+            size: parseFloat(style.fontSize),
+            spacing: parseFloat(style.lineHeight) / parseFloat(style.fontSize),
+          };
+        },
+      );
+      expect(reading.size).toBeGreaterThanOrEqual(16);
+      expect(reading.spacing).toBeGreaterThanOrEqual(1.5);
+      expect(
+        await page
+          .locator("html")
+          .evaluate(
+            (element: { scrollWidth: number; clientWidth: number }) =>
+              element.scrollWidth > element.clientWidth,
+          ),
+      ).toBe(false);
+    }
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.locator("html").evaluate((element: { style: { fontSize: string } }) => {
+      element.style.fontSize = "200%";
+    });
+    expect(
+      await page
+        .locator("html")
+        .evaluate(
+          (element: { scrollWidth: number; clientWidth: number }) =>
+            element.scrollWidth <= element.clientWidth,
+        ),
+    ).toBe(true);
+    await page.locator("html").evaluate((element: { style: { fontSize: string } }) => {
+      element.style.fontSize = "";
+    });
+
     await page.goto("/login", { waitUntil: "domcontentloaded" });
     await page.getByLabel(labels.username, { exact: true }).fill("engineer");
     await page.getByLabel(labels.password, { exact: true }).fill(await demoPassword("engineer"));
@@ -85,7 +135,38 @@ for (const language of ["en", "fr"] as const) {
     await guideLink.focus();
     await page.keyboard.press("Enter");
     await expect(page.locator("#states")).toBeFocused();
-    await page.goto("/scenarios", { waitUntil: "domcontentloaded" });
+    // Follow the in-app instructions rather than requiring an external explanation.
+    const contents = page.getByRole("navigation", {
+      name: language === "fr" ? "Sommaire du guide" : "Guide contents",
+    });
+    const disclosure = contents.locator("details");
+    if (
+      !(await disclosure.evaluate((element: { hasAttribute(name: string): boolean }) =>
+        element.hasAttribute("open"),
+      ))
+    ) {
+      await contents.locator("summary").click();
+    }
+    await contents
+      .getByRole("link", {
+        name:
+          language === "fr"
+            ? "Exercice 1 : créer une panne du collecteur"
+            : "Exercise 1: create a collector fault",
+      })
+      .click();
+    const exercise = page.locator("#scenarios").locator("..");
+    const instructions = exercise.getByRole("list", {
+      name: language === "fr" ? "Pas à pas" : "Step by step",
+    });
+    await expect(instructions).toContainText("collector_down");
+    await expect(instructions).toContainText(language === "fr" ? "durée vide" : "duration empty");
+    await exercise
+      .getByRole("link", {
+        name: language === "fr" ? "Ouvrir Scénarios" : "Open Scenarios",
+        exact: true,
+      })
+      .click();
     const scenario = page.getByRole("region", { name: labels.scenario, exact: true });
     await expect(scenario).toContainText("collector_down");
     await scenario.getByRole("button", { name: labels.start }).click();
