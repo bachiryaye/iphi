@@ -1,0 +1,229 @@
+{
+  "apiVersion": "v1.2",
+  "arguments": {
+    "projectName": "iphi-demo",
+    "region": "europe-west",
+    "gitAccount": "bachiryaye",
+    "branch": "main",
+    "commitSha": "",
+    "healthCommand": "iphi-entrypoint healthcheck"
+  },
+  "spec": {
+    "kind": "Workflow",
+    "ref": "root",
+    "spec": {
+      "type": "sequential",
+      "steps": [
+        {
+          "kind": "Project",
+          "ref": "project",
+          "spec": {
+            "name": "${args.projectName}",
+            "region": "${args.region}"
+          }
+        },
+        {
+          "kind": "Workflow",
+          "ref": "resources",
+          "spec": {
+            "type": "sequential",
+            "context": {
+              "projectId": "${refs.project.id}"
+            },
+            "steps": [
+              {
+                "kind": "Addon",
+                "ref": "database",
+                "spec": {
+                  "name": "iphi-postgres",
+                  "type": "postgresql",
+                  "version": "16",
+                  "billing": {
+                    "deploymentPlan": "nf-compute-10",
+                    "replicas": 1,
+                    "storage": 6144
+                  },
+                  "tlsEnabled": true,
+                  "externalAccessEnabled": false
+                }
+              },
+              {
+                "kind": "Condition",
+                "ref": "database-ready",
+                "spec": {
+                  "kind": "Addon",
+                  "spec": {
+                    "type": "running",
+                    "data": {
+                      "addonId": "${refs.database.id}",
+                      "timeoutDuration": 600
+                    }
+                  }
+                }
+              },
+              {
+                "kind": "CombinedService",
+                "ref": "web",
+                "spec": {
+                  "name": "iphi-web",
+                  "tags": [
+                    "iphi-runtime"
+                  ],
+                  "disabledCI": true,
+                  "billing": {
+                    "deploymentPlan": "nf-compute-10"
+                  },
+                  "deployment": {
+                    "instances": 0,
+                    "docker": {
+                      "configType": "default"
+                    }
+                  },
+                  "vcsData": {
+                    "projectType": "github",
+                    "accountLogin": "${args.gitAccount}",
+                    "projectUrl": "https://github.com/bachiryaye/iphi",
+                    "projectBranch": "${args.branch}"
+                  },
+                  "buildSettings": {
+                    "dockerfile": {
+                      "buildEngine": "buildkit",
+                      "dockerWorkDir": "/",
+                      "dockerFilePath": "/Dockerfile.compact"
+                    }
+                  },
+                  "ports": [
+                    {
+                      "name": "http",
+                      "internalPort": 8000,
+                      "protocol": "HTTP",
+                      "public": true
+                    }
+                  ],
+                  "healthChecks": [
+                    {
+                      "protocol": "CMD",
+                      "type": "livenessProbe",
+                      "cmd": "${args.healthCommand}",
+                      "initialDelaySeconds": 60,
+                      "periodSeconds": 30,
+                      "timeoutSeconds": 5,
+                      "failureThreshold": 3
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "SecretGroup",
+                "ref": "runtime",
+                "spec": {
+                  "name": "iphi-runtime",
+                  "type": "secret",
+                  "secretType": "environment",
+                  "priority": 10,
+                  "secrets": {
+                    "variables": {
+                      "IPHI_DEPLOYMENT_MODE": "production",
+                      "IPHI_BIND_HOST": "0.0.0.0",
+                      "IPHI_ALLOWED_HOSTS": "${refs.web.ports.0.dns},127.0.0.1,localhost",
+                      "IPHI_PORT": "8000",
+                      "IPHI_CYCLE_INTERVAL_S": "5",
+                      "IPHI_SIM_SEED": "42",
+                      "IPHI_RETENTION_DAYS": "7",
+                      "IPHI_CONNECTOR_SOURCE": "simulation",
+                      "IPHI_LLM_PROVIDER": "none",
+                      "IPHI_MIGRATE_ON_START": "true",
+                      "IPHI_DB_WAIT_S": "120",
+                      "IPHI_DEMO_VIEWER_PASSWORD": "${fn.randomSecret(32, 'hex')}",
+                      "IPHI_DEMO_ENGINEER_PASSWORD": "${fn.randomSecret(32, 'hex')}",
+                      "IPHI_DEMO_ADMIN_PASSWORD": "${fn.randomSecret(32, 'hex')}"
+                    }
+                  },
+                  "addonDependencies": [
+                    {
+                      "addonId": "${refs.database.id}",
+                      "keys": [
+                        {
+                          "keyName": "POSTGRES_URI",
+                          "aliases": [
+                            "IPHI_DATABASE_URL"
+                          ]
+                        }
+                      ]
+                    }
+                  ],
+                  "restrictions": {
+                    "restricted": true,
+                    "tags": [
+                      "iphi-runtime"
+                    ],
+                    "nfObjects": []
+                  }
+                }
+              },
+              {
+                "kind": "Build",
+                "ref": "build",
+                "condition": "success",
+                "spec": {
+                  "id": "${refs.web.id}",
+                  "type": "service",
+                  "branch": "${args.branch}",
+                  "sha": "${args.commitSha}"
+                }
+              },
+              {
+                "kind": "DeploymentService",
+                "ref": "worker",
+                "spec": {
+                  "name": "iphi-worker",
+                  "tags": [
+                    "iphi-runtime"
+                  ],
+                  "billing": {
+                    "deploymentPlan": "nf-compute-10"
+                  },
+                  "deployment": {
+                    "instances": 1,
+                    "internal": {
+                      "id": "${refs.web.id}",
+                      "branch": "${args.branch}",
+                      "buildId": "${refs.build.id}"
+                    },
+                    "docker": {
+                      "configType": "customCommand",
+                      "customCommand": "worker"
+                    }
+                  },
+                  "ports": [],
+                  "healthChecks": [
+                    {
+                      "protocol": "CMD",
+                      "type": "livenessProbe",
+                      "cmd": "${args.healthCommand}",
+                      "initialDelaySeconds": 60,
+                      "periodSeconds": 30,
+                      "timeoutSeconds": 5,
+                      "failureThreshold": 3
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "CombinedService",
+                "ref": "web-started",
+                "updateMode": "patch",
+                "spec": {
+                  "name": "iphi-web",
+                  "deployment": {
+                    "instances": 1
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

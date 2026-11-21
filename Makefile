@@ -34,6 +34,7 @@ FRONTEND := cd frontend &&
 .PHONY: help up down logs db install lint typecheck test test-backend test-frontend test-e2e \
 	api-client api-drift check demo demo-up demo-running demo-down perf screenshots wait-ready init-env
 .PHONY: mqtt-up mqtt-demo mqtt-down test-mqtt
+.PHONY: compact-image compact-check
 
 help: ## List targets
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
@@ -94,6 +95,12 @@ wait-ready: ## Wait up to 3 min for READY_URL/ready (default: the demo stack)
 
 init-env: ## Generate missing local demo credentials without printing them
 	python3 scripts/init_env.py
+
+compact-image: ## Build the optional API + dashboard image (worker uses the same entrypoint)
+	docker build -f Dockerfile.compact -t iphi-compact:validation .
+
+compact-check: compact-image ## Verify isolated images and the full demo without Compose
+	bash deploy/check_compact.sh
 
 mqtt-up: init-env ## Start the isolated MQTT simulation (UI 8082, API 8002, PostgreSQL 5435)
 	$(MQTT_COMPOSE) up --build -d

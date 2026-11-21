@@ -291,5 +291,15 @@ Demande du propriétaire du 19 novembre 2026 : après MQTT, réaliser une tâche
 
 **Statut :** implémentation validée (ADR 0027), livraison et contrôles dans la [PR 15](https://github.com/bachiryaye/iphi/pull/15). README, aide publique/contextuelle, présentation EN/FR et captures réelles ; les sept critères et leurs preuves sont consignés dans le [plan de finalisation](portfolio-finalization.md). Ce lot conserve les identifiants US-01…US-12.
 
+## Extension de déploiement demandée le 21 novembre 2026
+
+Le propriétaire autorise un profil compact lié à US-01/US-10 : servir le build
+React depuis l'API, conserver un worker séparé et PostgreSQL persistant, utiliser
+les entrypoints et réserver Compose au local ([ADR 0028](adr/0028-compact-hosting.md)).
+La [procédure](deployment.md) vise les deux services et la base d'un hébergement
+gratuit, avec validation locale et navigateur. L'accès au compte, les quotas et
+le déploiement public restent à vérifier avant toute annonce d'une URL hébergée.
+Les identifiants et statuts des stories existantes ne changent pas.
+
 ---
 *Pied de page du document source : IPHI — Document de travail | Backlog et livraison incrémentale (v1.0 indiquait par erreur « Architecture et livraison incrémentale »)*

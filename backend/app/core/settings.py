@@ -1,8 +1,9 @@
 import ipaddress
 from enum import StrEnum
+from pathlib import Path
 from typing import Literal
 
-from pydantic import Field, SecretStr, model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.core.observation import ObservationSource
@@ -23,6 +24,10 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="IPHI_", extra="ignore", frozen=True)
 
     database_url: SecretStr
+    frontend_dir: Path | None = Field(
+        default=None,
+        description="Compiled frontend directory; unset for the separate Nginx image (ADR 0028).",
+    )
     log_level: Literal["debug", "info", "warning", "error"] = "info"
     log_format: Literal["json", "console"] = "json"
     cycle_interval_s: float = Field(default=5.0, gt=0, le=60)
@@ -72,6 +77,16 @@ class Settings(BaseSettings):
         le=600,
         description="How long the bootstrap waits for the database to accept connections.",
     )
+
+    @field_validator("database_url")
+    @classmethod
+    def postgres_driver(cls, value: SecretStr) -> SecretStr:
+        """Managed Postgres URLs use the installed psycopg driver, including TLS parameters."""
+        raw = value.get_secret_value()
+        for prefix in ("postgres://", "postgresql://"):
+            if raw.startswith(prefix):
+                return SecretStr("postgresql+psycopg://" + raw.removeprefix(prefix))
+        return value
 
     @model_validator(mode="after")
     def local_cookie_boundary(self) -> Settings:

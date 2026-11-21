@@ -23,3 +23,6 @@ test-results/
 .playwright-cli/
 
 .iphi-env-*
+
+# Local browser validation artifacts.
+/output/playwright/
