@@ -142,6 +142,71 @@ jobs:
         if: always()
         run: docker compose down --volumes
 
+  compact:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: frontend
+      - name: Install Chromium for the compact profile
+        run: pnpm exec playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Root build context excludes credentials and private state
+        run: |
+          mkdir -p frontend/.playwright backend/.pytest_cache
+          printf 'not-a-credential\n' > .env.context-probe
+          printf 'not-a-credential\n' > frontend/.playwright/context-sentinel
+          printf 'not-a-credential\n' > backend/.pytest_cache/context-sentinel
+          printf 'FROM scratch\nCOPY . /context\n' > "$RUNNER_TEMP/context.Dockerfile"
+          docker build -f "$RUNNER_TEMP/context.Dockerfile" \
+            --output "type=local,dest=$RUNNER_TEMP/compact-context" .
+          test ! -e "$RUNNER_TEMP/compact-context/context/.env.context-probe"
+          test ! -e "$RUNNER_TEMP/compact-context/context/frontend/.playwright"
+          test ! -e "$RUNNER_TEMP/compact-context/context/backend/.pytest_cache"
+          test ! -e "$RUNNER_TEMP/compact-context/context/.git"
+          test ! -e "$RUNNER_TEMP/compact-context/context/handoff"
+          test ! -e "$RUNNER_TEMP/compact-context/context/worklog.md"
+          test -f "$RUNNER_TEMP/compact-context/context/backend/app/main.py"
+          test -f "$RUNNER_TEMP/compact-context/context/frontend/src/main.tsx"
+      - name: Compact image and entrypoint demonstration without Compose
+        id: compact-runtime
+        env:
+          IPHI_COMPACT_KEEP: "1"
+        run: make compact-check
+      - name: Existing browser journeys on the compact image
+        env:
+          COMPACT_STATE_DIR: ${{ steps.compact-runtime.outputs.state_dir }}
+          IPHI_E2E_URL: ${{ steps.compact-runtime.outputs.url }}
+        run: |
+          while IFS='=' read -r key value; do
+            case "$key" in
+              IPHI_DEMO_*_PASSWORD|IPHI_DATABASE_URL) echo "::add-mask::$value" ;;
+            esac
+          done < "$COMPACT_STATE_DIR/runtime.env"
+          set -a
+          source "$COMPACT_STATE_DIR/runtime.env"
+          set +a
+          export IPHI_E2E_STATE_DIR="$COMPACT_STATE_DIR/browser-state"
+          cd frontend
+          pnpm exec playwright test --project chromium --output "$COMPACT_STATE_DIR/browser-results"
+      - name: Stop only the compact check resources
+        if: always() && steps.compact-runtime.outputs.resource != ''
+        env:
+          COMPACT_RESOURCE: ${{ steps.compact-runtime.outputs.resource }}
+        run: |
+          [[ "$COMPACT_RESOURCE" == iphi-compact-check-* ]]
+          docker rm -f -v "$COMPACT_RESOURCE-api" "$COMPACT_RESOURCE-worker" "$COMPACT_RESOURCE-db"
+          docker network rm "$COMPACT_RESOURCE"
+
   demo:
     runs-on: ubuntu-24.04
     timeout-minutes: 30

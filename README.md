@@ -106,6 +106,11 @@ flowchart LR
 
 A modular monolith: the API and worker share the same Python application/image. A single worker collects and evaluates every 5 s of platform time. React renders the server’s conclusions; it does not duplicate health rules. Docker Compose runs PostgreSQL, migrations/seed, API, worker and the Nginx frontend. [Detailed architecture](docs/02-architecture-technique.md).
 
+For hosting, the optional [compact deployment profile](docs/deployment.md) serves the
+compiled React dashboard from the API image, with the worker and PostgreSQL still
+separate. It uses image entrypoints; Compose remains local. This repository does
+not yet advertise a verified public demo URL.
+
 ## Daily use and stopping
 
 Use the persistent development stack when you want to keep history:

@@ -21,6 +21,7 @@ from app.connectors.registry import enabled_connector_keys
 from app.core.clock import WallClock
 from app.core.db import create_db_engine, create_session_factory
 from app.core.errors import Problem, register_error_handlers
+from app.core.frontend import FrontendFiles
 from app.core.logging import configure_logging
 from app.core.middleware import (
     BodySizeLimitMiddleware,
@@ -134,6 +135,8 @@ def create_app(settings: Settings) -> FastAPI:
     app.add_middleware(BodySizeLimitMiddleware)
     app.add_middleware(CorrelationIdMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
+    if settings.frontend_dir is not None:
+        app.mount("/", FrontendFiles(settings.frontend_dir), name="frontend")
     return app
 
 

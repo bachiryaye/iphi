@@ -34,3 +34,4 @@ Format : contexte, décision, alternatives, conséquences. Statut de toutes les 
 Nouvelle ADR : copier le format, numéro suivant, statut *Proposée* jusqu'à validation.
 
 - [0027 — Bilingual presentation and beginner help](0027-bilingual-help.md)
+- [0028 — Compact hosting with separate API and worker](0028-compact-hosting.md)

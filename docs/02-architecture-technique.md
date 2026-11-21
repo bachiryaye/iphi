@@ -95,6 +95,15 @@ flowchart LR
 
 L'`api` et le `worker` partagent le même code et la même image ; ce sont deux points d'entrée d'un même monolithe modulaire, pas deux microservices.
 
+**Profil hébergé compact (ADR 0028).** Compose reste local. L'image optionnelle
+`Dockerfile.compact` embarque le build React, servi par FastAPI avec sa politique
+de sécurité propre. Deux services hébergés suffisent alors : API + fichiers
+statiques, puis worker séparé ; PostgreSQL reste persistant et privé. Les
+entrypoints `api`, `worker`, `migrate`, les règles métier et le contrat API sont
+conservés. Le profil gratuit vise la simulation directe ; le broker et le publieur
+MQTT optionnels exigent des ressources supplémentaires. Procédure et limites :
+[déploiement](deployment.md).
+
 ### 02.2 — Cycle de traitement (`run_cycle`)
 
 Chaque cycle (par défaut toutes les 5 s d'horloge de plateforme) exécute **séquentiellement et de manière transactionnelle** :

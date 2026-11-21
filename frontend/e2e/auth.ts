@@ -1,12 +1,15 @@
 import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const AUTH_STATE = fileURLToPath(
-  new URL("../.playwright/admin-state.json", import.meta.url),
-);
-export const AUTH_HEADERS = fileURLToPath(
-  new URL("../.playwright/admin-headers.json", import.meta.url),
-);
+const isolatedState = process.env.IPHI_E2E_STATE_DIR;
+
+export const AUTH_STATE = isolatedState
+  ? resolve(isolatedState, "admin-state.json")
+  : fileURLToPath(new URL("../.playwright/admin-state.json", import.meta.url));
+export const AUTH_HEADERS = isolatedState
+  ? resolve(isolatedState, "admin-headers.json")
+  : fileURLToPath(new URL("../.playwright/admin-headers.json", import.meta.url));
 
 export async function demoPassword(role: "viewer" | "engineer" | "admin"): Promise<string> {
   const key = `IPHI_DEMO_${role.toUpperCase()}_PASSWORD`;
